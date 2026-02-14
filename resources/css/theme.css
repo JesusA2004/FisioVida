@@ -1,0 +1,23 @@
+:root{
+    --brand-teal:#059AB2;
+    --brand-teal-deep:#137072;
+    --brand-lime:#73B532;
+    --brand-forest:#428334;
+    --brand-ink:#10443D;
+    --brand-dark-forest:#28461F;
+  
+    --bg:#0B1220;
+    --card:#0F172A;
+    --border:rgba(226,232,240,.12);
+    --muted:#94A3B8;
+    --text:#E2E8F0;
+  }
+  
+  .dark{
+    --bg:#0B1220;
+    --card:#0F172A;
+    --border:rgba(226,232,240,.12);
+    --muted:#94A3B8;
+    --text:#E2E8F0;
+  }
+  

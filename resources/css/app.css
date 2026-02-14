@@ -1,0 +1,219 @@
+@import 'tailwindcss';
+
+@import 'tw-animate-css';
+
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../storage/framework/views/*.php';
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+    --font-sans:
+        Instrument Sans, ui-sans-serif, system-ui, sans-serif,
+        'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
+        'Noto Color Emoji';
+
+    --radius-lg: var(--radius);
+    --radius-md: calc(var(--radius) - 2px);
+    --radius-sm: calc(var(--radius) - 4px);
+
+    --color-background: var(--background);
+    --color-foreground: var(--foreground);
+
+    --color-card: var(--card);
+    --color-card-foreground: var(--card-foreground);
+
+    --color-popover: var(--popover);
+    --color-popover-foreground: var(--popover-foreground);
+
+    --color-primary: var(--primary);
+    --color-primary-foreground: var(--primary-foreground);
+
+    --color-secondary: var(--secondary);
+    --color-secondary-foreground: var(--secondary-foreground);
+
+    --color-muted: var(--muted);
+    --color-muted-foreground: var(--muted-foreground);
+
+    --color-accent: var(--accent);
+    --color-accent-foreground: var(--accent-foreground);
+
+    --color-destructive: var(--destructive);
+    --color-destructive-foreground: var(--destructive-foreground);
+
+    --color-border: var(--border);
+    --color-input: var(--input);
+    --color-ring: var(--ring);
+
+    --color-chart-1: var(--chart-1);
+    --color-chart-2: var(--chart-2);
+    --color-chart-3: var(--chart-3);
+    --color-chart-4: var(--chart-4);
+    --color-chart-5: var(--chart-5);
+
+    --color-sidebar: var(--sidebar-background);
+    --color-sidebar-foreground: var(--sidebar-foreground);
+    --color-sidebar-primary: var(--sidebar-primary);
+    --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+    --color-sidebar-accent: var(--sidebar-accent);
+    --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+    --color-sidebar-border: var(--sidebar-border);
+    --color-sidebar-ring: var(--sidebar-ring);
+}
+
+/*
+  The default border color has changed to `currentColor` in Tailwind CSS v4,
+  so we've added these compatibility styles to make sure everything still
+  looks the same as it did with Tailwind CSS v3.
+
+  If we ever want to remove these styles, we need to add an explicit border
+  color utility to any element that depends on these defaults.
+*/
+@layer base {
+    *,
+    ::after,
+    ::before,
+    ::backdrop,
+    ::file-selector-button {
+        border-color: var(--color-gray-200, currentColor);
+    }
+}
+
+@layer utilities {
+    body,
+    html {
+        --font-sans:
+            'Instrument Sans', ui-sans-serif, system-ui, sans-serif,
+            'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
+            'Noto Color Emoji';
+    }
+}
+
+:root {
+    /* Base */
+    --background: hsl(210 40% 98%);       /* slate-50 */
+    --foreground: hsl(222 47% 11%);       /* slate-900 */
+
+    --card: hsl(0 0% 100%);
+    --card-foreground: hsl(222 47% 11%);
+
+    --popover: hsl(0 0% 100%);
+    --popover-foreground: hsl(222 47% 11%);
+
+    /* Brand = FisioVida (Teal/Lime) */
+    --primary: hsl(188 95% 36%);          /* ~ #059AB2 */
+    --primary-foreground: hsl(210 40% 98%);
+
+    --secondary: hsl(142 56% 90%);        /* lime muy suave */
+    --secondary-foreground: hsl(222 47% 11%);
+
+    --muted: hsl(210 40% 96%);
+    --muted-foreground: hsl(215 16% 47%); /* slate-500 */
+
+    --accent: hsl(188 80% 92%);           /* teal suave */
+    --accent-foreground: hsl(222 47% 11%);
+
+    --destructive: hsl(0 84.2% 60.2%);
+    --destructive-foreground: hsl(210 40% 98%);
+
+    --border: hsl(214 32% 91%);           /* slate-200 */
+    --input: hsl(214 32% 91%);
+    --ring: hsl(188 95% 36%);             /* mismo que primary */
+
+    /* Charts (alineados al logo) */
+    --chart-1: hsl(188 95% 36%);          /* teal */
+    --chart-2: hsl(88 55% 45%);           /* lime */
+    --chart-3: hsl(165 38% 26%);          /* ink/forest */
+    --chart-4: hsl(142 45% 36%);          /* forest */
+    --chart-5: hsl(200 70% 45%);          /* teal variante */
+
+    --radius: 0.8rem;
+
+    /* Sidebar (light) */
+    --sidebar-background: hsl(210 40% 98%);
+    --sidebar-foreground: hsl(222 47% 11%);
+    --sidebar-primary: hsl(188 95% 36%);
+    --sidebar-primary-foreground: hsl(210 40% 98%);
+    --sidebar-accent: hsl(210 40% 96%);
+    --sidebar-accent-foreground: hsl(222 47% 11%);
+    --sidebar-border: hsl(214 32% 91%);
+    --sidebar-ring: hsl(188 95% 36%);
+    --sidebar: hsl(210 40% 98%);
+}
+
+.dark {
+    /* Base dark premium */
+    --background: hsl(222 47% 6%);        /* near slate-950 */
+    --foreground: hsl(210 40% 98%);
+
+    --card: hsl(222 47% 8%);
+    --card-foreground: hsl(210 40% 98%);
+
+    --popover: hsl(222 47% 8%);
+    --popover-foreground: hsl(210 40% 98%);
+
+    /* Brand in dark */
+    --primary: hsl(188 95% 42%);          /* teal más vivo */
+    --primary-foreground: hsl(222 47% 6%);
+
+    --secondary: hsl(142 36% 18%);
+    --secondary-foreground: hsl(210 40% 98%);
+
+    --muted: hsl(215 28% 14%);
+    --muted-foreground: hsl(215 20% 65%);
+
+    --accent: hsl(188 35% 18%);
+    --accent-foreground: hsl(210 40% 98%);
+
+    --destructive: hsl(0 84% 60%);
+    --destructive-foreground: hsl(210 40% 98%);
+
+    --border: hsl(215 28% 16%);
+    --input: hsl(215 28% 16%);
+    --ring: hsl(188 95% 42%);
+
+    --chart-1: hsl(188 95% 42%);
+    --chart-2: hsl(88 55% 50%);
+    --chart-3: hsl(165 35% 35%);
+    --chart-4: hsl(142 45% 45%);
+    --chart-5: hsl(200 70% 52%);
+
+    /* Sidebar (dark) */
+    --sidebar-background: hsl(222 47% 7%);
+    --sidebar-foreground: hsl(210 40% 96%);
+    --sidebar-primary: hsl(188 95% 42%);
+    --sidebar-primary-foreground: hsl(222 47% 6%);
+    --sidebar-accent: hsl(215 28% 14%);
+    --sidebar-accent-foreground: hsl(210 40% 96%);
+    --sidebar-border: hsl(215 28% 16%);
+    --sidebar-ring: hsl(188 95% 42%);
+    --sidebar: hsl(222 47% 7%);
+}
+
+@layer base {
+    * {
+        @apply border-border outline-ring/50;
+    }
+    body {
+        @apply bg-background text-foreground;
+    }
+}
+
+@layer utilities {
+    .fv-page {
+      @apply min-h-screen bg-background text-foreground;
+    }
+  
+    .fv-card {
+      @apply rounded-2xl border bg-card text-card-foreground shadow-sm;
+    }
+  
+    .fv-soft-border {
+      border-color: hsl(var(--border) / 0.7);
+    }
+  }
+  
+  /* SweetAlert2 arriba de TODO (modales, dropdowns, etc.) */
+  .swal2-container { z-index: 20000 !important; }
+  .swal2-popup { border-radius: 16px !important; }
+  
