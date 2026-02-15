@@ -17,14 +17,15 @@ defineProps<{
 
 <template>
     <AuthLayout
-        title="Forgot password"
-        description="Enter your email to receive a password reset link"
+        title="Recuperar contraseña"
+        description="Ingresa tu correo y te enviaremos un enlace para restablecer tu contraseña."
     >
-        <Head title="Forgot password" />
+        <Head title="Recuperar contraseña" />
 
+        <!-- Estado / Mensaje -->
         <div
             v-if="status"
-            class="mb-4 text-center text-sm font-medium text-green-600"
+            class="mb-4 rounded-xl border border-green-500/20 bg-green-500/10 px-4 py-3 text-center text-sm font-medium text-green-700 dark:text-green-300"
         >
             {{ status }}
         </div>
@@ -32,33 +33,38 @@ defineProps<{
         <div class="space-y-6">
             <Form v-bind="email.form()" v-slot="{ errors, processing }">
                 <div class="grid gap-2">
-                    <Label for="email">Email address</Label>
+                    <Label for="email">Correo electrónico</Label>
                     <Input
                         id="email"
                         type="email"
                         name="email"
                         autocomplete="off"
                         autofocus
-                        placeholder="email@example.com"
+                        placeholder="correo@ejemplo.com"
+                        class="mt-1"
                     />
                     <InputError :message="errors.email" />
                 </div>
 
-                <div class="my-6 flex items-center justify-start">
+                <div class="mt-6">
                     <Button
                         class="w-full"
                         :disabled="processing"
                         data-test="email-password-reset-link-button"
                     >
                         <Spinner v-if="processing" />
-                        Email password reset link
+                        <span>{{ processing ? 'Enviando enlace…' : 'Enviar enlace de recuperación' }}</span>
                     </Button>
+
+                    <p class="mt-3 text-center text-xs text-muted-foreground">
+                        Si el correo existe, te llegará un enlace en unos minutos.
+                    </p>
                 </div>
             </Form>
 
-            <div class="space-x-1 text-center text-sm text-muted-foreground">
-                <span>Or, return to</span>
-                <TextLink :href="login()">log in</TextLink>
+            <div class="text-center text-sm text-muted-foreground">
+                <span>¿Ya la recordaste?</span>
+                <TextLink :href="login()" class="ml-1">Volver a iniciar sesión</TextLink>
             </div>
         </div>
     </AuthLayout>

@@ -23,9 +23,14 @@ defineProps<{
                         <div
                             class="mb-1 flex h-9 w-9 items-center justify-center rounded-md"
                         >
+                        <div class="mb-6 flex w-full justify-center">
                             <AppLogoIcon
-                                class="size-9 fill-current text-[var(--foreground)] dark:text-white"
+                                src="/ogLogo.png"
+                                alt="FisioVida"
+                                className="h-14 w-auto max-w-[260px] object-contain sm:h-16 md:h-18"
+                                draggable="false"
                             />
+                            </div>
                         </div>
                         <span class="sr-only">{{ title }}</span>
                     </Link>
