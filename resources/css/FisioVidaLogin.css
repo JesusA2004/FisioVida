@@ -1,0 +1,503 @@
+/* =====================================================================
+   FisioVida Login (Clean Premium)
+   - BG: pantalla completa (cover) como lo querías
+   - Botón: VERDE AGUA (teal) desde el arranque
+   - Card: glass negro premium (sin cosas raras)
+   - Hovers redes: elegantes, no chafas
+   - Animación: "Validando usuario..." con dots + bar
+   - CERO scroll / CERO márgenes / CERO scrollbars
+   ===================================================================== */
+
+/* ====== HARD STOP: CERO SCROLL / CERO MÁRGENES / CERO SCROLLBARS ====== */
+:global(html, body) {
+    height: 100%;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    overscroll-behavior: none;
+  }
+  :global(#app) {
+    height: 100%;
+    overflow: hidden !important;
+  }
+  :global(*::-webkit-scrollbar) { width: 0; height: 0; }
+  
+  /* ====== Tokens / fallbacks ====== */
+  :global(:root){
+    --fv-teal: #059AB2;      /* verde agua */
+    --fv-teal-deep: #137072; /* teal profundo */
+    --fv-white: rgba(255,255,255,0.94);
+    --fv-white-2: rgba(255,255,255,0.82);
+    --fv-white-dim: rgba(255,255,255,0.72);
+    --fv-black-glass: rgba(0, 0, 0, 0.74);
+    --fv-black-glass-2: rgba(0, 0, 0, 0.58);
+  
+    /* si tu theme ya trae --primary/--ring, los usamos; si no, fallback */
+    --fv-primary: hsl(var(--primary, 189 97% 36%));
+    --fv-ring: hsl(var(--ring, 189 97% 36%));
+  }
+  
+  /* ====== Screen ====== */
+  .fv-screen {
+    height: 100dvh;
+    width: 100vw;
+    overflow: hidden;
+    position: relative;
+    background: hsl(var(--background));
+    color: hsl(var(--foreground));
+  }
+  
+  /* ====== Background ====== */
+  .fv-bg {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    transform: translateZ(0);
+  }
+  
+  .fv-bg-img {
+    position: absolute;
+    inset: 0;
+    height: 100%;
+    width: 100%;
+  
+    /* REGRESO A COVER (pantalla completa) */
+    object-fit: cover;
+    object-position: center;
+  
+    transform: scale(1.05);
+    filter: saturate(1.06) contrast(1.03);
+  }
+  
+  /* overlay para legibilidad (sin matar tu imagen) */
+  .fv-bg::after{
+    content:"";
+    position:absolute;
+    inset:0;
+    pointer-events:none;
+    background:
+      radial-gradient(1200px 700px at 50% 20%, rgba(0,0,0,.40), transparent 55%),
+      linear-gradient(180deg, rgba(0,0,0,.45), rgba(0,0,0,.72));
+  }
+  
+  /* ====== Center ====== */
+  .fv-center {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    padding: 18px;
+  }
+  
+  .fv-stack {
+    width: min(520px, 92vw);
+    display: grid;
+    gap: 14px;
+    place-items: stretch;
+  }
+  
+  /* ================================================================
+     CARD: negro real translúcido + glass premium + glow teal sutil
+     ================================================================ */
+  .fv-card{
+    border: 0 !important;
+    outline: 0 !important;
+    border-radius: 30px;
+    padding: 24px;
+    overflow: hidden;
+    position: relative;
+  
+    background: var(--fv-black-glass) !important;
+  
+    -webkit-backdrop-filter: blur(24px) saturate(1.25);
+    backdrop-filter: blur(24px) saturate(1.25);
+  
+    box-shadow:
+      0 44px 160px -115px rgba(0, 0, 0, 0.96),
+      0 18px 60px -44px rgba(0, 0, 0, 0.92);
+  
+    color: var(--fv-white);
+    transform: translateZ(0);
+  
+    transition: transform .18s ease, box-shadow .18s ease, background-color .18s ease;
+  }
+  
+  @media (min-width: 640px) {
+    .fv-card { padding: 28px; }
+  }
+  
+  /* Glow teal (sin borde marcado) */
+  .fv-card::before{
+    content:"";
+    position:absolute;
+    inset:-2px;
+    pointer-events:none;
+    background:
+      radial-gradient(560px 280px at 50% -12%, rgba(5,154,178,.22), transparent 62%),
+      radial-gradient(780px 420px at 50% 125%, rgba(255,255,255,0.06), transparent 70%);
+    opacity: 0.95;
+  }
+  
+  /* Sheen superior leve */
+  .fv-card::after{
+    content:"";
+    position:absolute;
+    left:-35%;
+    top:-58%;
+    width:170%;
+    height:95%;
+    pointer-events:none;
+    background: linear-gradient(
+      135deg,
+      transparent 22%,
+      rgba(255,255,255,0.06) 46%,
+      transparent 72%
+    );
+    opacity: 0.28;
+    transform: rotate(-7deg);
+  }
+  
+  .fv-card > * { position: relative; z-index: 1; }
+  
+  .fv-card:hover{
+    transform: translateY(-2px);
+    box-shadow:
+      0 50px 175px -120px rgba(0, 0, 0, 0.98),
+      0 22px 70px -50px rgba(0, 0, 0, 0.94);
+  }
+  .fv-card:focus-within{
+    transform: translateY(-2px);
+    box-shadow:
+      0 0 0 6px rgba(5,154,178,.18),
+      0 50px 175px -120px rgba(0, 0, 0, 0.98),
+      0 22px 70px -50px rgba(0, 0, 0, 0.94);
+  }
+  
+  /* ====== Brand ====== */
+  .fv-brand {
+    display: grid;
+    place-items: center;
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+  
+  .fv-logo{
+    height: 46px;
+    width: 46px;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.10);
+    display: grid;
+    place-items: center;
+    box-shadow: 0 18px 60px -46px rgba(0,0,0,0.95);
+  }
+  
+  .fv-logo-img{
+    height: 24px;
+    width: 24px;
+    object-fit: contain;
+    border-radius: 6px;
+  }
+  
+  .fv-title {
+    font-size: 18px;
+    font-weight: 950;
+    letter-spacing: -0.02em;
+    color: rgba(255,255,255,0.97);
+  }
+  
+  .fv-subtitle{
+    margin-top: -2px;
+    font-size: 12px;
+    color: var(--fv-white-dim);
+  }
+  
+  .fv-status{
+    margin-top: 6px;
+    width: 100%;
+    text-align: center;
+    border-radius: 16px;
+    padding: 10px 12px;
+  
+    background: rgba(5,154,178,.14);
+    color: rgba(255,255,255,0.92);
+    font-size: 12px;
+  
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.10);
+  }
+  
+  /* ====== "Validando usuario..." ====== */
+  .fv-wait{
+    margin: 2px 0 6px;
+    border-radius: 14px;
+    padding: 10px 12px;
+  
+    background: rgba(0,0,0,0.34);
+    -webkit-backdrop-filter: blur(14px) saturate(1.2);
+    backdrop-filter: blur(14px) saturate(1.2);
+  
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08);
+    color: rgba(255,255,255,0.88);
+  
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+  }
+  
+  .fv-dots{
+    display: inline-flex;
+    gap: 4px;
+    align-items: center;
+  }
+  .fv-dots span{
+    width: 6px;
+    height: 6px;
+    border-radius: 999px;
+    background: rgba(5,154,178,.95);
+    opacity: .55;
+    animation: fv-dot 1.0s ease-in-out infinite;
+  }
+  .fv-dots span:nth-child(2){ animation-delay: .12s; }
+  .fv-dots span:nth-child(3){ animation-delay: .24s; }
+  
+  @keyframes fv-dot{
+    0%, 100%{ transform: translateY(0); opacity: .45; }
+    50%{ transform: translateY(-3px); opacity: .95; }
+  }
+  
+  /* ====== Form ====== */
+  .fv-form { display: grid; gap: 14px; }
+  .fv-field { display: grid; gap: 8px; }
+  .fv-row { display: flex; align-items: center; gap: 10px; }
+  .fv-end { justify-content: flex-end; }
+  
+  .fv-label {
+    font-size: 12px;
+    color: var(--fv-white-2);
+  }
+  
+  /* ====== INPUTS: visibles sin hover ====== */
+  .fv-input{
+    height: 46px !important;
+    border: 0 !important;
+    outline: none !important;
+    box-shadow: none !important;
+    border-radius: 14px !important;
+  
+    background: rgba(255,255,255,0.16) !important;
+    color: rgba(255,255,255,0.94) !important;
+  
+    box-shadow:
+      inset 0 0 0 1px rgba(255,255,255,0.16),
+      0 14px 40px -34px rgba(0,0,0,0.95) !important;
+  
+    transition: transform .16s ease, background-color .16s ease, box-shadow .16s ease;
+  }
+  
+  .fv-input::placeholder { color: rgba(255,255,255,0.48); }
+  
+  .fv-input:hover{
+    background: rgba(255,255,255,0.20) !important;
+    transform: translateY(-1px);
+  }
+  
+  .fv-input:focus{
+    background: rgba(255,255,255,0.22) !important;
+    transform: translateY(-1px);
+    box-shadow:
+      0 0 0 4px rgba(5,154,178,.28),
+      inset 0 0 0 1px rgba(255,255,255,0.18),
+      0 18px 55px -40px rgba(0,0,0,0.95) !important;
+  }
+  
+  .fv-pass{ position: relative; }
+  .fv-input-pass{ padding-right: 52px !important; }
+  
+  /* Eye */
+  .fv-eye{
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    height: 36px;
+    width: 36px;
+    border: 0 !important;
+    outline: 0 !important;
+  
+    background: rgba(255,255,255,0.08);
+    color: rgba(255,255,255,0.88);
+  
+    border-radius: 12px;
+    display: grid;
+    place-items: center;
+  
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.14);
+    transition: background-color .16s ease, transform .16s ease, box-shadow .16s ease;
+  }
+  .fv-eye:hover{
+    background: rgba(255,255,255,0.12);
+    box-shadow:
+      inset 0 0 0 1px rgba(255,255,255,0.18),
+      0 12px 40px -30px rgba(0,0,0,0.85);
+  }
+  .fv-eye:active{ transform: translateY(-50%) scale(.98); }
+  
+  /* Links */
+  .fv-link{
+    font-size: 12px;
+    color: rgba(5,154,178,.98);
+    text-decoration: none;
+    transition: color .16s ease, transform .16s ease;
+  }
+  .fv-link:hover{
+    color: rgba(5,154,178,1);
+    transform: translateY(-1px);
+  }
+  
+  /* ====== BOTÓN: VERDE AGUA ====== */
+  .fv-btn{
+    height: 46px;
+    width: 100%;
+    border: 0 !important;
+    outline: 0 !important;
+    border-radius: 14px;
+  
+    background: linear-gradient(
+      180deg,
+      var(--fv-teal),
+      var(--fv-teal-deep)
+    ) !important;
+  
+    color: #ffffff !important;
+    font-weight: 950;
+  
+    overflow: hidden;
+    position: relative;
+  
+    box-shadow:
+      0 26px 80px -48px rgba(5,154,178,0.85),
+      0 14px 40px -30px rgba(0,0,0,0.92);
+  
+    transition: transform .16s ease, box-shadow .16s ease, filter .16s ease;
+  }
+  
+  .fv-btn:hover{
+    transform: translateY(-1px);
+    filter: saturate(1.08);
+    box-shadow:
+      0 30px 95px -54px rgba(5,154,178,0.95),
+      0 18px 55px -36px rgba(0,0,0,0.92);
+  }
+  
+  .fv-btn:active{ transform: translateY(0); }
+  
+  .fv-btn:focus-visible{
+    box-shadow:
+      0 0 0 6px rgba(5,154,178,.28),
+      0 26px 80px -48px rgba(5,154,178,0.85),
+      0 14px 40px -30px rgba(0,0,0,0.92);
+  }
+  
+  /* Shine */
+  .fv-btn-shine{
+    position: absolute;
+    inset: 0;
+    transform: translateX(-120%);
+    background: linear-gradient(to right, transparent, rgba(255,255,255,0.24), transparent);
+    transition: transform .85s ease;
+  }
+  .fv-btn:hover .fv-btn-shine{ transform: translateX(120%); }
+  
+  .fv-btn-content{
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+  }
+  
+  /* Bar animada SOLO cuando está processing */
+  .fv-btn-bar{
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 3px;
+    background: rgba(255,255,255,0.22);
+    overflow: hidden;
+  }
+  .fv-btn-bar::before{
+    content:"";
+    position:absolute;
+    inset:0;
+    width: 45%;
+    background: rgba(255,255,255,0.55);
+    transform: translateX(-120%);
+    animation: fv-bar 1.15s ease-in-out infinite;
+  }
+  @keyframes fv-bar{
+    0% { transform: translateX(-120%); opacity: .35; }
+    50% { opacity: .85; }
+    100% { transform: translateX(260%); opacity: .35; }
+  }
+  
+  /* ====== Redes: hover elegante ====== */
+  .fv-footer{
+    display: flex;
+    gap: 14px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  
+  .fv-social{
+    height: 44px;
+    width: 44px;
+    border-radius: 14px;
+    border: 0 !important;
+    outline: 0 !important;
+  
+    background: var(--fv-black-glass-2);
+    -webkit-backdrop-filter: blur(14px) saturate(1.2);
+    backdrop-filter: blur(14px) saturate(1.2);
+  
+    color: rgba(255,255,255,0.82);
+  
+    box-shadow:
+      inset 0 0 0 1px rgba(255,255,255,0.10),
+      0 18px 70px -60px rgba(0,0,0,0.92);
+  
+    display: grid;
+    place-items: center;
+  
+    transition: transform .16s ease, background-color .16s ease, box-shadow .16s ease, filter .16s ease;
+  }
+  
+  .fv-social:hover{
+    transform: translateY(-2px);
+    filter: saturate(1.06);
+  
+    /* solo teal suave, sin gradientes raros */
+    background: rgba(5,154,178,0.16);
+  
+    box-shadow:
+      inset 0 0 0 1px rgba(5,154,178,0.30),
+      0 22px 78px -60px rgba(0,0,0,0.92),
+      0 0 0 6px rgba(5,154,178,0.10);
+  }
+  
+  .fv-social:active{ transform: translateY(0) scale(.98); }
+  
+  /* Copy */
+  .fv-copy{
+    text-align: center;
+    font-size: 12px;
+    color: rgba(255,255,255,0.70);
+  }
+  
+  /* Respeta reduced motion */
+  @media (prefers-reduced-motion: reduce) {
+    .fv-card, .fv-input, .fv-eye, .fv-btn, .fv-social, .fv-link, .fv-btn-shine { transition: none !important; }
+    .fv-dots span, .fv-btn-bar::before { animation: none !important; }
+  }
+  

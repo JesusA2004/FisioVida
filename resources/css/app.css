@@ -94,7 +94,7 @@
     --background: hsl(210 40% 98%);       /* slate-50 */
     --foreground: hsl(222 47% 11%);       /* slate-900 */
 
-    --card: hsl(0 0% 100%);
+    --card: hsl(0, 0%, 0%);
     --card-foreground: hsl(222 47% 11%);
 
     --popover: hsl(0 0% 100%);

@@ -1,20 +1,20 @@
 <script setup lang="ts">
-import type { HTMLAttributes } from 'vue'
+    import type { HTMLAttributes } from 'vue'
 
-defineOptions({ inheritAttrs: false })
+    defineOptions({ inheritAttrs: false })
 
-type Props = {
-  className?: HTMLAttributes['class']
-  src?: string
-  alt?: string
-}
+    type Props = {
+        className?: HTMLAttributes['class']
+        src?: string
+        alt?: string
+    }
 
-withDefaults(defineProps<Props>(), {
-  src: '/ogLogo.png',
-  alt: 'FisioVida',
-})
+    withDefaults(defineProps<Props>(), {
+        src: '/ogLogo.png',
+        alt: 'FisioVida',
+    })
 </script>
 
 <template>
-  <img :src="src" :alt="alt" :class="className" v-bind="$attrs" />
+    <img :src="src" :alt="alt" :class="className" v-bind="$attrs" />
 </template>
