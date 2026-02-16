@@ -38,63 +38,52 @@
     const mainNavItems: NavItem[] = [
         {
             title: 'Dashboard',
-            href: dashboard(),
+            href: '/dashboard',
             icon: LayoutGrid,
         },
-
-        // mod_agenda
         {
             title: 'Agenda',
-            href: '#',
+            href: '/citas',
             icon: CalendarDays,
         },
-
-        // mod_pacientes
         {
             title: 'Pacientes',
-            href: '#',
+            href: '/pacientes',
             icon: Users,
         },
-
-        // mod_sesiones
         {
             title: 'Sesiones',
-            href: '#',
+            href: '/sesiones',
             icon: ClipboardList,
         },
-
-        // mod_ejercicios
         {
             title: 'Ejercicios',
-            href: '#',
+            href: '/ejercicios',
             icon: Dumbbell,
         },
-
-        // mod_archivos
         {
             title: 'Archivos',
-            href: '#',
+            href: '/archivos',
             icon: FileText,
         },
-
-        // mod_reportes
-        {
-            title: 'Reportes',
-            href: '#',
-            icon: BarChart3,
-        },
-
-        // mod_cobranza
         {
             title: 'Cobranza',
-            href: '#',
+            href: '/pagos',
             icon: CreditCard,
         },
-
-        // mod_config
+        {
+            title: 'Logs',
+            href: '/logs',
+            icon: BarChart3,
+        },
+        {
+            title: 'Usuarios',
+            href: '/usuarios',
+            icon: Users,
+        },
         {
             title: 'Configuración',
-            href: '#',
+            href: '/settings/profile',
             icon: Settings,
         },
     ]

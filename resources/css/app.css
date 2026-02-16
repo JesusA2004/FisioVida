@@ -217,3 +217,8 @@
   .swal2-container { z-index: 20000 !important; }
   .swal2-popup { border-radius: 16px !important; }
   
+
+  @layer utilities {
+    .fv-no-scrollbar::-webkit-scrollbar { width: 0px; height: 0px; }
+    .fv-no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+  }
