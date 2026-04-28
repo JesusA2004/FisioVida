@@ -7,6 +7,7 @@ use App\Http\Requests\Actividades\ActivityStoreRequest;
 use App\Http\Requests\Actividades\ActivityUpdateRequest;
 use App\Http\Resources\ActivityResource;
 use App\Models\Activity;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -50,6 +51,7 @@ class ActividadesController extends Controller
                 'to' => $page->lastItem(),
             ],
             'filters' => ['q' => $q, 'status' => $status, 'priority' => $priority],
+            'users' => User::query()->whereNull('deleted_at')->orderBy('name')->get(['id', 'name']),
         ]);
     }
 
@@ -76,6 +78,26 @@ class ActividadesController extends Controller
         ]);
 
         return back()->with('success', 'Actividad actualizada correctamente.');
+    }
+
+    public function complete(Activity $actividade)
+    {
+        $actividade->update([
+            'status' => 'completed',
+            'completed_at' => now(),
+            'completed_by' => request()->user()?->id,
+        ]);
+
+        return back()->with('success', 'Actividad completada correctamente.');
+    }
+
+    public function cancel(Activity $actividade)
+    {
+        $actividade->update([
+            'status' => 'cancelled',
+        ]);
+
+        return back()->with('success', 'Actividad cancelada correctamente.');
     }
 
     public function destroy(Activity $actividade)

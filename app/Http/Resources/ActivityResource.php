@@ -25,6 +25,9 @@ class ActivityResource extends JsonResource
             'completed_at' => $this->completed_at,
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
+            'is_overdue' => $this->due_date && in_array($this->status, ['pending', 'in_progress', 'on_hold'], true)
+                ? now()->greaterThan($this->due_date)
+                : false,
         ];
     }
 }

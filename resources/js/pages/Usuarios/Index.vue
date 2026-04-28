@@ -4,10 +4,12 @@ import AppLayout from '@/layouts/AppLayout.vue'
 import type { BreadcrumbItem } from '@/types'
 import { useUsuarioCrud, type UsuarioRole, type UsuarioRow } from '@/composables/crud/useUsuarioCrud'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { UserPlus, Search, ShieldCheck, Power, Pencil, Trash2 } from 'lucide-vue-next'
 
 const props = defineProps<{
   rows: UsuarioRow[]
@@ -18,7 +20,7 @@ const props = defineProps<{
 
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'Usuarios', href: '/usuarios' }]
 
-const { form, isOpen, openCreate, openEdit, toggleRole, closeModal, submit, destroyUser, editingId } = useUsuarioCrud()
+const { form, isOpen, openCreate, openEdit, toggleRole, closeModal, submit, toggleStatus, destroyUser, editingId } = useUsuarioCrud()
 
 const applyFilter = (e: Event) => {
   const target = e.target as HTMLInputElement
@@ -44,7 +46,7 @@ const goPage = (page: number) => {
           <h1 class="text-2xl font-semibold text-zinc-900 dark:text-zinc-100">Usuarios</h1>
           <p class="text-sm text-zinc-500 dark:text-zinc-400">Gestión de accesos basada en roles (compatibilidad legacy incluida).</p>
         </div>
-        <Button class="rounded-2xl shadow-lg transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl" @click="openCreate">Nuevo usuario</Button>
+        <Button class="rounded-2xl shadow-lg transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl" @click="openCreate"><UserPlus class="mr-2 h-4 w-4" />Nuevo usuario</Button>
       </div>
 
       <div class="grid gap-3 md:grid-cols-3">
@@ -56,7 +58,12 @@ const goPage = (page: number) => {
         </select>
       </div>
 
-      <div class="overflow-hidden rounded-2xl border border-zinc-200 dark:border-zinc-800">
+            <div v-if="props.rows.length === 0" class="rounded-3xl border border-dashed border-zinc-300 bg-zinc-50 p-10 text-center dark:border-zinc-700 dark:bg-zinc-900/40">
+        <h3 class="text-lg font-semibold text-zinc-800 dark:text-zinc-100">Sin usuarios para mostrar</h3>
+        <p class="mt-2 text-sm text-zinc-500 dark:text-zinc-400">Ajusta filtros o crea un usuario nuevo.</p>
+      </div>
+
+      <div v-else class="overflow-hidden rounded-2xl border border-zinc-200 dark:border-zinc-800">
         <table class="min-w-full divide-y divide-zinc-200 text-sm dark:divide-zinc-800">
           <thead class="bg-zinc-50 dark:bg-zinc-900/50">
             <tr>
@@ -69,9 +76,9 @@ const goPage = (page: number) => {
           </thead>
           <tbody class="divide-y divide-zinc-100 dark:divide-zinc-800">
             <tr v-for="row in props.rows" :key="row.id" class="transition-all duration-300 hover:bg-zinc-50 dark:hover:bg-zinc-900/50">
-              <td class="px-4 py-3">{{ row.name }}</td>
+              <td class="px-4 py-3">{{ row.name }} <Badge v-if="row.is_super_admin" class="ml-2 rounded-full bg-indigo-100 px-2 py-1 text-xs text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300"><ShieldCheck class="mr-1 inline h-3 w-3" />super</Badge></td>
               <td class="px-4 py-3">{{ row.email }}</td>
-              <td class="px-4 py-3">{{ row.status }}</td>
+              <td class="px-4 py-3"><Badge class="rounded-full px-3 py-1 text-xs" :class="row.status === 'active' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300' : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300'">{{ row.status }}</Badge></td>
               <td class="px-4 py-3">
                 <span v-if="row.roles.length === 0" class="text-zinc-400">Sin roles</span>
                 <div v-else class="flex flex-wrap gap-1">
@@ -80,8 +87,9 @@ const goPage = (page: number) => {
               </td>
               <td class="px-4 py-3 text-right">
                 <div class="inline-flex gap-2">
-                  <Button variant="outline" class="rounded-xl" @click="openEdit(row)">Editar</Button>
-                  <Button variant="destructive" class="rounded-xl" @click="destroyUser(row.id)">Eliminar</Button>
+                  <Button variant="outline" class="rounded-xl" @click="openEdit(row)"><Pencil class="mr-2 h-4 w-4" />Editar</Button>
+                  <Button variant="outline" class="rounded-xl" @click="toggleStatus(row)"><Power class="mr-2 h-4 w-4" />{{ row.status === "active" ? "Bloquear" : "Activar" }}</Button>
+                  <Button variant="destructive" class="rounded-xl" @click="destroyUser(row.id)"><Trash2 class="mr-2 h-4 w-4" />Eliminar</Button>
                 </div>
               </td>
             </tr>
@@ -89,7 +97,7 @@ const goPage = (page: number) => {
         </table>
       </div>
 
-      <div class="flex items-center justify-between">
+      <div class="flex items-center justify-between rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3 dark:border-zinc-800 dark:bg-zinc-900/40">
         <p class="text-sm text-zinc-500 dark:text-zinc-400">Total: {{ props.page.total }}</p>
         <div class="flex gap-2">
           <Button variant="outline" :disabled="props.page.current_page <= 1" @click="goPage(props.page.current_page - 1)">Anterior</Button>

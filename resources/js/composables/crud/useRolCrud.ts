@@ -22,6 +22,7 @@ export type RoleRow = {
 export const useRolCrud = () => {
   const isOpen = ref(false)
   const editingId = ref<number | null>(null)
+  const permissionSearch = ref('')
 
   const form = useForm({
     name: '',
@@ -32,9 +33,11 @@ export const useRolCrud = () => {
   })
 
   const isEditing = computed(() => editingId.value !== null)
+  const selectedCount = computed(() => form.permission_ids.length)
 
   const openCreate = () => {
     editingId.value = null
+    permissionSearch.value = ''
     form.reset()
     form.status = 'active'
     form.permission_ids = []
@@ -43,6 +46,7 @@ export const useRolCrud = () => {
 
   const openEdit = (row: RoleRow) => {
     editingId.value = row.id
+    permissionSearch.value = ''
     form.name = row.name
     form.slug = row.slug
     form.description = row.description ?? ''
@@ -65,6 +69,16 @@ export const useRolCrud = () => {
     form.permission_ids = [...form.permission_ids, permissionId]
   }
 
+  const selectAllFromModule = (permissions: PermissionOption[]) => {
+    const ids = permissions.map(item => item.id)
+    form.permission_ids = [...new Set([...form.permission_ids, ...ids])]
+  }
+
+  const clearModule = (permissions: PermissionOption[]) => {
+    const ids = new Set(permissions.map(item => item.id))
+    form.permission_ids = form.permission_ids.filter(id => !ids.has(id))
+  }
+
   const submit = async () => {
     const confirm = await swalConfirm(
       isEditing.value ? '¿Deseas actualizar el rol?' : '¿Deseas crear este rol?',
@@ -81,6 +95,7 @@ export const useRolCrud = () => {
           swalToast('Rol actualizado correctamente', 'success')
           closeModal()
         },
+        onError: () => swalToast('Revisa el formulario', 'warning'),
       })
       return
     }
@@ -91,6 +106,7 @@ export const useRolCrud = () => {
         swalToast('Rol creado correctamente', 'success')
         closeModal()
       },
+      onError: () => swalToast('Revisa el formulario', 'warning'),
     })
   }
 
@@ -112,7 +128,11 @@ export const useRolCrud = () => {
     openEdit,
     closeModal,
     togglePermission,
+    selectAllFromModule,
+    clearModule,
     submit,
     destroyRole,
+    permissionSearch,
+    selectedCount,
   }
 }

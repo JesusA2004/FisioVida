@@ -67,6 +67,15 @@ class PermisosController extends Controller
         return back()->with('success', 'Permiso actualizado correctamente.');
     }
 
+    public function toggleStatus(Permission $permiso)
+    {
+        $permiso->update([
+            'status' => $permiso->status === 'active' ? 'inactive' : 'active',
+        ]);
+
+        return back()->with('success', 'Estado del permiso actualizado correctamente.');
+    }
+
     public function destroy(Permission $permiso)
     {
         $permiso->delete();
@@ -74,3 +83,4 @@ class PermisosController extends Controller
         return back()->with('success', 'Permiso eliminado correctamente.');
     }
 }
+

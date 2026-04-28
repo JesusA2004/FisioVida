@@ -99,6 +99,7 @@ export const useUsuarioCrud = () => {
           swalToast('Usuario actualizado correctamente', 'success')
           closeModal()
         },
+        onError: () => swalToast('Revisa el formulario', 'warning'),
       })
       return
     }
@@ -109,6 +110,24 @@ export const useUsuarioCrud = () => {
         swalToast('Usuario creado correctamente', 'success')
         closeModal()
       },
+      onError: () => swalToast('Revisa el formulario', 'warning'),
+    })
+  }
+
+
+  const toggleStatus = async (row: UsuarioRow) => {
+    const nextState = row.status === 'active' ? 'bloquear' : 'activar'
+    const ok = await swalConfirm(
+      `¿Deseas ${nextState} este usuario?`,
+      'El acceso al sistema se ajustará inmediatamente.',
+      `Sí, ${nextState}`
+    )
+
+    if (!ok) return
+
+    router.patch(route('usuarios.toggle-status', row.id), {}, {
+      preserveScroll: true,
+      onSuccess: () => swalToast('Estado actualizado correctamente', 'success'),
     })
   }
 
@@ -130,6 +149,7 @@ export const useUsuarioCrud = () => {
     toggleRole,
     closeModal,
     submit,
+    toggleStatus,
     destroyUser,
     editingId,
   }

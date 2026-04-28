@@ -1,4 +1,6 @@
-import type { CrudColumn, CrudField } from '@/components/fv/crud.types'
+import { computed, ref } from 'vue'
+import { router, useForm } from '@inertiajs/vue3'
+import { swalConfirm, swalToast } from '@/lib/swal'
 
 export type PermissionRow = {
   id: number
@@ -9,50 +11,108 @@ export type PermissionRow = {
   status: 'active' | 'inactive'
 }
 
-export type PermissionForm = {
-  name: string
-  slug: string
-  module: string
-  description: string
-  status: 'active' | 'inactive'
-}
-
 export const usePermisoCrud = () => {
-  const columns: CrudColumn<PermissionRow>[] = [
-    { label: 'Nombre', value: r => r.name },
-    { label: 'Slug', value: r => r.slug },
-    { label: 'Módulo', value: r => r.module, class: 'w-[140px]' },
-    { label: 'Estado', value: r => r.status, class: 'w-[120px]' },
-  ]
+  const isOpen = ref(false)
+  const editingId = ref<number | null>(null)
 
-  const statusOptions = [
-    { value: 'active', label: 'Activo' },
-    { value: 'inactive', label: 'Inactivo' },
-  ]
-
-  const fields: CrudField<PermissionForm>[] = [
-    { key: 'name', label: 'Nombre', type: 'text', span: 1 },
-    { key: 'slug', label: 'Slug', type: 'text', span: 1 },
-    { key: 'module', label: 'Módulo', type: 'text', span: 1 },
-    { key: 'status', label: 'Estado', type: 'select', options: statusOptions, span: 1 },
-    { key: 'description', label: 'Descripción', type: 'textarea', span: 2 },
-  ]
-
-  const defaults: PermissionForm = {
+  const form = useForm({
     name: '',
     slug: '',
     module: '',
     description: '',
-    status: 'active',
-  }
-
-  const toForm = (row: PermissionRow): PermissionForm => ({
-    name: row.name ?? '',
-    slug: row.slug ?? '',
-    module: row.module ?? '',
-    description: row.description ?? '',
-    status: row.status ?? 'active',
+    status: 'active' as 'active' | 'inactive',
   })
 
-  return { columns, statusOptions, fields, defaults, toForm }
+  const isEditing = computed(() => editingId.value !== null)
+
+  const openCreate = () => {
+    editingId.value = null
+    form.reset()
+    form.status = 'active'
+    isOpen.value = true
+  }
+
+  const openEdit = (row: PermissionRow) => {
+    editingId.value = row.id
+    form.name = row.name
+    form.slug = row.slug
+    form.module = row.module
+    form.description = row.description ?? ''
+    form.status = row.status
+    isOpen.value = true
+  }
+
+  const closeModal = () => {
+    isOpen.value = false
+    form.clearErrors()
+  }
+
+  const submit = async () => {
+    const ok = await swalConfirm(
+      isEditing.value ? '¿Deseas actualizar este permiso?' : '¿Deseas crear este permiso?',
+      'Verifica el slug y el módulo antes de guardar.',
+      isEditing.value ? 'Sí, actualizar' : 'Sí, crear'
+    )
+
+    if (!ok) return
+
+    if (isEditing.value && editingId.value) {
+      form.put(route('permisos.update', editingId.value), {
+        preserveScroll: true,
+        onSuccess: () => {
+          swalToast('Permiso actualizado correctamente', 'success')
+          closeModal()
+        },
+        onError: () => swalToast('Revisa el formulario', 'warning'),
+      })
+      return
+    }
+
+    form.post(route('permisos.store'), {
+      preserveScroll: true,
+      onSuccess: () => {
+        swalToast('Permiso creado correctamente', 'success')
+        closeModal()
+      },
+      onError: () => swalToast('Revisa el formulario', 'warning'),
+    })
+  }
+
+  const toggleStatus = async (row: PermissionRow) => {
+    const nextState = row.status === 'active' ? 'desactivar' : 'activar'
+    const ok = await swalConfirm(
+      `¿Deseas ${nextState} este permiso?`,
+      'El cambio impacta la visibilidad y acceso por roles.',
+      `Sí, ${nextState}`
+    )
+
+    if (!ok) return
+
+    router.patch(route('permisos.toggle-status', row.id), {}, {
+      preserveScroll: true,
+      onSuccess: () => swalToast('Estado actualizado correctamente', 'success'),
+    })
+  }
+
+  const destroyPermission = async (id: number) => {
+    const ok = await swalConfirm('¿Deseas eliminar este permiso?', 'Esta acción se registra en el sistema.', 'Sí, eliminar')
+    if (!ok) return
+
+    router.delete(route('permisos.destroy', id), {
+      preserveScroll: true,
+      onSuccess: () => swalToast('Permiso eliminado correctamente', 'success'),
+    })
+  }
+
+  return {
+    form,
+    isOpen,
+    isEditing,
+    openCreate,
+    openEdit,
+    closeModal,
+    submit,
+    toggleStatus,
+    destroyPermission,
+  }
 }

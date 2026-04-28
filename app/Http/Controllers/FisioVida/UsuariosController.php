@@ -140,6 +140,15 @@ class UsuariosController extends Controller
         return back()->with('success', 'Usuario actualizado.');
     }
 
+    public function toggleStatus(User $usuario)
+    {
+        $usuario->update([
+            'status' => $usuario->status === 'active' ? 'blocked' : 'active',
+        ]);
+
+        return back()->with('success', 'Estado del usuario actualizado.');
+    }
+
     public function destroy(User $usuario)
     {
         $usuario->delete();
