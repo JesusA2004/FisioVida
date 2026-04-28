@@ -10,6 +10,8 @@
         BarChart3,
         CreditCard,
         Settings,
+        ShieldCheck,
+        ListTodo,
     } from 'lucide-vue-next'
 
     import NavFooter from '@/components/NavFooter.vue'
@@ -80,6 +82,16 @@
             title: 'Usuarios',
             href: '/usuarios',
             icon: Users,
+        },
+        {
+            title: 'Roles',
+            href: '/roles',
+            icon: ShieldCheck,
+        },
+        {
+            title: 'Actividades',
+            href: '/actividades',
+            icon: ListTodo,
         },
         {
             title: 'Configuración',
