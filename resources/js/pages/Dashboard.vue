@@ -108,7 +108,15 @@ const formatCurrency = (value: number | null) =>
 </script>
 
 <template>
-    <Head title="Dashboard" />
+  <Head title="Dashboard" />
+
+  <AppLayout :breadcrumbs="breadcrumbs">
+    <section class="space-y-6">
+      <header class="rounded-3xl bg-white p-6 shadow-xl transition-all duration-300 dark:bg-zinc-950">
+        <h1 class="text-2xl font-semibold text-zinc-900 dark:text-zinc-100">{{ props.appSettings.clinic_name ?? 'FisioVida' }}</h1>
+        <p class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">Bienvenido al panel principal de métricas operativas de la clínica.</p>
+        <Badge v-if="props.appSettings.demo_mode === '1'" class="mt-3 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">Modo demo activo</Badge>
+      </header>
 
     <AppLayout :breadcrumbs="breadcrumbs">
         <section class="space-y-6">
