@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Fortify\TwoFactorAuthenticatable;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class User extends Authenticatable {
 
@@ -123,6 +124,48 @@ class User extends Authenticatable {
 
     public function isSuperAdmin(): bool {
         return (bool) $this->is_super_admin;
+    }
+
+
+    public function roles(): BelongsToMany {
+        return $this->belongsToMany(Role::class, 'role_user')->withTimestamps();
+    }
+
+    public function permissions()
+    {
+        return Permission::query()
+            ->where('status', 'active')
+            ->whereHas('roles.users', fn ($q) => $q->where('users.id', $this->id));
+    }
+
+    public function allPermissionSlugs(): array
+    {
+        if ($this->isSuperAdmin()) {
+            return Permission::query()->where('status', 'active')->pluck('slug')->all();
+        }
+
+        $rolePermissions = $this->permissions()->pluck('slug')->all();
+
+        $legacy = [];
+        if ($this->mod_agenda) $legacy[] = 'appointments.view';
+        if ($this->mod_pacientes) $legacy[] = 'patients.view';
+        if ($this->mod_sesiones) $legacy[] = 'sessions.view';
+        if ($this->mod_ejercicios) $legacy[] = 'exercises.view';
+        if ($this->mod_archivos) $legacy[] = 'files.view';
+        if ($this->mod_reportes) $legacy[] = 'reports.view';
+        if ($this->mod_cobranza) $legacy[] = 'payments.view';
+        if ($this->mod_config) $legacy[] = 'settings.view';
+
+        return array_values(array_unique(array_merge($rolePermissions, $legacy)));
+    }
+
+    public function hasPermission(string $permission): bool
+    {
+        if ($this->isSuperAdmin()) {
+            return true;
+        }
+
+        return in_array($permission, $this->allPermissionSlugs(), true);
     }
 
     public function canModule(string $module): bool {
