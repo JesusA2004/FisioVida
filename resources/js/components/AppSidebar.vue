@@ -54,6 +54,7 @@ const mainNavItems = computed<NavItem[]>(() => {
   if (canAccess('ejercicios', 'exercises.view')) items.push({ title: 'Ejercicios', href: '/ejercicios', icon: Dumbbell })
   if (canAccess('archivos', 'files.view')) items.push({ title: 'Archivos', href: '/archivos', icon: FileText })
   if (canAccess('pagos', 'payments.view')) items.push({ title: 'Cobranza', href: '/pagos', icon: CreditCard })
+  if (canAccess('reportes', 'reports.view')) items.push({ title: 'Reportes', href: '/reportes', icon: BarChart3 })
   if (canAccess('actividades', 'activities.view')) items.push({ title: 'Actividades', href: '/actividades', icon: ListTodo })
   if (canAccess('roles', 'roles.view')) items.push({ title: 'Roles', href: '/roles', icon: ShieldCheck })
   if (canAccess('permisos', 'permissions.view')) items.push({ title: 'Permisos', href: '/permisos', icon: KeyRound })

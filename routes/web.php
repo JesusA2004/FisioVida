@@ -18,6 +18,7 @@ use App\Http\Controllers\FisioVida\PermisosController;
 use App\Http\Controllers\FisioVida\ConfiguracionController;
 use App\Http\Controllers\FisioVida\ModulosSistemaController;
 use App\Http\Controllers\FisioVida\DashboardController;
+use App\Http\Controllers\FisioVida\ReportesController;
 
 Route::get('/', function () {
     if (auth()->check()) {
@@ -37,6 +38,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::resource('ejercicios', EjerciciosController::class)->only(['index', 'store', 'update', 'destroy'])->middleware('permission:exercises.view');
     Route::resource('archivos', ArchivosController::class)->only(['index', 'store', 'destroy'])->middleware('permission:files.view');
     Route::resource('pagos', PagosController::class)->only(['index', 'store', 'update', 'destroy'])->middleware('permission:payments.view');
+    Route::get('reportes', [ReportesController::class, 'index'])->name('reportes.index')->middleware('permission:reports.view');
     Route::resource('logs', LogsController::class)->only(['index', 'store', 'destroy'])->middleware('permission:logs.view');
     Route::resource('roles', RolesController::class)->only(['index', 'store', 'update', 'destroy'])->middleware('permission:roles.view');
     Route::resource('actividades', ActividadesController::class)->only(['index', 'store', 'update', 'destroy'])->middleware('permission:activities.view');
