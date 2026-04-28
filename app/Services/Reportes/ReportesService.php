@@ -44,11 +44,11 @@ class ReportesService
         if ($canAppointments && Schema::hasTable('appointments')) {
             $query = DB::table('appointments')->whereBetween('start_at', [$rangeStart, $rangeEnd]);
 
-            if ($normalizedFilters['therapist_user_id']) {
+            if ($normalizedFilters['therapist_user_id'] && Schema::hasColumn('appointments', 'therapist_user_id')) {
                 $query->where('therapist_user_id', $normalizedFilters['therapist_user_id']);
             }
 
-            if ($normalizedFilters['patient_persona_id']) {
+            if ($normalizedFilters['patient_persona_id'] && Schema::hasColumn('appointments', 'patient_persona_id')) {
                 $query->where('patient_persona_id', $normalizedFilters['patient_persona_id']);
             }
 
@@ -74,18 +74,18 @@ class ReportesService
         if ($canSessions && Schema::hasTable('therapy_sessions')) {
             $sessionQuery = DB::table('therapy_sessions')->whereBetween('session_date', [$rangeStart->toDateString(), $rangeEnd->toDateString()]);
 
-            if ($normalizedFilters['therapist_user_id']) {
+            if ($normalizedFilters['therapist_user_id'] && Schema::hasColumn('therapy_sessions', 'therapist_user_id')) {
                 $sessionQuery->where('therapist_user_id', $normalizedFilters['therapist_user_id']);
             }
 
-            if ($normalizedFilters['patient_persona_id']) {
+            if ($normalizedFilters['patient_persona_id'] && Schema::hasColumn('therapy_sessions', 'patient_persona_id')) {
                 $sessionQuery->where('patient_persona_id', $normalizedFilters['patient_persona_id']);
             }
 
             $sessionsTotal = (int) (clone $sessionQuery)->count();
             $sessionsSummary = ['total' => $sessionsTotal];
 
-            if (Schema::hasTable('users')) {
+            if (Schema::hasTable('users') && Schema::hasColumn('therapy_sessions', 'therapist_user_id')) {
                 $therapistProductivity = (clone $sessionQuery)
                     ->join('users as u', 'u.id', '=', 'therapy_sessions.therapist_user_id')
                     ->select('therapy_sessions.therapist_user_id', 'u.name as therapist_name', DB::raw('COUNT(*) as total'))

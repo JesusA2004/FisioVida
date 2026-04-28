@@ -166,14 +166,24 @@ class DashboardMetricsService
     {
         if (! Schema::hasTable('appointments')) return [];
 
-        return DB::table('appointments as a')
-            ->leftJoin('personas as p', 'p.id', '=', 'a.patient_persona_id')
-            ->leftJoin('users as u', 'u.id', '=', 'a.therapist_user_id')
-            ->select([
-                'a.id', 'a.start_at', 'a.end_at', 'a.status',
-                DB::raw("TRIM(CONCAT_WS(' ', p.nombres, p.apellido_paterno, p.apellido_materno)) as patient_name"),
-                'u.name as therapist_name',
-            ])
+        $query = DB::table('appointments as a')
+            ->select(['a.id', 'a.start_at', 'a.end_at', 'a.status']);
+
+        if (Schema::hasTable('personas') && Schema::hasColumn('appointments', 'patient_persona_id')) {
+            $query->leftJoin('personas as p', 'p.id', '=', 'a.patient_persona_id')
+                ->addSelect(DB::raw("TRIM(CONCAT_WS(' ', p.nombres, p.apellido_paterno, p.apellido_materno)) as patient_name"));
+        } else {
+            $query->addSelect(DB::raw('NULL as patient_name'));
+        }
+
+        if (Schema::hasTable('users') && Schema::hasColumn('appointments', 'therapist_user_id')) {
+            $query->leftJoin('users as u', 'u.id', '=', 'a.therapist_user_id')
+                ->addSelect('u.name as therapist_name');
+        } else {
+            $query->addSelect(DB::raw('NULL as therapist_name'));
+        }
+
+        return $query
             ->whereDate('a.start_at', now()->toDateString())
             ->orderBy('a.start_at')
             ->limit(8)
@@ -186,14 +196,24 @@ class DashboardMetricsService
     {
         if (! Schema::hasTable('appointments')) return [];
 
-        return DB::table('appointments as a')
-            ->leftJoin('personas as p', 'p.id', '=', 'a.patient_persona_id')
-            ->leftJoin('users as u', 'u.id', '=', 'a.therapist_user_id')
-            ->select([
-                'a.id', 'a.start_at', 'a.end_at', 'a.status',
-                DB::raw("TRIM(CONCAT_WS(' ', p.nombres, p.apellido_paterno, p.apellido_materno)) as patient_name"),
-                'u.name as therapist_name',
-            ])
+        $query = DB::table('appointments as a')
+            ->select(['a.id', 'a.start_at', 'a.end_at', 'a.status']);
+
+        if (Schema::hasTable('personas') && Schema::hasColumn('appointments', 'patient_persona_id')) {
+            $query->leftJoin('personas as p', 'p.id', '=', 'a.patient_persona_id')
+                ->addSelect(DB::raw("TRIM(CONCAT_WS(' ', p.nombres, p.apellido_paterno, p.apellido_materno)) as patient_name"));
+        } else {
+            $query->addSelect(DB::raw('NULL as patient_name'));
+        }
+
+        if (Schema::hasTable('users') && Schema::hasColumn('appointments', 'therapist_user_id')) {
+            $query->leftJoin('users as u', 'u.id', '=', 'a.therapist_user_id')
+                ->addSelect('u.name as therapist_name');
+        } else {
+            $query->addSelect(DB::raw('NULL as therapist_name'));
+        }
+
+        return $query
             ->where('a.start_at', '>', now())
             ->whereIn('a.status', ['scheduled', 'confirmed'])
             ->orderBy('a.start_at')
@@ -239,12 +259,17 @@ class DashboardMetricsService
     {
         if (! Schema::hasTable('payments')) return [];
 
-        return DB::table('payments as p')
-            ->leftJoin('personas as pe', 'pe.id', '=', 'p.patient_persona_id')
-            ->select([
-                'p.id', 'p.amount', 'p.currency', 'p.status', 'p.paid_at', 'p.reference',
-                DB::raw("TRIM(CONCAT_WS(' ', pe.nombres, pe.apellido_paterno, pe.apellido_materno)) as patient_name"),
-            ])
+        $query = DB::table('payments as p')
+            ->select(['p.id', 'p.amount', 'p.currency', 'p.status', 'p.paid_at', 'p.reference']);
+
+        if (Schema::hasTable('personas') && Schema::hasColumn('payments', 'patient_persona_id')) {
+            $query->leftJoin('personas as pe', 'pe.id', '=', 'p.patient_persona_id')
+                ->addSelect(DB::raw("TRIM(CONCAT_WS(' ', pe.nombres, pe.apellido_paterno, pe.apellido_materno)) as patient_name"));
+        } else {
+            $query->addSelect(DB::raw("NULL as patient_name"));
+        }
+
+        return $query
             ->orderByDesc('p.id')
             ->limit(8)
             ->get()
