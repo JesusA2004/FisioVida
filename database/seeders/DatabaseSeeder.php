@@ -13,6 +13,13 @@ class DatabaseSeeder extends Seeder
             RolesSeeder::class,
             SystemSettingsSeeder::class,
             ModuleSettingsSeeder::class,
+            UsuariosDemoSeeder::class,
+            PacientesDemoSeeder::class,
+            EjerciciosDemoSeeder::class,
+            CitasDemoSeeder::class,
+            SesionesDemoSeeder::class,
+            PagosDemoSeeder::class,
+            ActividadesDemoSeeder::class,
         ]);
     }
 }

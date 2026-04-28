@@ -30,7 +30,7 @@ class ModuleSettingsSeeder extends Seeder
             ModuleSetting::query()->updateOrCreate(
                 ['module' => $module['module']],
                 $module + [
-                    'enabled' => $module['module'] !== 'reportes',
+                    'enabled' => true,
                     'sort_order' => $index + 1,
                     'description' => null,
                     'settings' => null,
