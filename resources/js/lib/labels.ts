@@ -32,6 +32,13 @@ export const userStatusLabels: Record<string, string> = {
     blocked: 'Bloqueado',
 };
 
+export const priorityLabels: Record<string, string> = {
+    low: 'Baja',
+    medium: 'Media',
+    high: 'Alta',
+    urgent: 'Urgente',
+};
+
 export const generalStatusLabels: Record<string, string> = {
     active: 'Activo',
     inactive: 'Inactivo',
@@ -105,6 +112,8 @@ export const tActivityStatus = (status?: string | null) =>
     activityStatusLabels[fallback(status)] ?? fallback(status);
 export const tUserStatus = (status?: string | null) =>
     userStatusLabels[fallback(status)] ?? fallback(status);
+export const tPriority = (priority?: string | null) =>
+    priorityLabels[fallback(priority)] ?? fallback(priority);
 export const tGeneralStatus = (status?: string | null) =>
     generalStatusLabels[fallback(status)] ?? fallback(status);
 export const tPermission = (slug?: string | null) =>

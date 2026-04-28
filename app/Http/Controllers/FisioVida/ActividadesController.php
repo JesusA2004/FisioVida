@@ -7,6 +7,7 @@ use App\Http\Requests\Actividades\ActivityStoreRequest;
 use App\Http\Requests\Actividades\ActivityUpdateRequest;
 use App\Http\Resources\ActivityResource;
 use App\Models\Activity;
+use App\Models\Persona;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -52,6 +53,16 @@ class ActividadesController extends Controller
             ],
             'filters' => ['q' => $q, 'status' => $status, 'priority' => $priority],
             'users' => User::query()->whereNull('deleted_at')->orderBy('name')->get(['id', 'name']),
+            'patients' => Persona::query()
+                ->whereNull('deleted_at')
+                ->whereIn('tipo', ['paciente', 'ambos'])
+                ->where('status', 'active')
+                ->orderBy('apellido_paterno')
+                ->limit(200)
+                ->get([
+                    'id',
+                    \DB::raw("TRIM(CONCAT_WS(' ', nombres, apellido_paterno, apellido_materno)) as label"),
+                ]),
         ]);
     }
 
