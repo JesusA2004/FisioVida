@@ -8,6 +8,7 @@ use App\Http\Controllers\FisioVida\Concerns\CrudHelpers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use App\Services\Audit\AuditLogService;
 use Inertia\Inertia;
 
 class ArchivosController extends Controller {
@@ -23,7 +24,7 @@ class ArchivosController extends Controller {
             ->whereNull('p.deleted_at')
             ->select([
                 'f.id','f.patient_persona_id','f.session_id','f.uploaded_by',
-                'f.disk','f.path','f.original_name','f.mime','f.size_bytes','f.created_at',
+                'f.disk','f.path','f.original_name','f.file_type','f.mime','f.size_bytes','f.created_at',
                 DB::raw("TRIM(CONCAT_WS(' ', p.nombres, p.apellido_paterno, p.apellido_materno)) as patient_name"),
                 's.session_date',
                 'u.name as uploaded_by_name',
@@ -52,6 +53,7 @@ class ArchivosController extends Controller {
                 'disk' => $r->disk,
                 'path' => $r->path,
                 'original_name' => $r->original_name,
+                'file_type' => $r->file_type,
                 'mime' => $r->mime,
                 'size_bytes' => $r->size_bytes,
                 'created_at' => $r->created_at,
@@ -77,6 +79,7 @@ class ArchivosController extends Controller {
         $data = $request->validate([
             'patient_persona_id' => ['nullable','integer'],
             'session_id' => ['nullable','integer'],
+            'file_type' => ['nullable','string','max:80'],
             'file' => ['required','file','max:10240'], // 10MB
         ]);
         $up = $request->file('file');
@@ -89,18 +92,35 @@ class ArchivosController extends Controller {
             'disk' => $disk,
             'path' => $path,
             'original_name' => $up->getClientOriginalName(),
+            'file_type' => $data['file_type'] ?? null,
             'mime' => $up->getClientMimeType(),
             'size_bytes' => $up->getSize(),
             'created_at' => now(),
         ]);
+        app(AuditLogService::class)->created(
+            $request,
+            'Archivos',
+            'file',
+            (int) DB::getPdo()->lastInsertId(),
+            'El usuario '.$request->user()?->name.' subió el archivo "'.$up->getClientOriginalName().'".',
+            $data,
+        );
         return back()->with('success', 'Archivo cargado.');
     }
 
-    public function destroy(string $id) {
+    public function destroy(Request $request, string $id) {
         $row = DB::table('files')->where('id',$id)->first();
         if ($row) {
             try { Storage::disk($row->disk ?? 'public')->delete($row->path); } catch (\Throwable $e) {}
             DB::table('files')->where('id',$id)->delete();
+            app(AuditLogService::class)->deleted(
+                $request,
+                'Archivos',
+                'file',
+                (int) $id,
+                'El usuario '.$request->user()?->name.' eliminó el archivo "'.($row->original_name ?? 'Sin nombre').'".',
+                (array) $row,
+            );
         }
         return back()->with('success', 'Archivo eliminado.');
     }
