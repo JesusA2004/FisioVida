@@ -17,6 +17,7 @@ use App\Http\Controllers\FisioVida\ActividadesController;
 use App\Http\Controllers\FisioVida\PermisosController;
 use App\Http\Controllers\FisioVida\ConfiguracionController;
 use App\Http\Controllers\FisioVida\ModulosSistemaController;
+use App\Http\Controllers\FisioVida\DashboardController;
 
 Route::get('/', function () {
     if (auth()->check()) {
@@ -26,9 +27,7 @@ Route::get('/', function () {
     return redirect()->route('login');
 })->name('home');
 
-Route::get('dashboard', function () {
-    return Inertia::render('Dashboard');
-})->middleware(['auth', 'verified', 'permission:dashboard.view'])->name('dashboard');
+Route::get('dashboard', [DashboardController::class, 'index'])->middleware(['auth', 'verified', 'permission:dashboard.view'])->name('dashboard');
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::resource('pacientes', PacientesController::class)->only(['index', 'store', 'update', 'destroy'])->middleware('permission:patients.view');
