@@ -2,7 +2,10 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\ModuleSetting;
+use App\Models\SystemSetting;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
 use Inertia\Middleware;
 
 class HandleInertiaRequests extends Middleware
@@ -18,6 +21,9 @@ class HandleInertiaRequests extends Middleware
     {
         $user = $request->user();
 
+        $settings = Schema::hasTable('system_settings') ? SystemSetting::keyValuePublic() : [];
+        $modules = Schema::hasTable('module_settings') ? ModuleSetting::enabledMap() : [];
+
         return [
             ...parent::share($request),
             'name' => config('app.name'),
@@ -27,6 +33,8 @@ class HandleInertiaRequests extends Middleware
                 'permissions' => $user?->allPermissionSlugs() ?? [],
                 'is_super_admin' => $user?->isSuperAdmin() ?? false,
             ],
+            'appSettings' => $settings,
+            'enabledModules' => $modules,
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];
     }

@@ -15,6 +15,8 @@ use App\Http\Controllers\FisioVida\SesionEjerciciosController;
 use App\Http\Controllers\FisioVida\RolesController;
 use App\Http\Controllers\FisioVida\ActividadesController;
 use App\Http\Controllers\FisioVida\PermisosController;
+use App\Http\Controllers\FisioVida\ConfiguracionController;
+use App\Http\Controllers\FisioVida\ModulosSistemaController;
 
 Route::get('/', function () {
     if (auth()->check()) {
@@ -44,6 +46,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::patch('usuarios/{usuario}/toggle-status', [UsuariosController::class, 'toggleStatus'])->name('usuarios.toggle-status')->middleware('permission:users.update');
     Route::patch('actividades/{actividade}/complete', [ActividadesController::class, 'complete'])->name('actividades.complete')->middleware('permission:activities.complete');
     Route::patch('actividades/{actividade}/cancel', [ActividadesController::class, 'cancel'])->name('actividades.cancel')->middleware('permission:activities.update');
+    Route::get('configuracion', [ConfiguracionController::class, 'index'])->name('configuracion.index')->middleware('permission:settings.view');
+    Route::put('configuracion', [ConfiguracionController::class, 'update'])->name('configuracion.update')->middleware('permission:settings.update');
+    Route::patch('configuracion/modulos', [ModulosSistemaController::class, 'update'])->name('configuracion.modulos.update')->middleware('permission:settings.update');
 
     // session_exercises (pivot) como CRUD “anidado” a sesión
     Route::post('sesiones/{sessionId}/ejercicios', [SesionEjerciciosController::class, 'store'])->name('sesiones.ejercicios.store')->middleware('permission:sessions.update');
