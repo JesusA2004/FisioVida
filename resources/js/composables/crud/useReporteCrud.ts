@@ -1,0 +1,59 @@
+import { computed, ref } from 'vue'
+import { router, usePage } from '@inertiajs/vue3'
+
+export type ReportFilters = {
+  start_date: string
+  end_date: string
+  status?: string
+  therapist_user_id?: number | null
+  patient_persona_id?: number | null
+}
+
+export const useReporteCrud = (filters: ReportFilters) => {
+  const page = usePage()
+  const loading = ref(false)
+
+  const form = ref<ReportFilters>({
+    start_date: filters.start_date,
+    end_date: filters.end_date,
+    status: filters.status ?? '',
+    therapist_user_id: filters.therapist_user_id ?? null,
+    patient_persona_id: filters.patient_persona_id ?? null,
+  })
+
+  const enabledModules = computed<Record<string, boolean>>(() => ((page.props as any).enabledModules ?? {}) as Record<string, boolean>)
+  const moduleEnabled = computed(() => enabledModules.value.reportes !== false)
+
+  const applyFilters = () => {
+    loading.value = true
+    router.get(route('reportes.index'), {
+      start_date: form.value.start_date,
+      end_date: form.value.end_date,
+      status: form.value.status || '',
+      therapist_user_id: form.value.therapist_user_id || '',
+      patient_persona_id: form.value.patient_persona_id || '',
+    }, {
+      preserveState: true,
+      replace: true,
+      preserveScroll: true,
+      onFinish: () => {
+        loading.value = false
+      },
+    })
+  }
+
+  const resetFilters = () => {
+    form.value.status = ''
+    form.value.therapist_user_id = null
+    form.value.patient_persona_id = null
+    applyFilters()
+  }
+
+  return {
+    form,
+    loading,
+    moduleEnabled,
+    applyFilters,
+    resetFilters,
+  }
+}
