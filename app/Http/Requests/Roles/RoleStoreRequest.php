@@ -19,6 +19,8 @@ class RoleStoreRequest extends FormRequest
             'slug' => ['required', 'string', 'max:140', 'alpha_dash', Rule::unique('roles', 'slug')],
             'description' => ['nullable', 'string', 'max:255'],
             'status' => ['required', Rule::in(['active', 'inactive'])],
+            'permission_ids' => ['nullable', 'array'],
+            'permission_ids.*' => ['integer', 'exists:permissions,id'],
         ];
     }
 

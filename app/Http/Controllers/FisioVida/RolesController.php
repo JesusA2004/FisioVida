@@ -6,8 +6,10 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Roles\RoleStoreRequest;
 use App\Http\Requests\Roles\RoleUpdateRequest;
 use App\Http\Resources\RoleResource;
+use App\Models\Permission;
 use App\Models\Role;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 
 class RolesController extends Controller
@@ -17,7 +19,7 @@ class RolesController extends Controller
         $q = trim((string) $request->string('q'));
         $status = trim((string) $request->string('status'));
 
-        $query = Role::query()->orderByDesc('id');
+        $query = Role::query()->withCount('permissions')->with('permissions:id,name,slug,module')->orderByDesc('id');
 
         if ($q !== '') {
             $query->where(function ($builder) use ($q) {
@@ -44,24 +46,48 @@ class RolesController extends Controller
                 'to' => $page->lastItem(),
             ],
             'filters' => ['q' => $q, 'status' => $status],
+            'permissionsByModule' => Permission::query()
+                ->where('status', 'active')
+                ->orderBy('module')
+                ->orderBy('name')
+                ->get(['id', 'name', 'slug', 'module'])
+                ->groupBy('module')
+                ->map(fn ($items) => $items->values())
+                ->toArray(),
         ]);
     }
 
     public function store(RoleStoreRequest $request)
     {
-        Role::create($request->validated() + [
-            'created_by' => $request->user()?->id,
-            'updated_by' => $request->user()?->id,
-        ]);
+        DB::transaction(function () use ($request) {
+            $data = $request->validated();
+            $permissionIds = $data['permission_ids'] ?? [];
+            unset($data['permission_ids']);
+
+            $role = Role::create($data + [
+                'created_by' => $request->user()?->id,
+                'updated_by' => $request->user()?->id,
+            ]);
+
+            $role->permissions()->sync($permissionIds);
+        });
 
         return back()->with('success', 'Rol creado correctamente.');
     }
 
     public function update(RoleUpdateRequest $request, Role $role)
     {
-        $role->update($request->validated() + [
-            'updated_by' => $request->user()?->id,
-        ]);
+        DB::transaction(function () use ($request, $role) {
+            $data = $request->validated();
+            $permissionIds = $data['permission_ids'] ?? [];
+            unset($data['permission_ids']);
+
+            $role->update($data + [
+                'updated_by' => $request->user()?->id,
+            ]);
+
+            $role->permissions()->sync($permissionIds);
+        });
 
         return back()->with('success', 'Rol actualizado correctamente.');
     }
