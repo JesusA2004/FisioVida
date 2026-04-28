@@ -18,6 +18,7 @@ type FileRow = {
     session_date?: string | null;
     uploaded_by_name?: string | null;
     original_name: string;
+    file_type?: string | null;
     mime?: string | null;
     size_bytes?: number | null;
     created_at?: string | null;
@@ -41,6 +42,7 @@ const breadcrumbs: BreadcrumbItem[] = [
 const form = useForm({
     patient_persona_id: '' as number | '',
     session_id: '' as number | '',
+    file_type: '',
     file: null as File | null,
 });
 
@@ -140,6 +142,30 @@ const destroyFile = async (row: FileRow) => {
                             })),
                         ]"
                     />
+                    <SearchableSelect
+                        v-model="form.file_type"
+                        :options="[
+                            { value: '', label: 'Tipo de archivo' },
+                            {
+                                value: 'estudio_clinico',
+                                label: 'Estudio clínico',
+                            },
+                            {
+                                value: 'consentimiento',
+                                label: 'Consentimiento',
+                            },
+                            { value: 'evidencia', label: 'Evidencia' },
+                            {
+                                value: 'receta_indicacion',
+                                label: 'Receta/indicación',
+                            },
+                            {
+                                value: 'documento_administrativo',
+                                label: 'Documento administrativo',
+                            },
+                            { value: 'otro', label: 'Otro' },
+                        ]"
+                    />
                     <div class="md:col-span-3">
                         <Label>Archivo</Label>
                         <Input
@@ -222,7 +248,9 @@ const destroyFile = async (row: FileRow) => {
                                     {{ fmtSize(row.size_bytes) }}
                                 </p>
                             </td>
-                            <td class="px-4 py-3">{{ row.mime || '—' }}</td>
+                            <td class="px-4 py-3">
+                                {{ row.file_type || row.mime || '—' }}
+                            </td>
                             <td class="px-4 py-3">
                                 {{ row.patient_name || '—' }}
                             </td>

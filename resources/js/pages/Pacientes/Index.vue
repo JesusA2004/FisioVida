@@ -222,6 +222,14 @@ const isEditing = computed(() => editingId.value !== null);
 
                         <div class="mt-4 flex flex-wrap gap-2">
                             <Button
+                                as-child
+                                variant="outline"
+                                class="rounded-xl"
+                                ><a :href="route('pacientes.show', row.id)"
+                                    >Ver expediente</a
+                                ></Button
+                            >
+                            <Button
                                 v-if="can('patients.update')"
                                 variant="outline"
                                 class="rounded-xl"

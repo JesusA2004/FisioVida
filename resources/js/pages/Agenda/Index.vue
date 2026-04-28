@@ -18,6 +18,7 @@ import {
 import { CalendarPlus, Search, Pencil, Trash2, Ban } from 'lucide-vue-next';
 import SearchableSelect from '@/components/ui/SearchableSelect.vue';
 import DateTimePicker from '@/components/ui/DateTimePicker.vue';
+import StatusFlow from '@/components/ui/StatusFlow.vue';
 import { formatDateTimeMx } from '@/lib/dates';
 import { tAppointmentStatus } from '@/lib/labels';
 
@@ -44,6 +45,8 @@ const {
     closeModal,
     submit,
     cancelCita,
+    markNoShow,
+    advanceStatus,
     destroyCita,
 } = useCitaCrud(props.filters);
 const isEditing = computed(() => editingId.value !== null);
@@ -87,8 +90,8 @@ const statusClass = (s: string) =>
                             Agenda de citas
                         </h1>
                         <p class="text-sm text-zinc-500 dark:text-zinc-400">
-                            Coordina horarios de pacientes y terapeutas con
-                            control por estado.
+                            Coordina horarios de pacientes y fisioterapeutas con
+                            control de asistencia y seguimiento.
                         </p>
                     </div>
                     <Button
@@ -203,6 +206,64 @@ const statusClass = (s: string) =>
                                     {{ formatDateTimeMx(row.start_at) }} →
                                     {{ formatDateTimeMx(row.end_at) }}
                                 </p>
+                                <StatusFlow
+                                    class="mt-2"
+                                    :current="row.status"
+                                    :steps="[
+                                        {
+                                            value: 'scheduled',
+                                            label: 'Programada',
+                                        },
+                                        {
+                                            value: 'confirmed',
+                                            label: 'Confirmada',
+                                        },
+                                        { value: 'arrived', label: 'Llegó' },
+                                        { value: 'done', label: 'Finalizada' },
+                                    ]"
+                                    :can-advance="
+                                        ![
+                                            'cancelled',
+                                            'done',
+                                            'no_show',
+                                        ].includes(row.status)
+                                    "
+                                    :advance-label="
+                                        row.status === 'scheduled'
+                                            ? 'Avanzar a confirmada'
+                                            : row.status === 'confirmed'
+                                              ? 'Marcar llegada'
+                                              : 'Finalizar cita'
+                                    "
+                                    :actions="[
+                                        {
+                                            key: 'no_show',
+                                            label: 'Marcar no asistió',
+                                            variant: 'outline',
+                                            disabled: [
+                                                'cancelled',
+                                                'done',
+                                                'no_show',
+                                            ].includes(row.status),
+                                        },
+                                        {
+                                            key: 'cancel',
+                                            label: 'Cancelar cita',
+                                            variant: 'destructive',
+                                            disabled: [
+                                                'cancelled',
+                                                'done',
+                                            ].includes(row.status),
+                                        },
+                                    ]"
+                                    @advance="advanceStatus(row)"
+                                    @action="
+                                        (key) =>
+                                            key === 'cancel'
+                                                ? cancelCita(row)
+                                                : markNoShow(row)
+                                    "
+                                />
                             </div>
                             <div class="flex flex-wrap gap-2">
                                 <Button

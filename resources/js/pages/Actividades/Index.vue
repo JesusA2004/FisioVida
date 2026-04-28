@@ -29,6 +29,7 @@ import {
 } from 'lucide-vue-next';
 import SearchableSelect from '@/components/ui/SearchableSelect.vue';
 import DateTimePicker from '@/components/ui/DateTimePicker.vue';
+import StatusFlow from '@/components/ui/StatusFlow.vue';
 import { formatDateTimeMx } from '@/lib/dates';
 import { tActivityStatus, tPriority } from '@/lib/labels';
 
@@ -66,6 +67,18 @@ const applyFilters = (extra: Record<string, string | number>) => {
 };
 
 const goPage = (page: number) => applyFilters({ page });
+
+const advanceActivity = (row: ActivityRow) => {
+    if (row.status === 'pending') {
+        openEdit(row);
+        form.status = 'in_progress';
+        submit();
+        return;
+    }
+    if (row.status === 'in_progress') {
+        complete(row);
+    }
+};
 
 const priorityClass = (priority: ActivityRow['priority']) =>
     ({
@@ -276,6 +289,35 @@ const statusClass = (status: ActivityRow['status']) =>
                                 >Actividad vencida</span
                             >
                         </div>
+                        <StatusFlow
+                            :current="row.status"
+                            :steps="[
+                                { value: 'pending', label: 'Pendiente' },
+                                { value: 'in_progress', label: 'En proceso' },
+                                { value: 'completed', label: 'Completada' },
+                            ]"
+                            :can-advance="
+                                ['pending', 'in_progress'].includes(row.status)
+                            "
+                            :advance-label="
+                                row.status === 'pending'
+                                    ? 'Iniciar actividad'
+                                    : 'Completar actividad'
+                            "
+                            :actions="[
+                                {
+                                    key: 'cancel',
+                                    label: 'Cancelar actividad',
+                                    variant: 'destructive',
+                                    disabled: [
+                                        'completed',
+                                        'cancelled',
+                                    ].includes(row.status),
+                                },
+                            ]"
+                            @advance="advanceActivity(row)"
+                            @action="cancel(row)"
+                        />
 
                         <div class="flex flex-wrap gap-2">
                             <Button

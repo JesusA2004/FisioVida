@@ -92,6 +92,81 @@ class PacientesController extends Controller
         return back()->with('success', 'Paciente eliminado.');
     }
 
+    public function show(string $id)
+    {
+        $hasEmail = Schema::hasColumn('personas', 'email');
+        $patient = DB::table('personas')
+            ->where('id', $id)
+            ->whereNull('deleted_at')
+            ->select([
+                'id', 'status', 'nombres', 'apellido_paterno', 'apellido_materno', 'fecha_nacimiento',
+                'sexo', 'telefono', 'direccion', 'contacto_emergencia_nombre', 'contacto_emergencia_telefono',
+                'notas', 'created_at', 'updated_at',
+                ...($hasEmail ? ['email'] : []),
+            ])
+            ->first();
+
+        abort_if(! $patient, 404);
+
+        $appointments = DB::table('appointments as a')
+            ->leftJoin('users as u', 'u.id', '=', 'a.therapist_user_id')
+            ->where('a.patient_persona_id', $id)
+            ->orderByDesc('a.start_at')
+            ->limit(20)
+            ->get(['a.id', 'a.status', 'a.start_at', 'a.end_at', 'u.name as therapist_name']);
+
+        $sessions = DB::table('therapy_sessions as s')
+            ->leftJoin('users as u', 'u.id', '=', 's.therapist_user_id')
+            ->where('s.patient_persona_id', $id)
+            ->orderByDesc('s.session_date')
+            ->limit(20)
+            ->get(['s.id', 's.session_date', 's.pain_scale', 's.assessment', 's.plan', 'u.name as therapist_name']);
+
+        $files = DB::table('files as f')
+            ->leftJoin('users as u', 'u.id', '=', 'f.uploaded_by')
+            ->where('f.patient_persona_id', $id)
+            ->orderByDesc('f.id')
+            ->limit(20)
+            ->get(['f.id', 'f.original_name', 'f.file_type', 'f.mime', 'f.created_at', 'u.name as uploaded_by_name']);
+
+        $payments = DB::table('payments')
+            ->whereNotNull('reference')
+            ->where('reference', 'like', '%'.$id.'%')
+            ->orderByDesc('id')
+            ->limit(20)
+            ->get(['id', 'amount', 'currency', 'status', 'paid_at', 'reference']);
+
+        $activities = DB::table('activities as a')
+            ->leftJoin('users as u', 'u.id', '=', 'a.responsible_user_id')
+            ->where('a.patient_persona_id', $id)
+            ->orderByDesc('a.id')
+            ->limit(20)
+            ->get(['a.id', 'a.title', 'a.status', 'a.priority', 'a.due_date', 'u.name as responsible_name']);
+
+        return Inertia::render('Pacientes/Show', [
+            'patient' => [
+                'id' => $patient->id,
+                'full_name' => trim(($patient->nombres ?? '').' '.($patient->apellido_paterno ?? '').' '.($patient->apellido_materno ?? '')),
+                'status' => $patient->status,
+                'telefono' => $patient->telefono,
+                'email' => $patient->email ?? null,
+                'direccion' => $patient->direccion,
+                'fecha_nacimiento' => $patient->fecha_nacimiento,
+                'sexo' => $patient->sexo,
+                'contacto_emergencia_nombre' => $patient->contacto_emergencia_nombre,
+                'contacto_emergencia_telefono' => $patient->contacto_emergencia_telefono,
+                'notas' => $patient->notas,
+                'created_at' => $patient->created_at,
+                'updated_at' => $patient->updated_at,
+            ],
+            'appointments' => $appointments,
+            'sessions' => $sessions,
+            'files' => $files,
+            'payments' => $payments,
+            'activities' => $activities,
+        ]);
+    }
+
     private function sanitizePersonaPayload(array $payload): array
     {
         $columns = array_flip(Schema::getColumnListing('personas'));

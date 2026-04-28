@@ -31,7 +31,7 @@ Route::get('/', function () {
 Route::get('dashboard', [DashboardController::class, 'index'])->middleware(['auth', 'verified', 'permission:dashboard.view'])->name('dashboard');
 
 Route::middleware(['auth', 'verified'])->group(function () {
-    Route::resource('pacientes', PacientesController::class)->only(['index', 'store', 'update', 'destroy'])->middleware('permission:patients.view');
+    Route::resource('pacientes', PacientesController::class)->only(['index', 'show', 'store', 'update', 'destroy'])->middleware('permission:patients.view');
     Route::resource('usuarios', UsuariosController::class)->only(['index', 'store', 'update', 'destroy'])->middleware('permission:users.view');
     Route::resource('citas', CitasController::class)->only(['index', 'store', 'update', 'destroy'])->middleware('permission:appointments.view');
     Route::resource('sesiones', SesionesController::class)->only(['index', 'store', 'update', 'destroy'])->middleware('permission:sessions.view');

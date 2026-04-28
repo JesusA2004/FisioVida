@@ -26,6 +26,7 @@ import {
 } from 'lucide-vue-next';
 import SearchableSelect from '@/components/ui/SearchableSelect.vue';
 import DateTimePicker from '@/components/ui/DateTimePicker.vue';
+import StatusFlow from '@/components/ui/StatusFlow.vue';
 import { formatDateTimeMx } from '@/lib/dates';
 import { tPaymentStatus } from '@/lib/labels';
 
@@ -205,6 +206,46 @@ const statusClass = (status: PagoRow['status']) =>
                                             : '—'
                                     }}
                                 </p>
+                                <StatusFlow
+                                    class="mt-2"
+                                    :current="row.status"
+                                    :steps="[
+                                        {
+                                            value: 'pending',
+                                            label: 'Pendiente',
+                                        },
+                                        { value: 'paid', label: 'Pagado' },
+                                    ]"
+                                    :can-advance="row.status === 'pending'"
+                                    advance-label="Marcar pagado"
+                                    :actions="[
+                                        {
+                                            key: 'failed',
+                                            label: 'Marcar fallido',
+                                            variant: 'outline',
+                                            disabled: row.status !== 'pending',
+                                        },
+                                        {
+                                            key: 'cancelled',
+                                            label: 'Cancelar pago',
+                                            variant: 'destructive',
+                                            disabled: row.status !== 'pending',
+                                        },
+                                        {
+                                            key: 'refunded',
+                                            label: 'Reembolsar',
+                                            variant: 'outline',
+                                            disabled: row.status !== 'paid',
+                                        },
+                                    ]"
+                                    @advance="setStatus(row, 'paid')"
+                                    @action="
+                                        (key) =>
+                                            key === 'cancelled'
+                                                ? setStatus(row, 'failed')
+                                                : setStatus(row, key as any)
+                                    "
+                                />
                             </div>
                             <div class="flex flex-wrap gap-2">
                                 <Button
