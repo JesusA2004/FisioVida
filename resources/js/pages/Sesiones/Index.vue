@@ -1,109 +1,335 @@
 <script setup lang="ts">
-import { Head } from '@inertiajs/vue3'
-import AppLayout from '@/layouts/AppLayout.vue'
-import CrudPage from '@/components/fv/CrudPage.vue'
-import type { BreadcrumbItem } from '@/types'
-import type { CrudColumn, CrudField } from '@/components/fv/crud.types'
-
-type SessionRow = {
-  id: number
-  session_date: string
-  patient_name: string
-  therapist_name: string
-  pain_scale?: number | null
-  notes?: string | null
-  appointment_id?: number | null
-}
-
-type SessionForm = {
-  appointment_id: string | number
-  patient_persona_id: string | number
-  therapist_user_id: string | number
-  session_date: string
-  subjective: string
-  objective: string
-  assessment: string
-  plan: string
-  pain_scale: string | number
-  notes: string
-}
+import { computed } from 'vue';
+import { Head } from '@inertiajs/vue3';
+import AppLayout from '@/layouts/AppLayout.vue';
+import type { BreadcrumbItem } from '@/types';
+import {
+    useSesionCrud,
+    type SesionRow,
+} from '@/composables/crud/useSesionCrud';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+    Dialog,
+    DialogContent,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+    DialogDescription,
+} from '@/components/ui/dialog';
+import {
+    ClipboardPlus,
+    Search,
+    Pencil,
+    Trash2,
+    Activity,
+} from 'lucide-vue-next';
+import SearchableSelect from '@/components/ui/SearchableSelect.vue';
+import DatePicker from '@/components/ui/DatePicker.vue';
+import { formatDateMx } from '@/lib/dates';
 
 const props = defineProps<{
-  rows: SessionRow[]
-  page: any
-  filters: any
+    rows: SesionRow[];
+    page: { current_page: number; last_page: number; total: number };
+    filters: { q?: string };
+    lookups: {
+        patients: { id: number; label: string }[];
+        therapists: { id: number; label: string }[];
+        appointments: { id: number; label: string }[];
+    };
+}>();
 
-  patients: { value: number; label: string }[]
-  therapists: { value: number; label: string }[]
-  appointments?: { value: number; label: string }[]
-}>()
-
-const breadcrumbs: BreadcrumbItem[] = [{ title: 'Sesiones', href: '/sesiones' }]
-
-const columns: CrudColumn<SessionRow>[] = [
-  { label: 'Fecha', value: r => r.session_date, class: 'w-[140px]' },
-  { label: 'Paciente', value: r => r.patient_name },
-  { label: 'Terapeuta', value: r => r.therapist_name },
-  { label: 'Dolor', value: r => (r.pain_scale ?? '—'), class: 'w-[90px]' },
-  { label: 'Notas', value: r => r.notes ?? '—' },
-]
-
-const fields: CrudField<SessionForm>[] = [
-  { key: 'patient_persona_id', label: 'Paciente', type: 'select', options: props.patients, span: 1 },
-  { key: 'therapist_user_id', label: 'Terapeuta', type: 'select', options: props.therapists, span: 1 },
-  { key: 'appointment_id', label: 'Cita (opcional)', type: 'select', options: props.appointments ?? [], span: 2 },
-  { key: 'session_date', label: 'Fecha sesión', type: 'date', span: 1 },
-  { key: 'pain_scale', label: 'Escala dolor (0-10)', type: 'number', span: 1, hint: 'Valídalo en backend (0–10).' },
-  { key: 'subjective', label: 'S - Subjetivo', type: 'textarea', span: 2 },
-  { key: 'objective', label: 'O - Objetivo', type: 'textarea', span: 2 },
-  { key: 'assessment', label: 'A - Evaluación', type: 'textarea', span: 2 },
-  { key: 'plan', label: 'P - Plan', type: 'textarea', span: 2 },
-  { key: 'notes', label: 'Notas', type: 'textarea', span: 2 },
-]
-
-const defaults: SessionForm = {
-  appointment_id: '',
-  patient_persona_id: '',
-  therapist_user_id: '',
-  session_date: '',
-  subjective: '',
-  objective: '',
-  assessment: '',
-  plan: '',
-  pain_scale: '',
-  notes: '',
-}
-
-const toForm = (row: SessionRow): SessionForm => ({
-  appointment_id: (row as any).appointment_id ?? '',
-  patient_persona_id: (row as any).patient_persona_id ?? '',
-  therapist_user_id: (row as any).therapist_user_id ?? '',
-  session_date: row.session_date ?? '',
-  subjective: (row as any).subjective ?? '',
-  objective: (row as any).objective ?? '',
-  assessment: (row as any).assessment ?? '',
-  plan: (row as any).plan ?? '',
-  pain_scale: (row as any).pain_scale ?? '',
-  notes: row.notes ?? '',
-})
+const breadcrumbs: BreadcrumbItem[] = [
+    { title: 'Sesiones', href: '/sesiones' },
+];
+const {
+    form,
+    isOpen,
+    editingId,
+    can,
+    moduleEnabled,
+    applyFilters,
+    openCreate,
+    openEdit,
+    closeModal,
+    submit,
+    destroySesion,
+} = useSesionCrud(props.filters);
+const isEditing = computed(() => editingId.value !== null);
 </script>
 
 <template>
-  <Head title="Sesiones" />
-  <AppLayout :breadcrumbs="breadcrumbs">
-    <CrudPage
-      title="Sesiones"
-      subtitle="Registro clínico (SOAP)"
-      create-label="Nueva sesión"
-      route-base="sessions"
-      :rows="props.rows"
-      :page="props.page"
-      :filters="props.filters"
-      :columns="columns"
-      :fields="fields"
-      :defaults="defaults"
-      :to-form="toForm"
-      modal-max-width-class="max-w-5xl"
-    />
-  </AppLayout>
+    <Head title="Sesiones" />
+    <AppLayout :breadcrumbs="breadcrumbs">
+        <section
+            class="space-y-6 rounded-3xl bg-white p-6 shadow-xl transition-all duration-300 dark:bg-zinc-950"
+        >
+            <div
+                v-if="!moduleEnabled"
+                class="rounded-2xl border border-amber-300/70 bg-amber-50 p-4 text-amber-800 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-200"
+            >
+                Módulo de sesiones deshabilitado.
+            </div>
+            <template v-else>
+                <div
+                    class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between"
+                >
+                    <div>
+                        <h1
+                            class="text-2xl font-semibold text-zinc-900 dark:text-zinc-100"
+                        >
+                            Sesiones clínicas
+                        </h1>
+                        <p class="text-sm text-zinc-500 dark:text-zinc-400">
+                            Registra SOAP, escala de dolor y plan terapéutico
+                            por sesión.
+                        </p>
+                    </div>
+                    <Button
+                        v-if="can('sessions.create')"
+                        class="rounded-2xl shadow-lg transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl"
+                        @click="openCreate"
+                        ><ClipboardPlus class="mr-2 h-4 w-4" />Nueva
+                        sesión</Button
+                    >
+                </div>
+
+                <div
+                    class="rounded-2xl border border-zinc-200 bg-zinc-50/60 p-4 dark:border-zinc-800 dark:bg-zinc-900/40"
+                >
+                    <div class="relative">
+                        <Search
+                            class="pointer-events-none absolute top-3.5 left-3 h-4 w-4 text-zinc-400"
+                        /><Input
+                            class="pl-9"
+                            :default-value="props.filters.q ?? ''"
+                            placeholder="Buscar por paciente o terapeuta"
+                            @change="
+                                (e) =>
+                                    applyFilters({
+                                        q: (e.target as HTMLInputElement).value,
+                                        page: 1,
+                                    })
+                            "
+                        />
+                    </div>
+                </div>
+
+                <div
+                    v-if="props.rows.length === 0"
+                    class="rounded-3xl border border-dashed border-zinc-300 bg-zinc-50 p-10 text-center dark:border-zinc-700 dark:bg-zinc-900/40"
+                >
+                    Sin sesiones para mostrar.
+                </div>
+                <div v-else class="space-y-3">
+                    <article
+                        v-for="row in props.rows"
+                        :key="row.id"
+                        class="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl dark:border-zinc-800 dark:bg-zinc-900/60"
+                    >
+                        <div
+                            class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between"
+                        >
+                            <div>
+                                <h3
+                                    class="font-semibold text-zinc-900 dark:text-zinc-100"
+                                >
+                                    {{ row.patient_name }} ·
+                                    {{ formatDateMx(row.session_date) }}
+                                </h3>
+                                <p
+                                    class="text-sm text-zinc-500 dark:text-zinc-400"
+                                >
+                                    Terapeuta: {{ row.therapist_name }} · Cita:
+                                    {{ row.appointment_id || 'Sin cita' }}
+                                </p>
+                                <p
+                                    class="mt-2 inline-flex items-center rounded-full bg-rose-100 px-2 py-1 text-xs font-medium text-rose-700 dark:bg-rose-900/30 dark:text-rose-300"
+                                >
+                                    <Activity class="mr-1 h-3.5 w-3.5" />Dolor:
+                                    {{ row.pain_scale ?? '—' }}/10
+                                </p>
+                                <p
+                                    class="mt-2 line-clamp-2 text-xs text-zinc-600 dark:text-zinc-300"
+                                >
+                                    <strong>Evaluación:</strong>
+                                    {{ row.assessment || 'Sin evaluación' }}
+                                </p>
+                                <p
+                                    class="line-clamp-2 text-xs text-zinc-600 dark:text-zinc-300"
+                                >
+                                    <strong>Plan:</strong>
+                                    {{ row.plan || 'Sin plan' }}
+                                </p>
+                            </div>
+                            <div class="flex gap-2">
+                                <Button
+                                    v-if="can('sessions.update')"
+                                    variant="outline"
+                                    class="rounded-xl"
+                                    @click="openEdit(row)"
+                                    ><Pencil
+                                        class="mr-2 h-4 w-4"
+                                    />Editar</Button
+                                >
+                                <Button
+                                    v-if="can('sessions.delete')"
+                                    variant="destructive"
+                                    class="rounded-xl"
+                                    @click="destroySesion(row)"
+                                    ><Trash2
+                                        class="mr-2 h-4 w-4"
+                                    />Eliminar</Button
+                                >
+                            </div>
+                        </div>
+                    </article>
+                </div>
+
+                <div
+                    class="flex items-center justify-between rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3 dark:border-zinc-800 dark:bg-zinc-900/40"
+                >
+                    <p class="text-sm text-zinc-500 dark:text-zinc-400">
+                        Total: {{ props.page.total }}
+                    </p>
+                    <div class="flex gap-2">
+                        <Button
+                            variant="outline"
+                            :disabled="props.page.current_page <= 1"
+                            @click="
+                                applyFilters({
+                                    page: props.page.current_page - 1,
+                                })
+                            "
+                            >Anterior</Button
+                        ><Button
+                            variant="outline"
+                            :disabled="
+                                props.page.current_page >= props.page.last_page
+                            "
+                            @click="
+                                applyFilters({
+                                    page: props.page.current_page + 1,
+                                })
+                            "
+                            >Siguiente</Button
+                        >
+                    </div>
+                </div>
+            </template>
+        </section>
+
+        <Dialog :open="isOpen" @update:open="closeModal">
+            <DialogContent
+                class="max-h-[90vh] max-w-5xl overflow-y-auto rounded-3xl border-none bg-white shadow-2xl dark:bg-zinc-950"
+            >
+                <DialogHeader
+                    ><DialogTitle>{{
+                        isEditing ? 'Editar sesión' : 'Nueva sesión'
+                    }}</DialogTitle
+                    ><DialogDescription
+                        >Captura la información y guarda los
+                        cambios.</DialogDescription
+                    ></DialogHeader
+                >
+                <div class="grid gap-4 md:grid-cols-2">
+                    <div class="space-y-2">
+                        <Label>Paciente</Label
+                        ><SearchableSelect
+                            v-model="form.patient_persona_id"
+                            :options="[
+                                { value: '', label: 'Seleccionar paciente' },
+                                ...props.lookups.patients.map((p) => ({
+                                    value: p.id,
+                                    label: p.label,
+                                })),
+                            ]"
+                        />
+                    </div>
+                    <div class="space-y-2">
+                        <Label>Terapeuta</Label
+                        ><SearchableSelect
+                            v-model="form.therapist_user_id"
+                            :options="[
+                                { value: '', label: 'Seleccionar terapeuta' },
+                                ...props.lookups.therapists.map((t) => ({
+                                    value: t.id,
+                                    label: t.label,
+                                })),
+                            ]"
+                        />
+                    </div>
+                    <div class="space-y-2 md:col-span-2">
+                        <Label>Cita relacionada (opcional)</Label
+                        ><SearchableSelect
+                            v-model="form.appointment_id"
+                            :options="[
+                                { value: '', label: 'Sin cita' },
+                                ...props.lookups.appointments.map((a) => ({
+                                    value: a.id,
+                                    label: a.label,
+                                })),
+                            ]"
+                        />
+                    </div>
+                    <div class="space-y-2">
+                        <Label>Fecha</Label
+                        ><DatePicker v-model="form.session_date" />
+                    </div>
+                    <div class="space-y-2">
+                        <Label>Escala dolor (0-10)</Label
+                        ><Input
+                            v-model="form.pain_scale"
+                            type="number"
+                            min="0"
+                            max="10"
+                        />
+                    </div>
+                    <div class="space-y-2 md:col-span-2">
+                        <Label>Subjetivo</Label
+                        ><textarea
+                            v-model="form.subjective"
+                            class="min-h-20 w-full rounded-2xl border border-zinc-200 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-900"
+                        />
+                    </div>
+                    <div class="space-y-2 md:col-span-2">
+                        <Label>Objetivo</Label
+                        ><textarea
+                            v-model="form.objective"
+                            class="min-h-20 w-full rounded-2xl border border-zinc-200 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-900"
+                        />
+                    </div>
+                    <div class="space-y-2 md:col-span-2">
+                        <Label>Evaluación</Label
+                        ><textarea
+                            v-model="form.assessment"
+                            class="min-h-20 w-full rounded-2xl border border-zinc-200 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-900"
+                        />
+                    </div>
+                    <div class="space-y-2 md:col-span-2">
+                        <Label>Plan</Label
+                        ><textarea
+                            v-model="form.plan"
+                            class="min-h-20 w-full rounded-2xl border border-zinc-200 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-900"
+                        />
+                    </div>
+                    <div class="space-y-2 md:col-span-2">
+                        <Label>Notas</Label
+                        ><textarea
+                            v-model="form.notes"
+                            class="min-h-20 w-full rounded-2xl border border-zinc-200 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-900"
+                        />
+                    </div>
+                </div>
+                <DialogFooter
+                    ><Button variant="outline" @click="closeModal"
+                        >Cancelar</Button
+                    ><Button :disabled="form.processing" @click="submit">{{
+                        form.processing ? 'Guardando...' : 'Guardar'
+                    }}</Button></DialogFooter
+                >
+            </DialogContent>
+        </Dialog>
+    </AppLayout>
 </template>
