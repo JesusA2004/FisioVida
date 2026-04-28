@@ -12,7 +12,6 @@ import {
 
 import UserInfo from '@/components/UserInfo.vue';
 import type { User } from '@/types';
-import { logout } from '@/routes';
 
 type Props = { user: User };
 defineProps<Props>();
@@ -49,7 +48,7 @@ const confirmLogout = async (e?: Event) => {
 
     if (!res.isConfirmed) return;
 
-    router.post(logout(), {}, { preserveScroll: true });
+    router.post('/logout', {}, { preserveScroll: true });
 };
 </script>
 
