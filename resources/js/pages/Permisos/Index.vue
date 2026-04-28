@@ -17,6 +17,7 @@ import {
     DialogFooter,
     DialogHeader,
     DialogTitle,
+    DialogDescription,
 } from '@/components/ui/dialog';
 import SearchableSelect from '@/components/ui/SearchableSelect.vue';
 import { tGeneralStatus, tModule, tPermission } from '@/lib/labels';
@@ -252,6 +253,10 @@ const statusVariant = (status: PermissionRow['status']) =>
                     <DialogTitle>{{
                         isEditing ? 'Editar permiso' : 'Nuevo permiso'
                     }}</DialogTitle>
+                    <DialogDescription
+                        >Captura la información y guarda los
+                        cambios.</DialogDescription
+                    >
                 </DialogHeader>
 
                 <div class="grid gap-4 md:grid-cols-2">
@@ -275,14 +280,14 @@ const statusVariant = (status: PermissionRow['status']) =>
                     </div>
                     <div class="space-y-2">
                         <Label for="status">Estado</Label>
-                        <select
+                        <SearchableSelect
                             id="status"
                             v-model="form.status"
-                            class="h-10 w-full rounded-xl border border-zinc-200 px-3 dark:border-zinc-800 dark:bg-zinc-900"
-                        >
-                            <option value="active">Activo</option>
-                            <option value="inactive">Inactivo</option>
-                        </select>
+                            :options="[
+                                { value: 'active', label: 'Activo' },
+                                { value: 'inactive', label: 'Inactivo' },
+                            ]"
+                        />
                     </div>
                     <div class="space-y-2 md:col-span-2">
                         <Label for="description">Descripción</Label>

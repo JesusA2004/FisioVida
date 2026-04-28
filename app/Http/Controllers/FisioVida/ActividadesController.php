@@ -9,6 +9,7 @@ use App\Http\Resources\ActivityResource;
 use App\Models\Activity;
 use App\Models\Persona;
 use App\Models\User;
+use App\Services\Audit\AuditLogService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -68,16 +69,18 @@ class ActividadesController extends Controller
 
     public function store(ActivityStoreRequest $request)
     {
-        Activity::create($request->validated() + [
+        $activity = Activity::create($request->validated() + [
             'created_by' => $request->user()?->id,
             'updated_by' => $request->user()?->id,
         ]);
+        app(AuditLogService::class)->created($request, 'Actividades', 'activity', $activity->id, 'El usuario '.$request->user()?->name.' registró la actividad "'.$activity->title.'".', $activity->toArray());
 
         return back()->with('success', 'Actividad creada correctamente.');
     }
 
     public function update(ActivityUpdateRequest $request, Activity $actividade)
     {
+        $before = $actividade->toArray();
         $data = $request->validated();
         if (($data['status'] ?? null) === 'completed' && ! $actividade->completed_at) {
             $data['completed_at'] = now();
@@ -87,6 +90,7 @@ class ActividadesController extends Controller
         $actividade->update($data + [
             'updated_by' => $request->user()?->id,
         ]);
+        app(AuditLogService::class)->updated($request, 'Actividades', 'activity', $actividade->id, 'El usuario '.$request->user()?->name.' editó la actividad "'.$actividade->title.'".', $before, $data);
 
         return back()->with('success', 'Actividad actualizada correctamente.');
     }
@@ -98,6 +102,7 @@ class ActividadesController extends Controller
             'completed_at' => now(),
             'completed_by' => request()->user()?->id,
         ]);
+        app(AuditLogService::class)->completed(request(), 'Actividades', 'activity', $actividade->id, 'El usuario '.request()->user()?->name.' completó la actividad "'.$actividade->title.'".');
 
         return back()->with('success', 'Actividad completada correctamente.');
     }
@@ -107,13 +112,16 @@ class ActividadesController extends Controller
         $actividade->update([
             'status' => 'cancelled',
         ]);
+        app(AuditLogService::class)->cancelled(request(), 'Actividades', 'activity', $actividade->id, 'El usuario '.request()->user()?->name.' canceló la actividad "'.$actividade->title.'".');
 
         return back()->with('success', 'Actividad cancelada correctamente.');
     }
 
     public function destroy(Activity $actividade)
     {
+        $before = $actividade->toArray();
         $actividade->delete();
+        app(AuditLogService::class)->deleted(request(), 'Actividades', 'activity', $actividade->id, 'El usuario '.request()->user()?->name.' eliminó la actividad "'.$actividade->title.'".', $before);
 
         return back()->with('success', 'Actividad eliminada correctamente.');
     }

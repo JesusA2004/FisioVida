@@ -14,6 +14,7 @@ import {
     DialogFooter,
     DialogHeader,
     DialogTitle,
+    DialogDescription,
 } from '@/components/ui/dialog';
 import { CalendarPlus, Search, Pencil, Trash2, Ban } from 'lucide-vue-next';
 import SearchableSelect from '@/components/ui/SearchableSelect.vue';
@@ -338,7 +339,11 @@ const statusClass = (s: string) =>
                 <DialogHeader
                     ><DialogTitle>{{
                         isEditing ? 'Editar cita' : 'Nueva cita'
-                    }}</DialogTitle></DialogHeader
+                    }}</DialogTitle
+                    ><DialogDescription
+                        >Captura la información y guarda los
+                        cambios.</DialogDescription
+                    ></DialogHeader
                 >
                 <div class="grid gap-4 md:grid-cols-2">
                     <div class="space-y-2">

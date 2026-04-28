@@ -8,6 +8,7 @@ use App\Http\Requests\Roles\RoleUpdateRequest;
 use App\Http\Resources\RoleResource;
 use App\Models\Permission;
 use App\Models\Role;
+use App\Services\Audit\AuditLogService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
@@ -70,6 +71,7 @@ class RolesController extends Controller
             ]);
 
             $role->permissions()->sync($permissionIds);
+            app(AuditLogService::class)->created($request, 'Roles', 'role', $role->id, 'El usuario '.$request->user()?->name.' creó el rol '.$role->name.'.', ['permissions' => $permissionIds] + $data);
         });
 
         return back()->with('success', 'Rol creado correctamente.');
@@ -78,6 +80,7 @@ class RolesController extends Controller
     public function update(RoleUpdateRequest $request, Role $role)
     {
         DB::transaction(function () use ($request, $role) {
+            $before = $role->toArray();
             $data = $request->validated();
             $permissionIds = $data['permission_ids'] ?? [];
             unset($data['permission_ids']);
@@ -87,6 +90,7 @@ class RolesController extends Controller
             ]);
 
             $role->permissions()->sync($permissionIds);
+            app(AuditLogService::class)->updated($request, 'Roles', 'role', $role->id, 'El usuario '.$request->user()?->name.' actualizó el rol '.$role->name.'.', $before, ['permissions' => $permissionIds] + $data);
         });
 
         return back()->with('success', 'Rol actualizado correctamente.');
@@ -94,7 +98,9 @@ class RolesController extends Controller
 
     public function destroy(Role $role)
     {
+        $before = $role->toArray();
         $role->delete();
+        app(AuditLogService::class)->deleted(request(), 'Roles', 'role', $role->id, 'El usuario '.request()->user()?->name.' eliminó el rol '.$role->name.'.', $before);
 
         return back()->with('success', 'Rol eliminado correctamente.');
     }

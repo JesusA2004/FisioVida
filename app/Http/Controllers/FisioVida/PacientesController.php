@@ -7,6 +7,7 @@ use App\Http\Controllers\FisioVida\Concerns\CrudHelpers;
 use App\Http\Requests\Pacientes\PacienteStoreRequest;
 use App\Http\Requests\Pacientes\PacienteUpdateRequest;
 use App\Http\Resources\PacienteResource;
+use App\Services\Audit\AuditLogService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -71,23 +72,51 @@ class PacientesController extends Controller
         $payload['updated_at'] = now();
 
         DB::table('personas')->insert($payload);
+        $newId = (int) DB::getPdo()->lastInsertId();
+        app(AuditLogService::class)->created(
+            $request,
+            'Pacientes',
+            'persona',
+            $newId,
+            'El usuario '.$request->user()?->name.' registró al paciente '.trim(($payload['nombres'] ?? '').' '.($payload['apellido_paterno'] ?? '').' '.($payload['apellido_materno'] ?? '')).'.',
+            $payload,
+        );
 
         return back()->with('success', 'Paciente creado.');
     }
 
     public function update(PacienteUpdateRequest $request, string $id)
     {
+        $old = (array) DB::table('personas')->where('id', $id)->first();
         $payload = $this->sanitizePersonaPayload($request->validated());
         $payload['updated_at'] = now();
 
         DB::table('personas')->where('id', $id)->update($payload);
+        app(AuditLogService::class)->updated(
+            $request,
+            'Pacientes',
+            'persona',
+            (int) $id,
+            'El usuario '.$request->user()?->name.' editó la ficha del paciente '.trim(($old['nombres'] ?? '').' '.($old['apellido_paterno'] ?? '').' '.($old['apellido_materno'] ?? '')).'.',
+            $old,
+            $payload,
+        );
 
         return back()->with('success', 'Paciente actualizado.');
     }
 
-    public function destroy(string $id)
+    public function destroy(Request $request, string $id)
     {
+        $old = (array) DB::table('personas')->where('id', $id)->first();
         DB::table('personas')->where('id', $id)->update(['deleted_at' => now(), 'updated_at' => now()]);
+        app(AuditLogService::class)->deleted(
+            $request,
+            'Pacientes',
+            'persona',
+            (int) $id,
+            'El usuario '.$request->user()?->name.' desactivó al paciente '.trim(($old['nombres'] ?? '').' '.($old['apellido_paterno'] ?? '').' '.($old['apellido_materno'] ?? '')).'.',
+            $old,
+        );
 
         return back()->with('success', 'Paciente eliminado.');
     }

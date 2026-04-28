@@ -8,6 +8,7 @@ use App\Http\Controllers\FisioVida\Concerns\CrudHelpers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use App\Services\Audit\AuditLogService;
 use Inertia\Inertia;
 
 class ArchivosController extends Controller {
@@ -96,14 +97,30 @@ class ArchivosController extends Controller {
             'size_bytes' => $up->getSize(),
             'created_at' => now(),
         ]);
+        app(AuditLogService::class)->created(
+            $request,
+            'Archivos',
+            'file',
+            (int) DB::getPdo()->lastInsertId(),
+            'El usuario '.$request->user()?->name.' subió el archivo "'.$up->getClientOriginalName().'".',
+            $data,
+        );
         return back()->with('success', 'Archivo cargado.');
     }
 
-    public function destroy(string $id) {
+    public function destroy(Request $request, string $id) {
         $row = DB::table('files')->where('id',$id)->first();
         if ($row) {
             try { Storage::disk($row->disk ?? 'public')->delete($row->path); } catch (\Throwable $e) {}
             DB::table('files')->where('id',$id)->delete();
+            app(AuditLogService::class)->deleted(
+                $request,
+                'Archivos',
+                'file',
+                (int) $id,
+                'El usuario '.$request->user()?->name.' eliminó el archivo "'.($row->original_name ?? 'Sin nombre').'".',
+                (array) $row,
+            );
         }
         return back()->with('success', 'Archivo eliminado.');
     }

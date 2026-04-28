@@ -7,6 +7,7 @@ use App\Http\Controllers\FisioVida\Concerns\CrudHelpers;
 use App\Http\Requests\Sesiones\SesionStoreRequest;
 use App\Http\Requests\Sesiones\SesionUpdateRequest;
 use App\Http\Resources\SesionResource;
+use App\Services\Audit\AuditLogService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
@@ -89,23 +90,29 @@ class SesionesController extends Controller
         $payload['updated_at'] = now();
 
         DB::table('therapy_sessions')->insert($payload);
+        $id = (int) DB::getPdo()->lastInsertId();
+        app(AuditLogService::class)->created($request, 'Sesiones', 'therapy_session', $id, 'El usuario '.$request->user()?->name.' registró una sesión clínica.', $payload);
 
         return back()->with('success', 'Sesión creada.');
     }
 
     public function update(SesionUpdateRequest $request, string $id)
     {
+        $old = (array) DB::table('therapy_sessions')->where('id', $id)->first();
         $payload = $request->validated();
         $payload['updated_at'] = now();
 
         DB::table('therapy_sessions')->where('id', $id)->update($payload);
+        app(AuditLogService::class)->updated($request, 'Sesiones', 'therapy_session', (int) $id, 'El usuario '.$request->user()?->name.' actualizó una sesión clínica.', $old, $payload);
 
         return back()->with('success', 'Sesión actualizada.');
     }
 
-    public function destroy(string $id)
+    public function destroy(Request $request, string $id)
     {
+        $old = (array) DB::table('therapy_sessions')->where('id', $id)->first();
         DB::table('therapy_sessions')->where('id', $id)->delete();
+        app(AuditLogService::class)->deleted($request, 'Sesiones', 'therapy_session', (int) $id, 'El usuario '.$request->user()?->name.' eliminó una sesión clínica.', $old);
 
         return back()->with('success', 'Sesión eliminada.');
     }

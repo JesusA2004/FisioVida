@@ -7,6 +7,7 @@ use App\Http\Controllers\FisioVida\Concerns\CrudHelpers;
 use App\Http\Requests\Citas\CitaStoreRequest;
 use App\Http\Requests\Citas\CitaUpdateRequest;
 use App\Http\Resources\CitaResource;
+use App\Services\Audit\AuditLogService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
@@ -85,23 +86,65 @@ class CitasController extends Controller
         $payload['updated_at'] = now();
 
         DB::table('appointments')->insert($payload);
+        $id = (int) DB::getPdo()->lastInsertId();
+        app(AuditLogService::class)->created(
+            $request,
+            'Agenda',
+            'appointment',
+            $id,
+            'El usuario '.$request->user()?->name.' registró una cita clínica.',
+            $payload,
+        );
 
         return back()->with('success', 'Cita creada.');
     }
 
     public function update(CitaUpdateRequest $request, string $id)
     {
+        $old = (array) DB::table('appointments')->where('id', $id)->first();
         $payload = $request->validated();
         $payload['updated_at'] = now();
 
         DB::table('appointments')->where('id', $id)->update($payload);
+        $from = (string) ($old['status'] ?? '');
+        $to = (string) ($payload['status'] ?? $from);
+        if ($from !== '' && $to !== '' && $from !== $to) {
+            app(AuditLogService::class)->statusChanged(
+                $request,
+                'Agenda',
+                'appointment',
+                (int) $id,
+                'El usuario '.$request->user()?->name.' cambió el estado de una cita de '.$from.' a '.$to.'.',
+                $from,
+                $to,
+            );
+        } else {
+            app(AuditLogService::class)->updated(
+                $request,
+                'Agenda',
+                'appointment',
+                (int) $id,
+                'El usuario '.$request->user()?->name.' actualizó una cita.',
+                $old,
+                $payload,
+            );
+        }
 
         return back()->with('success', 'Cita actualizada.');
     }
 
-    public function destroy(string $id)
+    public function destroy(Request $request, string $id)
     {
+        $old = (array) DB::table('appointments')->where('id', $id)->first();
         DB::table('appointments')->where('id', $id)->delete();
+        app(AuditLogService::class)->deleted(
+            $request,
+            'Agenda',
+            'appointment',
+            (int) $id,
+            'El usuario '.$request->user()?->name.' eliminó una cita.',
+            $old,
+        );
 
         return back()->with('success', 'Cita eliminada.');
     }

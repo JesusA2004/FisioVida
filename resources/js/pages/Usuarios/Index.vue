@@ -18,6 +18,7 @@ import {
     DialogFooter,
     DialogHeader,
     DialogTitle,
+    DialogDescription,
 } from '@/components/ui/dialog';
 import { UserPlus, ShieldCheck, Power, Pencil, Trash2 } from 'lucide-vue-next';
 import SearchableSelect from '@/components/ui/SearchableSelect.vue';
@@ -271,6 +272,10 @@ const goPage = (page: number) => {
                     <DialogTitle>{{
                         editingId ? 'Editar usuario' : 'Nuevo usuario'
                     }}</DialogTitle>
+                    <DialogDescription
+                        >Captura la información y guarda los
+                        cambios.</DialogDescription
+                    >
                 </DialogHeader>
 
                 <div class="grid gap-4 md:grid-cols-2">

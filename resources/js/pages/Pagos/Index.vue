@@ -14,6 +14,7 @@ import {
     DialogFooter,
     DialogHeader,
     DialogTitle,
+    DialogDescription,
 } from '@/components/ui/dialog';
 import {
     Wallet,
@@ -338,7 +339,11 @@ const statusClass = (status: PagoRow['status']) =>
                 <DialogHeader
                     ><DialogTitle>{{
                         isEditing ? 'Editar pago' : 'Nuevo pago'
-                    }}</DialogTitle></DialogHeader
+                    }}</DialogTitle
+                    ><DialogDescription
+                        >Captura la información y guarda los
+                        cambios.</DialogDescription
+                    ></DialogHeader
                 >
                 <div class="grid gap-4 md:grid-cols-2">
                     <div class="space-y-2">

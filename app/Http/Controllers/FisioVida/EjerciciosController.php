@@ -7,6 +7,7 @@ use App\Http\Controllers\FisioVida\Concerns\CrudHelpers;
 use App\Http\Requests\Ejercicios\EjercicioStoreRequest;
 use App\Http\Requests\Ejercicios\EjercicioUpdateRequest;
 use App\Http\Resources\EjercicioResource;
+use App\Services\Audit\AuditLogService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
@@ -48,23 +49,29 @@ class EjerciciosController extends Controller
         $payload['updated_at'] = now();
 
         DB::table('exercises')->insert($payload);
+        $id = (int) DB::getPdo()->lastInsertId();
+        app(AuditLogService::class)->created($request, 'Ejercicios', 'exercise', $id, 'El usuario '.$request->user()?->name.' registró el ejercicio "'.($payload['name'] ?? 'Sin nombre').'".', $payload);
 
         return back()->with('success', 'Ejercicio creado.');
     }
 
     public function update(EjercicioUpdateRequest $request, string $id)
     {
+        $old = (array) DB::table('exercises')->where('id', $id)->first();
         $payload = $request->validated();
         $payload['updated_at'] = now();
 
         DB::table('exercises')->where('id', $id)->update($payload);
+        app(AuditLogService::class)->updated($request, 'Ejercicios', 'exercise', (int) $id, 'El usuario '.$request->user()?->name.' editó el ejercicio "'.($old['name'] ?? 'Sin nombre').'".', $old, $payload);
 
         return back()->with('success', 'Ejercicio actualizado.');
     }
 
-    public function destroy(string $id)
+    public function destroy(Request $request, string $id)
     {
+        $old = (array) DB::table('exercises')->where('id', $id)->first();
         DB::table('exercises')->where('id', $id)->delete();
+        app(AuditLogService::class)->deleted($request, 'Ejercicios', 'exercise', (int) $id, 'El usuario '.$request->user()?->name.' eliminó el ejercicio "'.($old['name'] ?? 'Sin nombre').'".', $old);
 
         return back()->with('success', 'Ejercicio eliminado.');
     }

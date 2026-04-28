@@ -18,6 +18,7 @@ import {
     DialogFooter,
     DialogHeader,
     DialogTitle,
+    DialogDescription,
 } from '@/components/ui/dialog';
 import { Dumbbell, Search, Pencil, Trash2, Power } from 'lucide-vue-next';
 import SearchableSelect from '@/components/ui/SearchableSelect.vue';
@@ -262,7 +263,11 @@ const youtubeEmbed = (url?: string | null) => {
                 <DialogHeader
                     ><DialogTitle>{{
                         isEditing ? 'Editar ejercicio' : 'Nuevo ejercicio'
-                    }}</DialogTitle></DialogHeader
+                    }}</DialogTitle
+                    ><DialogDescription
+                        >Captura la información y guarda los
+                        cambios.</DialogDescription
+                    ></DialogHeader
                 >
                 <div class="grid gap-4 md:grid-cols-2">
                     <div class="space-y-2 md:col-span-2">

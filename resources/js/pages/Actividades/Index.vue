@@ -17,6 +17,7 @@ import {
     DialogFooter,
     DialogHeader,
     DialogTitle,
+    DialogDescription,
 } from '@/components/ui/dialog';
 import {
     PlusCircle,
@@ -386,6 +387,10 @@ const statusClass = (status: ActivityRow['status']) =>
                     <DialogTitle>{{
                         isEditing ? 'Editar actividad' : 'Nueva actividad'
                     }}</DialogTitle>
+                    <DialogDescription
+                        >Captura la información y guarda los
+                        cambios.</DialogDescription
+                    >
                 </DialogHeader>
 
                 <div class="grid gap-4 md:grid-cols-2">

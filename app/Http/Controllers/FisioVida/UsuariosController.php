@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Controllers\FisioVida\Concerns\CrudHelpers;
 use App\Models\Role;
 use App\Models\User;
+use App\Services\Audit\AuditLogService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -97,6 +98,7 @@ class UsuariosController extends Controller
             /** @var User $user */
             $user = User::query()->create($data);
             $user->roles()->sync($roleIds);
+            app(AuditLogService::class)->created(request(), 'Usuarios', 'user', $user->id, 'El usuario '.request()->user()?->name.' creó al usuario '.$user->name.'.', ['roles' => $roleIds] + $data);
         });
 
         return back()->with('success', 'Usuario creado.');
@@ -124,6 +126,7 @@ class UsuariosController extends Controller
         ]);
 
         DB::transaction(function () use ($data, $usuario) {
+            $before = $usuario->toArray();
             $roleIds = $data['role_ids'] ?? [];
             unset($data['role_ids']);
 
@@ -135,6 +138,7 @@ class UsuariosController extends Controller
 
             $usuario->update($data);
             $usuario->roles()->sync($roleIds);
+            app(AuditLogService::class)->updated(request(), 'Usuarios', 'user', $usuario->id, 'El usuario '.request()->user()?->name.' actualizó al usuario '.$usuario->name.'.', $before, ['roles' => $roleIds] + $data);
         });
 
         return back()->with('success', 'Usuario actualizado.');
@@ -142,16 +146,20 @@ class UsuariosController extends Controller
 
     public function toggleStatus(User $usuario)
     {
+        $from = $usuario->status;
         $usuario->update([
             'status' => $usuario->status === 'active' ? 'blocked' : 'active',
         ]);
+        app(AuditLogService::class)->statusChanged(request(), 'Usuarios', 'user', $usuario->id, 'El usuario '.request()->user()?->name.' cambió el estado del usuario '.$usuario->name.'.', $from, $usuario->status);
 
         return back()->with('success', 'Estado del usuario actualizado.');
     }
 
     public function destroy(User $usuario)
     {
+        $before = $usuario->toArray();
         $usuario->delete();
+        app(AuditLogService::class)->deleted(request(), 'Usuarios', 'user', $usuario->id, 'El usuario '.request()->user()?->name.' eliminó al usuario '.$usuario->name.'.', $before);
 
         return back()->with('success', 'Usuario eliminado.');
     }

@@ -40,6 +40,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::resource('pagos', PagosController::class)->only(['index', 'store', 'update', 'destroy'])->middleware('permission:payments.view');
     Route::get('reportes', [ReportesController::class, 'index'])->name('reportes.index')->middleware('permission:reports.view');
     Route::resource('logs', LogsController::class)->only(['index', 'store', 'destroy'])->middleware('permission:logs.view');
+    Route::get('bitacora', [LogsController::class, 'index'])->name('bitacora.index')->middleware('permission:logs.view');
     Route::resource('roles', RolesController::class)->only(['index', 'store', 'update', 'destroy'])->middleware('permission:roles.view');
     Route::resource('actividades', ActividadesController::class)->only(['index', 'store', 'update', 'destroy'])->middleware('permission:activities.view');
     Route::resource('permisos', PermisosController::class)->only(['index', 'store', 'update', 'destroy'])->middleware('permission:permissions.view');

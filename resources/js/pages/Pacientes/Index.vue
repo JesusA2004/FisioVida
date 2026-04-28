@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import { Head } from '@inertiajs/vue3';
+import { Head, Link } from '@inertiajs/vue3';
 import AppLayout from '@/layouts/AppLayout.vue';
 import type { BreadcrumbItem } from '@/types';
 import {
@@ -17,6 +17,7 @@ import {
     DialogFooter,
     DialogHeader,
     DialogTitle,
+    DialogDescription,
 } from '@/components/ui/dialog';
 import {
     UserPlus,
@@ -225,8 +226,8 @@ const isEditing = computed(() => editingId.value !== null);
                                 as-child
                                 variant="outline"
                                 class="rounded-xl"
-                                ><a :href="route('pacientes.show', row.id)"
-                                    >Ver expediente</a
+                                ><Link :href="`/pacientes/${row.id}`"
+                                    >Ver expediente</Link
                                 ></Button
                             >
                             <Button
@@ -289,6 +290,10 @@ const isEditing = computed(() => editingId.value !== null);
                     <DialogTitle>{{
                         isEditing ? 'Editar paciente' : 'Nuevo paciente'
                     }}</DialogTitle>
+                    <DialogDescription
+                        >Captura la información y guarda los
+                        cambios.</DialogDescription
+                    >
                 </DialogHeader>
                 <div class="grid gap-4 md:grid-cols-2">
                     <div class="space-y-2">

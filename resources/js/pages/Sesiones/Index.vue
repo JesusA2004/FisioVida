@@ -16,6 +16,7 @@ import {
     DialogFooter,
     DialogHeader,
     DialogTitle,
+    DialogDescription,
 } from '@/components/ui/dialog';
 import {
     ClipboardPlus,
@@ -226,7 +227,11 @@ const isEditing = computed(() => editingId.value !== null);
                 <DialogHeader
                     ><DialogTitle>{{
                         isEditing ? 'Editar sesión' : 'Nueva sesión'
-                    }}</DialogTitle></DialogHeader
+                    }}</DialogTitle
+                    ><DialogDescription
+                        >Captura la información y guarda los
+                        cambios.</DialogDescription
+                    ></DialogHeader
                 >
                 <div class="grid gap-4 md:grid-cols-2">
                     <div class="space-y-2">

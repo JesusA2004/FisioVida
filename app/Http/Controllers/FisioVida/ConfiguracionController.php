@@ -8,6 +8,7 @@ use App\Http\Resources\ModuleSettingResource;
 use App\Http\Resources\SystemSettingResource;
 use App\Models\ModuleSetting;
 use App\Models\SystemSetting;
+use App\Services\Audit\AuditLogService;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 
@@ -26,6 +27,7 @@ class ConfiguracionController extends Controller
 
     public function update(ConfiguracionUpdateRequest $request)
     {
+        $before = SystemSetting::query()->pluck('value', 'key')->toArray();
         DB::transaction(function () use ($request) {
             foreach ($request->validated() as $key => $value) {
                 SystemSetting::query()->where('key', $key)->update([
@@ -33,6 +35,15 @@ class ConfiguracionController extends Controller
                 ]);
             }
         });
+        app(AuditLogService::class)->updated(
+            $request,
+            'Configuración',
+            'system_settings',
+            null,
+            'El usuario '.$request->user()?->name.' actualizó la configuración general de la clínica.',
+            $before,
+            $request->validated(),
+        );
 
         return back()->with('success', 'Configuración general actualizada correctamente.');
     }

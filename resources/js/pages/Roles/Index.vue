@@ -13,6 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import SearchableSelect from '@/components/ui/SearchableSelect.vue';
 import {
     ShieldCheck,
     Search,
@@ -27,6 +28,7 @@ import {
     DialogFooter,
     DialogHeader,
     DialogTitle,
+    DialogDescription,
 } from '@/components/ui/dialog';
 import { tGeneralStatus, tModule, tPermission } from '@/lib/labels';
 
@@ -133,22 +135,19 @@ const filteredBySearch = (permissions: PermissionOption[]) => {
                             "
                         />
                     </div>
-                    <select
-                        class="h-10 rounded-xl border border-zinc-200 bg-white px-3 text-sm dark:border-zinc-800 dark:bg-zinc-900"
-                        :value="props.filters.status ?? ''"
-                        @change="
-                            (e) =>
-                                applyFilter({
-                                    status: (e.target as HTMLSelectElement)
-                                        .value,
-                                    page: 1,
-                                })
+                    <SearchableSelect
+                        :model-value="props.filters.status ?? null"
+                        :options="[
+                            { value: null, label: 'Todos los estados' },
+                            { value: 'active', label: 'Activo' },
+                            { value: 'inactive', label: 'Inactivo' },
+                        ]"
+                        clearable
+                        @update:model-value="
+                            (value) =>
+                                applyFilter({ status: value ?? '', page: 1 })
                         "
-                    >
-                        <option value="">Todos los estados</option>
-                        <option value="active">Activo</option>
-                        <option value="inactive">Inactivo</option>
-                    </select>
+                    />
                 </div>
             </div>
 
@@ -283,14 +282,14 @@ const filteredBySearch = (permissions: PermissionOption[]) => {
                     </div>
                     <div class="space-y-2">
                         <Label for="status">Estado</Label>
-                        <select
+                        <SearchableSelect
                             id="status"
                             v-model="form.status"
-                            class="h-10 w-full rounded-xl border border-zinc-200 px-3 dark:border-zinc-800 dark:bg-zinc-900"
-                        >
-                            <option value="active">Activo</option>
-                            <option value="inactive">Inactivo</option>
-                        </select>
+                            :options="[
+                                { value: 'active', label: 'Activo' },
+                                { value: 'inactive', label: 'Inactivo' },
+                            ]"
+                        />
                     </div>
                     <div class="space-y-2">
                         <Label for="permission-search">Buscar permiso</Label>
