@@ -5,6 +5,7 @@ namespace App\Services\Reportes;
 use App\Models\ModuleSetting;
 use App\Models\User;
 use Carbon\Carbon;
+use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
@@ -247,12 +248,12 @@ class ReportesService
         return $user->isSuperAdmin() || $user->hasPermission($permission);
     }
 
-    private function parseDate(?string $value, Carbon $fallback): Carbon
+    private function parseDate(?string $value, CarbonInterface $fallback): CarbonInterface
     {
         try {
-            return $value ? Carbon::parse($value) : $fallback;
+            return $value ? Carbon::parse($value) : Carbon::parse($fallback);
         } catch (\Throwable) {
-            return $fallback;
+            return Carbon::parse($fallback);
         }
     }
 

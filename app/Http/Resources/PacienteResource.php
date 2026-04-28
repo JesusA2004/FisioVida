@@ -19,7 +19,7 @@ class PacienteResource extends JsonResource
             'tipo' => $this->tipo,
             'status' => $this->status,
             'telefono' => $this->telefono,
-            'email' => $this->email,
+            'email' => $this->resource->email ?? null,
             'sexo' => $this->sexo,
             'fecha_nacimiento' => $this->fecha_nacimiento,
             'direccion' => $this->direccion,
