@@ -27,8 +27,6 @@ import {
     Phone,
     Mail,
     ShieldAlert,
-    ChevronLeft,
-    ChevronRight,
     UserRound,
     CalendarDays,
     MapPin,
@@ -40,10 +38,19 @@ import SearchableSelect from '@/components/ui/SearchableSelect.vue';
 import DatePicker from '@/components/ui/DatePicker.vue';
 import { formatDateMx } from '@/lib/dates';
 import { tGeneralStatus } from '@/lib/labels';
+import FvPagination from '@/components/fv/FvPagination.vue';
 
 const props = defineProps<{
     rows: PacienteRow[];
-    page: { current_page: number; last_page: number; total: number };
+    page: {
+        current_page: number;
+        last_page: number;
+        per_page: number | string;
+        per_page_selected?: number | string;
+        from: number | null;
+        to: number | null;
+        total: number;
+    };
     filters: { q?: string; status?: string };
 }>();
 
@@ -89,6 +96,7 @@ watch(search, (value) => {
             q: value.trim(),
             status: selectedStatus.value ?? '',
             page: 1,
+            per_page: props.page.per_page_selected ?? props.page.per_page ?? 10,
         });
     }, 450);
 });
@@ -100,6 +108,7 @@ const applyStatus = (value: string | number | null) => {
         q: search.value.trim(),
         status: selectedStatus.value ?? '',
         page: 1,
+        per_page: props.page.per_page_selected ?? props.page.per_page ?? 10,
     });
 };
 
@@ -123,45 +132,37 @@ const sexLabel = (sex?: PacienteRow['sexo']) =>
 
 const isEditing = computed(() => editingId.value !== null);
 
-const currentFrom = computed(() => {
-    if (props.page.total === 0) return 0;
-
-    return (props.page.current_page - 1) * 10 + 1;
-});
-
-const currentTo = computed(() =>
-    Math.min(props.page.current_page * 10, props.page.total),
-);
-
-const visiblePages = computed(() => {
-    const current = props.page.current_page;
-    const last = props.page.last_page;
-    const start = Math.max(1, current - 2);
-    const end = Math.min(last, current + 2);
-
-    return Array.from({ length: end - start + 1 }, (_, index) => start + index);
-});
-
-const changePage = (page: number) => {
-    if (page < 1 || page > props.page.last_page || page === props.page.current_page) {
-        return;
-    }
-
-    applyFilters({
-        q: search.value.trim(),
-        status: selectedStatus.value ?? '',
-        page,
-    });
-};
-
 const normalizePhone = (field: 'telefono' | 'contacto_emergencia_telefono') => {
     form[field] = onlyDigits(form[field] ?? '');
 };
 
 const inputBase =
-    'h-11 rounded-2xl border-zinc-200 bg-white/90 shadow-sm transition-all duration-200 placeholder:text-zinc-400 focus-visible:ring-2 focus-visible:ring-cyan-400/40 dark:border-zinc-800 dark:bg-zinc-900/80';
+    'h-11 rounded-2xl border-zinc-200 bg-white shadow-sm transition-all duration-200 placeholder:text-zinc-400 focus-visible:border-[color:var(--primary)] focus-visible:ring-2 focus-visible:ring-[color:var(--primary)]/20 dark:border-zinc-800 dark:bg-zinc-900/80';
 
 const labelBase = 'text-sm font-medium text-zinc-800 dark:text-zinc-100';
+
+const primaryButtonStyle = {
+    backgroundColor: 'var(--primary)',
+    color: 'var(--primary-foreground)',
+};
+
+const primarySoftStyle = {
+    backgroundColor: 'color-mix(in srgb, var(--primary) 8%, white)',
+};
+
+const setPrimaryHover = (event: MouseEvent) => {
+    const hoverColor =
+        getComputedStyle(document.documentElement)
+            .getPropertyValue('--primary-hover')
+            .trim() || 'var(--primary)';
+
+    (event.currentTarget as HTMLElement).style.backgroundColor = hoverColor;
+};
+
+const setPrimaryNormal = (event: MouseEvent) => {
+    (event.currentTarget as HTMLElement).style.backgroundColor =
+        'var(--primary)';
+};
 </script>
 
 <template>
@@ -169,7 +170,7 @@ const labelBase = 'text-sm font-medium text-zinc-800 dark:text-zinc-100';
 
     <AppLayout :breadcrumbs="breadcrumbs">
         <section
-            class="space-y-6 rounded-[2rem] bg-white p-4 shadow-xl ring-1 ring-zinc-100 transition-all duration-300 dark:bg-zinc-950 dark:ring-zinc-900 sm:p-6"
+            class="w-full space-y-5 rounded-[2rem] border border-zinc-200 bg-white p-4 shadow-sm transition-all duration-300 sm:p-5 dark:border-zinc-800 dark:bg-zinc-950"
         >
             <div
                 v-if="!moduleEnabled"
@@ -180,10 +181,14 @@ const labelBase = 'text-sm font-medium text-zinc-800 dark:text-zinc-100';
 
             <template v-else>
                 <div
-                    class="relative overflow-hidden rounded-[2rem] border border-cyan-100 bg-gradient-to-br from-cyan-50 via-white to-white p-5 shadow-sm dark:border-cyan-900/30 dark:from-cyan-950/30 dark:via-zinc-950 dark:to-zinc-950"
+                    class="relative overflow-hidden rounded-[2rem] border border-zinc-200 bg-white p-5 shadow-sm"
                 >
                     <div
-                        class="pointer-events-none absolute -right-20 -top-20 h-52 w-52 rounded-full bg-cyan-300/20 blur-3xl"
+                        class="pointer-events-none absolute -top-20 -right-20 h-52 w-52 rounded-full blur-3xl"
+                        :style="{
+                            backgroundColor:
+                                'color-mix(in srgb, var(--primary) 16%, transparent)',
+                        }"
                     />
 
                     <div
@@ -191,7 +196,8 @@ const labelBase = 'text-sm font-medium text-zinc-800 dark:text-zinc-100';
                     >
                         <div class="flex items-start gap-4">
                             <div
-                                class="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-cyan-600 text-white shadow-lg shadow-cyan-600/20"
+                                class="grid h-12 w-12 shrink-0 place-items-center rounded-2xl shadow-lg"
+                                :style="primaryButtonStyle"
                             >
                                 <UserRound class="h-6 w-6" />
                             </div>
@@ -206,14 +212,18 @@ const labelBase = 'text-sm font-medium text-zinc-800 dark:text-zinc-100';
                                     class="mt-1 max-w-2xl text-sm leading-6 text-zinc-600 dark:text-zinc-400"
                                 >
                                     Gestiona expedientes, datos de contacto,
-                                    estado del paciente y contactos de emergencia.
+                                    estado del paciente y contactos de
+                                    emergencia.
                                 </p>
                             </div>
                         </div>
 
                         <Button
                             v-if="can('patients.create')"
-                            class="h-11 rounded-2xl px-5 shadow-lg shadow-cyan-600/20 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl"
+                            class="h-11 rounded-2xl px-5 shadow-lg transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl"
+                            :style="primaryButtonStyle"
+                            @mouseenter="setPrimaryHover"
+                            @mouseleave="setPrimaryNormal"
                             @click="openCreate"
                         >
                             <UserPlus class="mr-2 h-4 w-4" />
@@ -223,24 +233,24 @@ const labelBase = 'text-sm font-medium text-zinc-800 dark:text-zinc-100';
                 </div>
 
                 <div
-                    class="rounded-[1.75rem] border border-zinc-200 bg-zinc-50/70 p-4 shadow-sm transition-all duration-300 dark:border-zinc-800 dark:bg-zinc-900/40"
+                    class="rounded-[1.75rem] border border-zinc-200 bg-zinc-50 p-4 shadow-sm transition-all duration-300 dark:border-zinc-800 dark:bg-zinc-900/40"
                 >
                     <div class="grid gap-3 lg:grid-cols-[1fr_260px]">
                         <div class="relative">
                             <Search
-                                class="pointer-events-none absolute left-3 top-3.5 h-4 w-4 text-zinc-400"
+                                class="pointer-events-none absolute top-3.5 left-3 h-4 w-4 text-zinc-400"
                             />
 
                             <Input
                                 v-model="search"
-                                class="h-11 rounded-2xl border-zinc-200 bg-white pl-9 pr-10 shadow-sm transition-all duration-200 focus-visible:ring-2 focus-visible:ring-cyan-400/40 dark:border-zinc-800 dark:bg-zinc-950"
-                                placeholder="Buscar en tiempo real por nombre, teléfono o correo"
+                                class="h-11 rounded-2xl border-zinc-200 bg-white pr-10 pl-9 shadow-sm transition-all duration-200 focus-visible:border-[color:var(--primary)] focus-visible:ring-2 focus-visible:ring-[color:var(--primary)]/20 dark:border-zinc-800 dark:bg-zinc-950"
+                                placeholder="Buscar por nombre, teléfono o correo"
                             />
 
                             <button
                                 v-if="search"
                                 type="button"
-                                class="absolute right-3 top-3 grid h-5 w-5 place-items-center rounded-full text-zinc-400 transition hover:bg-zinc-100 hover:text-zinc-700 dark:hover:bg-zinc-800 dark:hover:text-zinc-200"
+                                class="absolute top-3 right-3 grid h-5 w-5 place-items-center rounded-full text-zinc-400 transition hover:bg-zinc-100 hover:text-zinc-700 dark:hover:bg-zinc-800 dark:hover:text-zinc-200"
                                 @click="clearSearch"
                             >
                                 <X class="h-3.5 w-3.5" />
@@ -284,7 +294,8 @@ const labelBase = 'text-sm font-medium text-zinc-800 dark:text-zinc-100';
                     </h3>
 
                     <p class="mt-2 text-sm text-zinc-500 dark:text-zinc-400">
-                        Agrega tu primer paciente o ajusta la búsqueda y filtros.
+                        Agrega tu primer paciente o ajusta la búsqueda y
+                        filtros.
                     </p>
                 </div>
 
@@ -292,7 +303,7 @@ const labelBase = 'text-sm font-medium text-zinc-800 dark:text-zinc-100';
                     <article
                         v-for="row in props.rows"
                         :key="row.id"
-                        class="group rounded-[1.75rem] border border-zinc-200 bg-white p-4 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-cyan-200 hover:shadow-xl hover:shadow-cyan-950/5 dark:border-zinc-800 dark:bg-zinc-900/60 dark:hover:border-cyan-900/50"
+                        class="group rounded-[1.75rem] border border-zinc-200 bg-white p-4 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-[color:var(--primary)] hover:shadow-xl dark:border-zinc-800 dark:bg-zinc-900/60"
                     >
                         <div
                             class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between"
@@ -302,7 +313,10 @@ const labelBase = 'text-sm font-medium text-zinc-800 dark:text-zinc-100';
                                     <h3
                                         class="truncate text-base font-semibold text-zinc-950 dark:text-zinc-50"
                                     >
-                                        {{ row.full_name || 'Paciente sin nombre' }}
+                                        {{
+                                            row.full_name ||
+                                            'Paciente sin nombre'
+                                        }}
                                     </h3>
 
                                     <Badge
@@ -313,10 +327,14 @@ const labelBase = 'text-sm font-medium text-zinc-800 dark:text-zinc-100';
                                     </Badge>
                                 </div>
 
-                                <div class="mt-3 grid gap-2 text-xs text-zinc-500 dark:text-zinc-400 sm:grid-cols-2">
+                                <div
+                                    class="mt-3 grid gap-2 text-xs text-zinc-500 sm:grid-cols-2 dark:text-zinc-400"
+                                >
                                     <div class="flex items-center gap-2">
                                         <Phone class="h-3.5 w-3.5 shrink-0" />
-                                        <span>{{ row.telefono || 'Sin teléfono' }}</span>
+                                        <span>{{
+                                            row.telefono || 'Sin teléfono'
+                                        }}</span>
                                     </div>
 
                                     <div class="flex items-center gap-2">
@@ -327,18 +345,24 @@ const labelBase = 'text-sm font-medium text-zinc-800 dark:text-zinc-100';
                                     </div>
 
                                     <div class="flex items-center gap-2">
-                                        <CalendarDays class="h-3.5 w-3.5 shrink-0" />
+                                        <CalendarDays
+                                            class="h-3.5 w-3.5 shrink-0"
+                                        />
                                         <span>
                                             {{
                                                 row.fecha_nacimiento
-                                                    ? formatDateMx(row.fecha_nacimiento)
+                                                    ? formatDateMx(
+                                                          row.fecha_nacimiento,
+                                                      )
                                                     : 'Sin fecha de nacimiento'
                                             }}
                                         </span>
                                     </div>
 
                                     <div class="flex items-center gap-2">
-                                        <UserRound class="h-3.5 w-3.5 shrink-0" />
+                                        <UserRound
+                                            class="h-3.5 w-3.5 shrink-0"
+                                        />
                                         <span>{{ sexLabel(row.sexo) }}</span>
                                     </div>
                                 </div>
@@ -346,20 +370,27 @@ const labelBase = 'text-sm font-medium text-zinc-800 dark:text-zinc-100';
                         </div>
 
                         <div
-                            class="mt-4 rounded-2xl bg-zinc-50 p-3 text-xs leading-5 text-zinc-600 transition-colors duration-300 group-hover:bg-cyan-50/60 dark:bg-zinc-950/60 dark:text-zinc-300 dark:group-hover:bg-cyan-950/20"
+                            class="mt-4 rounded-2xl p-3 text-xs leading-5 text-zinc-600 transition-colors duration-300 dark:text-zinc-300"
+                            :style="primarySoftStyle"
                         >
                             <p class="flex gap-2">
-                                <ShieldAlert class="mt-0.5 h-3.5 w-3.5 shrink-0 text-zinc-400" />
+                                <ShieldAlert
+                                    class="mt-0.5 h-3.5 w-3.5 shrink-0 text-zinc-400"
+                                />
                                 <span>
                                     <strong>Emergencia:</strong>
                                     {{ row.contacto_emergencia_nombre || '—' }}
                                     ·
-                                    {{ row.contacto_emergencia_telefono || '—' }}
+                                    {{
+                                        row.contacto_emergencia_telefono || '—'
+                                    }}
                                 </span>
                             </p>
 
                             <p class="mt-1 flex gap-2">
-                                <MapPin class="mt-0.5 h-3.5 w-3.5 shrink-0 text-zinc-400" />
+                                <MapPin
+                                    class="mt-0.5 h-3.5 w-3.5 shrink-0 text-zinc-400"
+                                />
                                 <span class="line-clamp-1">
                                     <strong>Dirección:</strong>
                                     {{ row.direccion || 'Sin dirección' }}
@@ -376,7 +407,7 @@ const labelBase = 'text-sm font-medium text-zinc-800 dark:text-zinc-100';
                             <Button
                                 as-child
                                 variant="outline"
-                                class="h-10 rounded-xl transition-all duration-200 hover:-translate-y-0.5"
+                                class="h-10 rounded-xl border-zinc-200 bg-white transition-all duration-200 hover:-translate-y-0.5 hover:border-[color:var(--primary)] hover:text-[color:var(--primary)]"
                             >
                                 <Link :href="`/pacientes/${row.id}`">
                                     Ver expediente
@@ -386,7 +417,7 @@ const labelBase = 'text-sm font-medium text-zinc-800 dark:text-zinc-100';
                             <Button
                                 v-if="can('patients.update')"
                                 variant="outline"
-                                class="h-10 rounded-xl transition-all duration-200 hover:-translate-y-0.5"
+                                class="h-10 rounded-xl border-zinc-200 bg-white transition-all duration-200 hover:-translate-y-0.5 hover:border-[color:var(--primary)] hover:text-[color:var(--primary)]"
                                 @click="openEdit(row)"
                             >
                                 <Pencil class="mr-2 h-4 w-4" />
@@ -405,64 +436,42 @@ const labelBase = 'text-sm font-medium text-zinc-800 dark:text-zinc-100';
                                     class="mr-2 h-4 w-4 animate-spin"
                                 />
                                 <Trash2 v-else class="mr-2 h-4 w-4" />
-                                {{ deletingId === row.id ? 'Eliminando...' : 'Eliminar' }}
+                                {{
+                                    deletingId === row.id
+                                        ? 'Eliminando...'
+                                        : 'Eliminar'
+                                }}
                             </Button>
                         </div>
                     </article>
                 </div>
 
-                <div
-                    class="flex flex-col gap-3 rounded-[1.5rem] border border-zinc-200 bg-zinc-50 px-4 py-3 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/40 sm:flex-row sm:items-center sm:justify-between"
-                >
-                    <p class="text-sm text-zinc-500 dark:text-zinc-400">
-                        Mostrando
-                        <strong class="text-zinc-800 dark:text-zinc-200">
-                            {{ currentFrom }}-{{ currentTo }}
-                        </strong>
-                        de
-                        <strong class="text-zinc-800 dark:text-zinc-200">
-                            {{ props.page.total }}
-                        </strong>
-                        pacientes
-                    </p>
-
-                    <div class="flex flex-wrap items-center gap-2">
-                        <Button
-                            variant="outline"
-                            class="h-9 rounded-xl px-3"
-                            :disabled="props.page.current_page <= 1"
-                            @click="changePage(props.page.current_page - 1)"
-                        >
-                            <ChevronLeft class="h-4 w-4" />
-                        </Button>
-
-                        <Button
-                            v-for="pageNumber in visiblePages"
-                            :key="pageNumber"
-                            variant="outline"
-                            class="h-9 min-w-9 rounded-xl px-3 transition-all duration-200"
-                            :class="
-                                pageNumber === props.page.current_page
-                                    ? 'border-cyan-500 bg-cyan-600 text-white hover:bg-cyan-600'
-                                    : ''
-                            "
-                            @click="changePage(pageNumber)"
-                        >
-                            {{ pageNumber }}
-                        </Button>
-
-                        <Button
-                            variant="outline"
-                            class="h-9 rounded-xl px-3"
-                            :disabled="
-                                props.page.current_page >= props.page.last_page
-                            "
-                            @click="changePage(props.page.current_page + 1)"
-                        >
-                            <ChevronRight class="h-4 w-4" />
-                        </Button>
-                    </div>
-                </div>
+                <FvPagination
+                    :page="props.page"
+                    item-label="pacientes"
+                    :per-page-options="[10, 15, 20, 50, 'all']"
+                    @change="
+                        (page) =>
+                            applyFilters({
+                                q: search.trim(),
+                                status: selectedStatus ?? '',
+                                page,
+                                per_page:
+                                    props.page.per_page_selected ??
+                                    props.page.per_page ??
+                                    10,
+                            })
+                    "
+                    @per-page-change="
+                        (perPage) =>
+                            applyFilters({
+                                q: search.trim(),
+                                status: selectedStatus ?? '',
+                                page: 1,
+                                per_page: perPage,
+                            })
+                    "
+                />
             </template>
         </section>
 
@@ -472,7 +481,7 @@ const labelBase = 'text-sm font-medium text-zinc-800 dark:text-zinc-100';
             >
                 <div class="flex max-h-[92vh] flex-col">
                     <DialogHeader
-                        class="border-b border-zinc-100 px-5 py-4 dark:border-zinc-800 sm:px-6"
+                        class="border-b border-zinc-100 px-5 py-4 sm:px-6 dark:border-zinc-800"
                     >
                         <div class="flex items-start justify-between gap-4">
                             <div>
@@ -493,7 +502,7 @@ const labelBase = 'text-sm font-medium text-zinc-800 dark:text-zinc-100';
                     </DialogHeader>
 
                     <div
-                        class="flex-1 overflow-y-auto px-5 py-5 [-ms-overflow-style:none] [scrollbar-width:none] dark:bg-zinc-950 sm:px-6 [&::-webkit-scrollbar]:hidden"
+                        class="flex-1 overflow-y-auto px-5 py-5 [-ms-overflow-style:none] [scrollbar-width:none] sm:px-6 dark:bg-zinc-950 [&::-webkit-scrollbar]:hidden"
                     >
                         <div class="grid gap-4 lg:grid-cols-2">
                             <div class="space-y-2">
@@ -538,7 +547,9 @@ const labelBase = 'text-sm font-medium text-zinc-800 dark:text-zinc-100';
                             <div class="space-y-2">
                                 <Label :class="labelBase">
                                     Apellido paterno
-                                    <span class="text-xs font-normal text-zinc-400">
+                                    <span
+                                        class="text-xs font-normal text-zinc-400"
+                                    >
                                         opcional
                                     </span>
                                 </Label>
@@ -561,7 +572,9 @@ const labelBase = 'text-sm font-medium text-zinc-800 dark:text-zinc-100';
                             <div class="space-y-2">
                                 <Label :class="labelBase">
                                     Apellido materno
-                                    <span class="text-xs font-normal text-zinc-400">
+                                    <span
+                                        class="text-xs font-normal text-zinc-400"
+                                    >
                                         opcional
                                     </span>
                                 </Label>
@@ -584,7 +597,9 @@ const labelBase = 'text-sm font-medium text-zinc-800 dark:text-zinc-100';
                             <div class="space-y-2">
                                 <Label :class="labelBase">
                                     Teléfono
-                                    <span class="text-xs font-normal text-zinc-400">
+                                    <span
+                                        class="text-xs font-normal text-zinc-400"
+                                    >
                                         10 dígitos
                                     </span>
                                 </Label>
@@ -610,7 +625,9 @@ const labelBase = 'text-sm font-medium text-zinc-800 dark:text-zinc-100';
                             <div class="space-y-2">
                                 <Label :class="labelBase">
                                     Email
-                                    <span class="text-xs font-normal text-zinc-400">
+                                    <span
+                                        class="text-xs font-normal text-zinc-400"
+                                    >
                                         opcional
                                     </span>
                                 </Label>
@@ -634,7 +651,9 @@ const labelBase = 'text-sm font-medium text-zinc-800 dark:text-zinc-100';
                             <div class="space-y-2">
                                 <Label :class="labelBase">
                                     Fecha nacimiento
-                                    <span class="text-xs font-normal text-zinc-400">
+                                    <span
+                                        class="text-xs font-normal text-zinc-400"
+                                    >
                                         opcional
                                     </span>
                                 </Label>
@@ -652,7 +671,9 @@ const labelBase = 'text-sm font-medium text-zinc-800 dark:text-zinc-100';
                             <div class="space-y-2">
                                 <Label :class="labelBase">
                                     Sexo
-                                    <span class="text-xs font-normal text-zinc-400">
+                                    <span
+                                        class="text-xs font-normal text-zinc-400"
+                                    >
                                         opcional
                                     </span>
                                 </Label>
@@ -684,7 +705,9 @@ const labelBase = 'text-sm font-medium text-zinc-800 dark:text-zinc-100';
                             <div class="space-y-2 lg:col-span-2">
                                 <Label :class="labelBase">
                                     Dirección
-                                    <span class="text-xs font-normal text-zinc-400">
+                                    <span
+                                        class="text-xs font-normal text-zinc-400"
+                                    >
                                         opcional
                                     </span>
                                 </Label>
@@ -705,10 +728,13 @@ const labelBase = 'text-sm font-medium text-zinc-800 dark:text-zinc-100';
                             </div>
 
                             <div
-                                class="rounded-[1.5rem] border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-900/40 lg:col-span-2"
+                                class="rounded-[1.5rem] border border-zinc-200 bg-zinc-50 p-4 lg:col-span-2 dark:border-zinc-800 dark:bg-zinc-900/40"
                             >
                                 <div class="mb-4 flex items-center gap-2">
-                                    <ShieldAlert class="h-4 w-4 text-cyan-600" />
+                                    <ShieldAlert
+                                        class="h-4 w-4"
+                                        :style="{ color: 'var(--primary)' }"
+                                    />
                                     <h3
                                         class="text-sm font-semibold text-zinc-900 dark:text-zinc-100"
                                     >
@@ -720,7 +746,9 @@ const labelBase = 'text-sm font-medium text-zinc-800 dark:text-zinc-100';
                                     <div class="space-y-2">
                                         <Label :class="labelBase">
                                             Nombre del contacto
-                                            <span class="text-xs font-normal text-zinc-400">
+                                            <span
+                                                class="text-xs font-normal text-zinc-400"
+                                            >
                                                 opcional
                                             </span>
                                         </Label>
@@ -750,7 +778,9 @@ const labelBase = 'text-sm font-medium text-zinc-800 dark:text-zinc-100';
                                     <div class="space-y-2">
                                         <Label :class="labelBase">
                                             Teléfono de emergencia
-                                            <span class="text-xs font-normal text-zinc-400">
+                                            <span
+                                                class="text-xs font-normal text-zinc-400"
+                                            >
                                                 10 dígitos
                                             </span>
                                         </Label>
@@ -789,14 +819,16 @@ const labelBase = 'text-sm font-medium text-zinc-800 dark:text-zinc-100';
                             <div class="space-y-2 lg:col-span-2">
                                 <Label :class="labelBase">
                                     Notas
-                                    <span class="text-xs font-normal text-zinc-400">
+                                    <span
+                                        class="text-xs font-normal text-zinc-400"
+                                    >
                                         opcional
                                     </span>
                                 </Label>
 
                                 <textarea
                                     v-model="form.notas"
-                                    class="min-h-28 w-full resize-y rounded-2xl border border-zinc-200 bg-white/90 p-3 text-sm shadow-sm transition-all duration-200 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-cyan-400/40 dark:border-zinc-800 dark:bg-zinc-900/80"
+                                    class="min-h-28 w-full resize-y rounded-2xl border border-zinc-200 bg-white p-3 text-sm shadow-sm transition-all duration-200 placeholder:text-zinc-400 focus:border-[color:var(--primary)] focus:ring-2 focus:ring-[color:var(--primary)]/20 focus:outline-none dark:border-zinc-800 dark:bg-zinc-900/80"
                                     placeholder="Observaciones importantes del paciente"
                                 />
 
@@ -811,11 +843,11 @@ const labelBase = 'text-sm font-medium text-zinc-800 dark:text-zinc-100';
                     </div>
 
                     <DialogFooter
-                        class="border-t border-zinc-100 bg-white px-5 py-4 dark:border-zinc-800 dark:bg-zinc-950 sm:px-6"
+                        class="border-t border-zinc-100 bg-white px-5 py-4 sm:px-6 dark:border-zinc-800 dark:bg-zinc-950"
                     >
                         <Button
                             variant="outline"
-                            class="h-11 rounded-2xl px-5"
+                            class="h-11 rounded-2xl px-5 transition-all duration-200 hover:-translate-y-0.5 hover:border-[color:var(--primary)] hover:text-[color:var(--primary)]"
                             :disabled="form.processing || isSubmitting"
                             @click="closeModal(false)"
                         >
@@ -823,8 +855,11 @@ const labelBase = 'text-sm font-medium text-zinc-800 dark:text-zinc-100';
                         </Button>
 
                         <Button
-                            class="h-11 rounded-2xl px-5 shadow-lg shadow-cyan-600/20 transition-all duration-300 hover:-translate-y-0.5"
+                            class="h-11 rounded-2xl px-5 shadow-lg transition-all duration-300 hover:-translate-y-0.5"
+                            :style="primaryButtonStyle"
                             :disabled="form.processing || isSubmitting"
+                            @mouseenter="setPrimaryHover"
+                            @mouseleave="setPrimaryNormal"
                             @click="submit"
                         >
                             <Loader2

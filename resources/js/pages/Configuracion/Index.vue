@@ -1,15 +1,13 @@
 <script setup lang="ts">
-import { Head } from '@inertiajs/vue3';
-import AppLayout from '@/layouts/AppLayout.vue';
-import type { BreadcrumbItem } from '@/types';
-import {
-    useConfiguracionCrud,
-    type ModuleRow,
-} from '@/composables/crud/useConfiguracionCrud';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Checkbox } from '@/components/ui/checkbox';
+import { computed, ref, watch } from 'vue'
+import { Head, useForm } from '@inertiajs/vue3'
+import AppLayout from '@/layouts/AppLayout.vue'
+import type { BreadcrumbItem } from '@/types'
+import type { ModuleRow } from '@/composables/crud/useConfiguracionCrud'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
     Save,
     Settings2,
@@ -17,223 +15,615 @@ import {
     Palette,
     SlidersHorizontal,
     Blocks,
-} from 'lucide-vue-next';
-import { tModule } from '@/lib/labels';
+    UploadCloud,
+    ImageIcon,
+    RefreshCw,
+    Loader2,
+    CheckCircle2,
+} from 'lucide-vue-next'
+import { tModule } from '@/lib/labels'
+import { swalConfirm, swalToast } from '@/lib/swal'
 
 const props = defineProps<{
-    settings: any[];
-    settingsMap: Record<string, string | null>;
-    modules: ModuleRow[];
-}>();
+    settings: any[]
+    settingsMap: Record<string, string | null>
+    modules: ModuleRow[]
+}>()
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Configuración', href: '/configuracion' },
-];
+]
 
-const { form, modulesForm, saveSettings, saveModules } = useConfiguracionCrud(
-    props.settingsMap,
-    props.modules,
-);
+const form = useForm({
+    clinic_name: props.settingsMap.clinic_name ?? '',
+    clinic_logo: props.settingsMap.clinic_logo ?? '',
+    clinic_logo_file: null as File | null,
+    clinic_phone: props.settingsMap.clinic_phone ?? '',
+    clinic_email: props.settingsMap.clinic_email ?? '',
+    clinic_address: props.settingsMap.clinic_address ?? '',
+
+    primary_color: props.settingsMap.primary_color ?? '#0EA5A4',
+    primary_hover_color: props.settingsMap.primary_hover_color ?? '#0B8F8E',
+    primary_foreground_color: props.settingsMap.primary_foreground_color ?? '#ffffff',
+    app_background_color: props.settingsMap.app_background_color ?? '#F6FAFB',
+    card_background_color: props.settingsMap.card_background_color ?? '#ffffff',
+    sidebar_background_color: props.settingsMap.sidebar_background_color ?? '#F0F7F7',
+
+    default_currency: props.settingsMap.default_currency ?? 'MXN',
+    appointment_default_duration: Number(
+        props.settingsMap.appointment_default_duration ?? 60,
+    ),
+    dark_mode_enabled:
+        String(props.settingsMap.dark_mode_enabled ?? '1') === '1',
+})
+
+const modulesForm = useForm({
+    modules: props.modules.map((item) => ({
+        module: item.module,
+        enabled: item.enabled,
+    })),
+})
+
+const fileInput = ref<HTMLInputElement | null>(null)
+const logoPreview = ref<string | null>(form.clinic_logo || null)
+
+const activeModules = computed(
+    () => modulesForm.modules.filter((item) => item.enabled).length,
+)
+
+const applyThemeColors = () => {
+    const root = document.documentElement
+
+    root.style.setProperty('--primary', form.primary_color)
+    root.style.setProperty('--color-primary', form.primary_color)
+    root.style.setProperty('--primary-hover', form.primary_hover_color)
+    root.style.setProperty('--ring', form.primary_color)
+    root.style.setProperty('--color-ring', form.primary_color)
+
+    root.style.setProperty('--primary-foreground', form.primary_foreground_color)
+    root.style.setProperty('--color-primary-foreground', form.primary_foreground_color)
+
+    root.style.setProperty('--background', form.app_background_color)
+    root.style.setProperty('--color-background', form.app_background_color)
+
+    root.style.setProperty('--card', form.card_background_color)
+    root.style.setProperty('--color-card', form.card_background_color)
+
+    root.style.setProperty('--sidebar-background', form.sidebar_background_color)
+    root.style.setProperty('--color-sidebar', form.sidebar_background_color)
+}
+
+watch(
+    () => [
+        form.primary_color,
+        form.primary_hover_color,
+        form.primary_foreground_color,
+        form.app_background_color,
+        form.card_background_color,
+        form.sidebar_background_color,
+    ],
+    () => applyThemeColors(),
+    { immediate: true },
+)
+
+const triggerLogoInput = () => {
+    fileInput.value?.click()
+}
+
+const onLogoSelected = (event: Event) => {
+    const target = event.target as HTMLInputElement
+    const file = target.files?.[0] ?? null
+
+    if (!file) return
+
+    form.clinic_logo_file = file
+    logoPreview.value = URL.createObjectURL(file)
+}
+
+const setLogoFile = (file: File | null) => {
+    if (!file) return
+
+    const allowedTypes = [
+        'image/png',
+        'image/jpeg',
+        'image/jpg',
+        'image/webp',
+        'image/svg+xml',
+    ]
+
+    if (!allowedTypes.includes(file.type)) {
+        swalToast('El logo debe ser PNG, JPG, WEBP o SVG', 'error')
+        return
+    }
+
+    form.clinic_logo_file = file
+    logoPreview.value = URL.createObjectURL(file)
+}
+
+const onLogoDropped = (event: DragEvent) => {
+    const file = event.dataTransfer?.files?.[0] ?? null
+    setLogoFile(file)
+}
+
+const restorePreviousLogo = () => {
+    form.clinic_logo_file = null
+    logoPreview.value = form.clinic_logo || null
+
+    if (fileInput.value) {
+        fileInput.value.value = ''
+    }
+}
+
+const saveSettings = async () => {
+    const ok = await swalConfirm(
+        '¿Guardar configuración?',
+        'Se actualizarán los datos visuales y generales del sistema.',
+        'Sí, guardar',
+    )
+
+    if (!ok) return
+
+    form
+        .transform((data) => ({
+            ...data,
+            dark_mode_enabled: data.dark_mode_enabled ? '1' : '0',
+        }))
+        .post('/configuracion', {
+            forceFormData: true,
+            preserveScroll: true,
+            onSuccess: () => {
+                applyThemeColors()
+                swalToast('Configuración guardada correctamente', 'success')
+            },
+            onError: () => {
+                swalToast('Revisa los campos del formulario', 'error')
+            },
+        })
+}
+
+const saveModules = async () => {
+    const ok = await swalConfirm(
+        '¿Guardar módulos?',
+        'Esto cambiará la disponibilidad de módulos del sistema.',
+        'Sí, guardar',
+    )
+
+    if (!ok) return
+
+    modulesForm.patch('/configuracion/modulos', {
+        preserveScroll: true,
+        onSuccess: () =>
+            swalToast('Módulos actualizados correctamente', 'success'),
+        onError: () =>
+            swalToast('No se pudieron actualizar los módulos', 'error'),
+    })
+}
+
+const toggleModule = (moduleName: string, value: boolean) => {
+    const current = modulesForm.modules.find((m) => m.module === moduleName)
+
+    if (current) current.enabled = value
+}
+
+const inputClass =
+    'h-11 rounded-2xl border-zinc-200 bg-white px-4 text-zinc-900 shadow-sm transition-all duration-200 placeholder:text-zinc-400 focus-visible:border-[color:var(--primary)] focus-visible:ring-2 focus-visible:ring-[color:var(--primary)]/20'
+
+const cardClass =
+    'rounded-[2rem] border border-zinc-200 bg-white p-4 shadow-sm transition-all duration-300 hover:shadow-md sm:p-5'
+
+const titleClass =
+    'flex items-center gap-2 text-lg font-semibold text-zinc-900'
+
+const colorInputClass =
+    'h-11 w-14 shrink-0 rounded-2xl border-zinc-200 bg-white p-1 shadow-sm'
+
+const colorTextClass =
+    'h-11 rounded-2xl border-zinc-200 bg-white px-4 text-sm font-semibold text-zinc-900 shadow-sm'
+
+const hoverButtonStyle = (normal: string, hover: string) => ({
+    backgroundColor: normal,
+})
+
+const setHoverColor = (event: MouseEvent, color: string) => {
+    ;(event.currentTarget as HTMLElement).style.backgroundColor = color
+}
 </script>
 
 <template>
     <Head title="Configuración" />
+
     <AppLayout :breadcrumbs="breadcrumbs">
-        <section class="space-y-6">
-            <header
-                class="rounded-3xl bg-white p-6 shadow-xl transition-all duration-300 dark:bg-zinc-950"
-            >
-                <div class="flex items-center gap-3">
-                    <Settings2 class="h-6 w-6 text-primary" />
-                    <div>
-                        <h1
-                            class="text-2xl font-semibold text-zinc-900 dark:text-zinc-100"
+        <section class="w-full space-y-4 px-2 py-1 sm:px-3 lg:px-4">
+            <header class="overflow-hidden rounded-[2rem] border
+            border-zinc-200 bg-white p-5 shadow-sm">
+                <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                    <div class="flex items-start gap-4">
+                        <div
+                            class="grid h-12 w-12 shrink-0 place-items-center rounded-2xl shadow-lg"
+                            :style="{
+                                backgroundColor: form.primary_color,
+                                color: form.primary_foreground_color,
+                            }"
                         >
-                            Configuración general
-                        </h1>
-                        <p class="text-sm text-zinc-500 dark:text-zinc-400">
-                            Ajusta datos de clínica, apariencia y módulos
-                            habilitados del sistema.
-                        </p>
-                    </div>
-                </div>
-            </header>
+                            <Settings2 class="h-6 w-6" />
+                        </div>
 
-            <div class="grid gap-6 xl:grid-cols-2">
-                <article
-                    class="space-y-4 rounded-3xl bg-white p-6 shadow-xl transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl dark:bg-zinc-950"
-                >
-                    <h2
-                        class="flex items-center gap-2 text-lg font-semibold text-zinc-900 dark:text-zinc-100"
-                    >
-                        <Building2 class="h-5 w-5" />Datos de clínica
-                    </h2>
-                    <div class="grid gap-4 md:grid-cols-2">
-                        <div class="space-y-2 md:col-span-2">
-                            <Label>Nombre</Label
-                            ><Input v-model="form.clinic_name" />
+                        <div>
+                            <h1 class="text-2xl font-semibold text-zinc-900">
+                                Configuración general
+                            </h1>
+                            <p class="mt-1 text-sm text-zinc-500">
+                                Personaliza datos de clínica, colores principales y módulos del sistema.
+                            </p>
                         </div>
-                        <div class="space-y-2">
-                            <Label>Teléfono</Label
-                            ><Input v-model="form.clinic_phone" />
-                        </div>
-                        <div class="space-y-2">
-                            <Label>Email</Label
-                            ><Input v-model="form.clinic_email" />
-                        </div>
-                        <div class="space-y-2 md:col-span-2">
-                            <Label>Dirección</Label
-                            ><Input v-model="form.clinic_address" />
-                        </div>
-                        <div class="space-y-2 md:col-span-2">
-                            <Label>Logo (URL)</Label
-                            ><Input v-model="form.clinic_logo" />
-                        </div>
-                    </div>
-                </article>
-
-                <article
-                    class="space-y-4 rounded-3xl bg-white p-6 shadow-xl transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl dark:bg-zinc-950"
-                >
-                    <h2
-                        class="flex items-center gap-2 text-lg font-semibold text-zinc-900 dark:text-zinc-100"
-                    >
-                        <Palette class="h-5 w-5" />Apariencia
-                    </h2>
-                    <div class="grid gap-4 md:grid-cols-3">
-                        <div class="space-y-2">
-                            <Label>Primario</Label
-                            ><Input
-                                v-model="form.primary_color"
-                                type="color"
-                                class="h-12"
-                            />
-                        </div>
-                        <div class="space-y-2">
-                            <Label>Secundario</Label
-                            ><Input
-                                v-model="form.secondary_color"
-                                type="color"
-                                class="h-12"
-                            />
-                        </div>
-                        <div class="space-y-2">
-                            <Label>Acento</Label
-                            ><Input
-                                v-model="form.accent_color"
-                                type="color"
-                                class="h-12"
-                            />
-                        </div>
-                    </div>
-
-                    <h2
-                        class="flex items-center gap-2 text-lg font-semibold text-zinc-900 dark:text-zinc-100"
-                    >
-                        <SlidersHorizontal class="h-5 w-5" />Parámetros
-                        generales
-                    </h2>
-                    <div class="grid gap-4 md:grid-cols-2">
-                        <div class="space-y-2">
-                            <Label>Moneda</Label
-                            ><Input v-model="form.default_currency" />
-                        </div>
-                        <div class="space-y-2">
-                            <Label>Duración cita (min)</Label
-                            ><Input
-                                v-model="form.appointment_default_duration"
-                                type="number"
-                                min="1"
-                            />
-                        </div>
-                        <label
-                            class="flex items-center justify-between rounded-2xl border border-zinc-200 px-3 py-2 dark:border-zinc-800"
-                            ><span>Modo demo</span
-                            ><Checkbox
-                                :model-value="form.demo_mode"
-                                @update:model-value="
-                                    (value) => (form.demo_mode = !!value)
-                                "
-                        /></label>
-                        <label
-                            class="flex items-center justify-between rounded-2xl border border-zinc-200 px-3 py-2 dark:border-zinc-800"
-                            ><span>Modo oscuro habilitado</span
-                            ><Checkbox
-                                :model-value="form.dark_mode_enabled"
-                                @update:model-value="
-                                    (value) =>
-                                        (form.dark_mode_enabled = !!value)
-                                "
-                        /></label>
                     </div>
 
                     <Button
-                        class="w-full rounded-2xl"
+                        class="h-11 rounded-2xl px-6 shadow-lg transition-all duration-200 hover:-translate-y-0.5"
+                        :style="{
+                            backgroundColor: form.primary_color,
+                            color: form.primary_foreground_color,
+                        }"
                         :disabled="form.processing"
+                        @mouseenter="setHoverColor($event, form.primary_hover_color)"
+                        @mouseleave="setHoverColor($event, form.primary_color)"
                         @click="saveSettings"
-                        ><Save class="mr-2 h-4 w-4" />{{
-                            form.processing
-                                ? 'Guardando...'
-                                : 'Guardar configuración'
-                        }}</Button
                     >
+                        <Loader2
+                            v-if="form.processing"
+                            class="mr-2 h-4 w-4 animate-spin"
+                        />
+                        <Save v-else class="mr-2 h-4 w-4" />
+                        {{ form.processing ? 'Guardando...' : 'Guardar configuración general' }}
+                    </Button>
+                </div>
+            </header>
+
+            <div class="grid gap-4 2xl:grid-cols-[1.2fr_.8fr]">
+                <article :class="cardClass">
+                    <div class="flex flex-col gap-5">
+                        <div>
+                            <h2 :class="titleClass">
+                                <Building2 class="h-5 w-5" :style="{ color: form.primary_color }" />
+                                Datos de clínica
+                            </h2>
+
+                            <div class="mt-4 grid gap-4 lg:grid-cols-2">
+                                <div class="space-y-2 lg:col-span-2">
+                                    <Label>Nombre</Label>
+                                    <Input
+                                        v-model="form.clinic_name"
+                                        :class="inputClass"
+                                        placeholder="Ej. FisioVida"
+                                    />
+                                    <p v-if="form.errors.clinic_name" class="text-xs text-red-500">
+                                        {{ form.errors.clinic_name }}
+                                    </p>
+                                </div>
+
+                                <div class="space-y-2">
+                                    <Label>Teléfono</Label>
+                                    <Input
+                                        v-model="form.clinic_phone"
+                                        :class="inputClass"
+                                        placeholder="Ej. +52 777 123 4567"
+                                    />
+                                </div>
+
+                                <div class="space-y-2">
+                                    <Label>Email</Label>
+                                    <Input
+                                        v-model="form.clinic_email"
+                                        :class="inputClass"
+                                        type="email"
+                                        placeholder="Ej. contacto@clinica.com"
+                                    />
+                                    <p v-if="form.errors.clinic_email" class="text-xs text-red-500">
+                                        {{ form.errors.clinic_email }}
+                                    </p>
+                                </div>
+
+                                <div class="space-y-2 lg:col-span-2">
+                                    <Label>Dirección</Label>
+                                    <Input
+                                        v-model="form.clinic_address"
+                                        :class="inputClass"
+                                        placeholder="Calle, número, colonia, ciudad"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="rounded-[1.5rem] border border-zinc-200 bg-zinc-50 p-4">
+                            <h2 :class="titleClass">
+                                <SlidersHorizontal class="h-5 w-5" :style="{ color: form.primary_color }" />
+                                Parámetros generales
+                            </h2>
+
+                            <div class="mt-4 grid gap-4 md:grid-cols-[1fr_1fr_auto]">
+                                <div class="space-y-2">
+                                    <Label>Moneda</Label>
+                                    <Input
+                                        v-model="form.default_currency"
+                                        :class="inputClass"
+                                        placeholder="MXN"
+                                    />
+                                </div>
+
+                                <div class="space-y-2">
+                                    <Label>Duración cita (min)</Label>
+                                    <Input
+                                        v-model="form.appointment_default_duration"
+                                        :class="inputClass"
+                                        type="number"
+                                        min="1"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="rounded-[1.5rem] border border-zinc-200 bg-zinc-50 p-4">
+                            <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                                <div class="flex flex-col gap-4 md:flex-row md:items-center">
+                                    <button
+                                        type="button"
+                                        class="group relative flex h-36 w-full items-center justify-center overflow-hidden rounded-2xl border-2 border-dashed border-zinc-300 bg-white p-4 transition-all duration-200 hover:-translate-y-0.5 hover:border-[color:var(--primary)] hover:bg-zinc-50 md:w-64"
+                                        @click="triggerLogoInput"
+                                        @dragover.prevent
+                                        @dragenter.prevent
+                                        @drop.prevent="onLogoDropped"
+                                    >
+                                        <img
+                                            v-if="logoPreview"
+                                            :src="logoPreview"
+                                            alt="Logo clínica"
+                                            class="max-h-full max-w-full object-contain transition-transform duration-300 group-hover:scale-105"
+                                        />
+
+                                        <div
+                                            v-else
+                                            class="flex flex-col items-center gap-2 text-zinc-400"
+                                        >
+                                            <ImageIcon class="h-9 w-9" />
+                                            <span class="text-xs font-medium">Arrastra tu logo aquí</span>
+                                        </div>
+
+                                        <div
+                                            class="pointer-events-none absolute inset-x-3 bottom-3 rounded-xl bg-white/90 px-3 py-2 text-center text-xs font-medium text-zinc-600 opacity-0 shadow-sm transition-opacity duration-200 group-hover:opacity-100"
+                                        >
+                                            Clic o arrastra una imagen
+                                        </div>
+                                    </button>
+
+                                    <div>
+                                        <Label class="text-sm font-semibold text-zinc-900">
+                                            Logo de la clínica
+                                        </Label>
+                                        <p class="mt-1 max-w-md text-xs leading-5 text-zinc-500">
+                                            Sube o arrastra un logo en PNG, JPG, WEBP o SVG. Recomendado con fondo transparente.
+                                        </p>
+
+                                        <p
+                                            v-if="form.clinic_logo_file"
+                                            class="mt-2 rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700"
+                                        >
+                                            Nueva imagen seleccionada: {{ form.clinic_logo_file.name }}
+                                        </p>
+
+                                        <p
+                                            v-if="form.errors.clinic_logo_file"
+                                            class="mt-2 text-xs text-red-500"
+                                        >
+                                            {{ form.errors.clinic_logo_file }}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <input
+                                    ref="fileInput"
+                                    type="file"
+                                    accept="image/png,image/jpeg,image/jpg,image/webp,image/svg+xml"
+                                    class="hidden"
+                                    @change="onLogoSelected"
+                                />
+
+                                <div class="flex flex-col gap-2 sm:flex-row lg:flex-col xl:flex-row">
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        class="h-10 rounded-2xl border-zinc-200 bg-white px-5 text-sm hover:bg-zinc-50"
+                                        @click="triggerLogoInput"
+                                    >
+                                        <UploadCloud class="mr-2 h-4 w-4" />
+                                        Subir logo
+                                    </Button>
+
+                                    <Button
+                                        v-if="form.clinic_logo_file"
+                                        type="button"
+                                        variant="ghost"
+                                        class="h-10 rounded-2xl px-5 text-sm hover:bg-zinc-100"
+                                        @click="restorePreviousLogo"
+                                    >
+                                        <RefreshCw class="mr-2 h-4 w-4" />
+                                        Restaurar anterior
+                                    </Button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </article>
+
+                <article :class="cardClass">
+                    <h2 :class="titleClass">
+                        <Palette class="h-5 w-5" :style="{ color: form.primary_color }" />
+                        Colores del sistema
+                    </h2>
+
+                    <p class="mt-1 text-sm text-zinc-500">
+                        Estos colores afectan botones, fondo general, tarjetas y menú lateral.
+                    </p>
+
+                    <div class="mt-4 grid gap-3">
+                        <div class="space-y-1.5">
+                            <Label>Botones principales</Label>
+                            <div class="flex items-center gap-3">
+                                <Input v-model="form.primary_color" type="color" :class="colorInputClass" />
+                                <Input v-model="form.primary_color" :class="colorTextClass" />
+                            </div>
+                        </div>
+
+                        <div class="space-y-1.5">
+                            <Label>Hover de botones</Label>
+                            <div class="flex items-center gap-3">
+                                <Input v-model="form.primary_hover_color" type="color" :class="colorInputClass" />
+                                <Input v-model="form.primary_hover_color" :class="colorTextClass" />
+                            </div>
+                        </div>
+
+                        <div class="space-y-1.5">
+                            <Label>Texto de botones</Label>
+                            <div class="flex items-center gap-3">
+                                <Input v-model="form.primary_foreground_color" type="color" :class="colorInputClass" />
+                                <Input v-model="form.primary_foreground_color" :class="colorTextClass" />
+                            </div>
+                        </div>
+
+                        <div class="space-y-1.5">
+                            <Label>Fondo general</Label>
+                            <div class="flex items-center gap-3">
+                                <Input v-model="form.app_background_color" type="color" :class="colorInputClass" />
+                                <Input v-model="form.app_background_color" :class="colorTextClass" />
+                            </div>
+                        </div>
+
+                        <div class="space-y-1.5">
+                            <Label>Fondo de tarjetas</Label>
+                            <div class="flex items-center gap-3">
+                                <Input v-model="form.card_background_color" type="color" :class="colorInputClass" />
+                                <Input v-model="form.card_background_color" :class="colorTextClass" />
+                            </div>
+                        </div>
+
+                        <div class="space-y-1.5">
+                            <Label>Fondo menú lateral</Label>
+                            <div class="flex items-center gap-3">
+                                <Input v-model="form.sidebar_background_color" type="color" :class="colorInputClass" />
+                                <Input v-model="form.sidebar_background_color" :class="colorTextClass" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-4 rounded-[1.5rem] border border-zinc-200 bg-zinc-50 p-3">
+                        <p class="text-sm font-semibold text-zinc-900">
+                            Vista previa
+                        </p>
+
+                        <div
+                            class="mt-3 rounded-2xl border border-zinc-200 p-3"
+                            :style="{ backgroundColor: form.app_background_color }"
+                        >
+                            <div class="grid gap-3 sm:grid-cols-[135px_1fr]">
+                                <div
+                                    class="rounded-2xl p-3 text-sm font-semibold"
+                                    :style="{ backgroundColor: form.sidebar_background_color }"
+                                >
+                                    Menú lateral
+                                </div>
+
+                                <div
+                                    class="rounded-2xl border border-zinc-200 p-3"
+                                    :style="{ backgroundColor: form.card_background_color }"
+                                >
+                                    <button
+                                        type="button"
+                                        class="rounded-xl px-4 py-2 text-sm font-semibold shadow-sm transition-all duration-200 hover:-translate-y-0.5"
+                                        :style="{
+                                            backgroundColor: form.primary_color,
+                                            color: form.primary_foreground_color,
+                                        }"
+                                        @mouseenter="setHoverColor($event, form.primary_hover_color)"
+                                        @mouseleave="setHoverColor($event, form.primary_color)"
+                                    >
+                                        Botón principal
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </article>
             </div>
 
-            <article
-                class="space-y-4 rounded-3xl bg-white p-6 shadow-xl transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl dark:bg-zinc-950"
-            >
-                <h2
-                    class="flex items-center gap-2 text-lg font-semibold text-zinc-900 dark:text-zinc-100"
-                >
-                    <Blocks class="h-5 w-5" />Módulos habilitados
-                </h2>
-                <p class="text-sm text-zinc-500 dark:text-zinc-400">
-                    Control global para habilitar o deshabilitar secciones del
-                    sistema.
-                </p>
+            <article :class="cardClass">
+                <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                        <h2 :class="titleClass">
+                            <Blocks class="h-5 w-5" :style="{ color: form.primary_color }" />
+                            Módulos habilitados
+                        </h2>
+                        <p class="mt-1 text-sm text-zinc-500">
+                            Activa o desactiva secciones del sistema de forma global.
+                        </p>
+                    </div>
 
-                <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                    <div
+                        class="rounded-2xl px-4 py-2 text-sm font-semibold"
+                        :style="{
+                            backgroundColor: `${form.primary_color}18`,
+                            color: form.primary_color,
+                        }"
+                    >
+                        {{ activeModules }} activos
+                    </div>
+                </div>
+
+                <div class="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
                     <label
                         v-for="module in props.modules"
                         :key="module.id"
-                        class="flex items-center justify-between rounded-2xl border border-zinc-200 bg-zinc-50/70 px-4 py-3 dark:border-zinc-800 dark:bg-zinc-900/40"
+                        class="group flex items-center justify-between rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3 transition-all duration-200 hover:-translate-y-0.5 hover:border-zinc-300 hover:bg-white hover:shadow-sm"
                     >
-                        <div>
-                            <p
-                                class="font-medium text-zinc-900 dark:text-zinc-100"
-                            >
+                        <div class="pr-3">
+                            <p class="font-semibold text-zinc-900">
                                 {{ module.label || tModule(module.module) }}
                             </p>
+                            <p
+                                v-if="module.description"
+                                class="mt-0.5 line-clamp-1 text-xs text-zinc-500"
+                            >
+                                {{ module.description }}
+                            </p>
                         </div>
+
                         <Checkbox
                             :model-value="
-                                modulesForm.modules.find(
-                                    (m) => m.module === module.module,
-                                )?.enabled
+                                modulesForm.modules.find((m) => m.module === module.module)?.enabled
                             "
-                            @update:model-value="
-                                (value) => {
-                                    const current = modulesForm.modules.find(
-                                        (m) => m.module === module.module,
-                                    );
-                                    if (current) current.enabled = !!value;
-                                }
-                            "
+                            @update:model-value="(value) => toggleModule(module.module, !!value)"
                         />
                     </label>
                 </div>
 
-                <Button
-                    class="rounded-2xl"
-                    :disabled="modulesForm.processing"
-                    @click="saveModules"
-                    ><Save class="mr-2 h-4 w-4" />{{
-                        modulesForm.processing
-                            ? 'Guardando módulos...'
-                            : 'Guardar módulos'
-                    }}</Button
-                >
+                <div class="mt-5 flex justify-end">
+                    <Button
+                        class="rounded-2xl px-6 shadow-lg transition-all duration-200 hover:-translate-y-0.5"
+                        :style="{
+                            backgroundColor: form.primary_color,
+                            color: form.primary_foreground_color,
+                        }"
+                        :disabled="modulesForm.processing"
+                        @mouseenter="setHoverColor($event, form.primary_hover_color)"
+                        @mouseleave="setHoverColor($event, form.primary_color)"
+                        @click="saveModules"
+                    >
+                        <Loader2
+                            v-if="modulesForm.processing"
+                            class="mr-2 h-4 w-4 animate-spin"
+                        />
+                        <CheckCircle2 v-else class="mr-2 h-4 w-4" />
+                        {{ modulesForm.processing ? 'Guardando módulos...' : 'Guardar módulos' }}
+                    </Button>
+                </div>
             </article>
         </section>
     </AppLayout>

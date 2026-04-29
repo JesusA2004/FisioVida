@@ -16,6 +16,9 @@ trait CrudHelpers {
 
     protected function packPaginator(LengthAwarePaginator $p): array {
         return [
+            'current_page' => $p->currentPage(),
+            'last_page' => $p->lastPage(),
+            'per_page' => $p->perPage(),
             'from' => $p->firstItem(),
             'to' => $p->lastItem(),
             'total' => $p->total(),

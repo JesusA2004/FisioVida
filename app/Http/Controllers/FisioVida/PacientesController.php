@@ -54,12 +54,30 @@ class PacientesController extends Controller {
             });
         }
 
-        $paginator = $query->paginate(10)->withQueryString();
+        $perPageInput = $request->input('per_page', 10);
+
+        $perPage = $perPageInput === 'all'
+            ? max(1, min((int) $query->count(), 500))
+            : (int) $perPageInput;
+
+        $perPage = in_array($perPage, [10, 15, 20, 50], true)
+            ? $perPage
+            : 10;
+
+        if ($perPageInput === 'all') {
+            $total = (clone $query)->count();
+            $perPage = max(1, min($total, 500));
+        }
+
+        $paginator = $query->paginate($perPage)->withQueryString();
 
         return Inertia::render('Pacientes/Index', [
             'rows' => PacienteResource::collection(collect($paginator->items()))->resolve(),
-            'page' => $this->packPaginator($paginator),
-            'filters' => $this->filters($request, ['q', 'status']),
+            'page' => [
+                ...$this->packPaginator($paginator),
+                'per_page_selected' => $perPageInput === 'all' ? 'all' : $perPage,
+            ],
+            'filters' => $this->filters($request, ['q', 'status', 'per_page']),
         ]);
     }
 

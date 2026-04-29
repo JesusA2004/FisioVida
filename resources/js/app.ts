@@ -11,9 +11,37 @@ const applyThemeColors = (settings: Record<string, string | null> | undefined) =
     if (!settings) return;
 
     const root = document.documentElement;
-    if (settings.primary_color) { root.style.setProperty('--color-primary', settings.primary_color); root.style.setProperty('--primary', settings.primary_color); }
-    if (settings.secondary_color) { root.style.setProperty('--color-secondary', settings.secondary_color); root.style.setProperty('--secondary', settings.secondary_color); }
-    if (settings.accent_color) { root.style.setProperty('--color-accent', settings.accent_color); root.style.setProperty('--accent', settings.accent_color); }
+
+    if (settings.primary_color) {
+        root.style.setProperty('--primary', settings.primary_color);
+        root.style.setProperty('--color-primary', settings.primary_color);
+        root.style.setProperty('--ring', settings.primary_color);
+        root.style.setProperty('--color-ring', settings.primary_color);
+    }
+
+    if (settings.primary_hover_color) {
+        root.style.setProperty('--primary-hover', settings.primary_hover_color);
+    }
+
+    if (settings.primary_foreground_color) {
+        root.style.setProperty('--primary-foreground', settings.primary_foreground_color);
+        root.style.setProperty('--color-primary-foreground', settings.primary_foreground_color);
+    }
+
+    if (settings.app_background_color) {
+        root.style.setProperty('--background', settings.app_background_color);
+        root.style.setProperty('--color-background', settings.app_background_color);
+    }
+
+    if (settings.card_background_color) {
+        root.style.setProperty('--card', settings.card_background_color);
+        root.style.setProperty('--color-card', settings.card_background_color);
+    }
+
+    if (settings.sidebar_background_color) {
+        root.style.setProperty('--sidebar-background', settings.sidebar_background_color);
+        root.style.setProperty('--color-sidebar', settings.sidebar_background_color);
+    }
 };
 
 createInertiaApp({
