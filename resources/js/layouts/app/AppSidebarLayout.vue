@@ -22,7 +22,10 @@ withDefaults(defineProps<Props>(), {
             class="overflow-x-hidden pt-16 group-has-data-[collapsible=icon]/sidebar-wrapper:pt-12"
         >
             <AppSidebarHeader :breadcrumbs="breadcrumbs" />
-            <slot />
+
+            <div class="w-full px-4 py-4 sm:px-5 lg:px-6 xl:px-7">
+                <slot />
+            </div>
         </AppContent>
     </AppShell>
 </template>

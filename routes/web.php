@@ -14,7 +14,6 @@ use App\Http\Controllers\FisioVida\LogsController;
 use App\Http\Controllers\FisioVida\SesionEjerciciosController;
 use App\Http\Controllers\FisioVida\RolesController;
 use App\Http\Controllers\FisioVida\ActividadesController;
-use App\Http\Controllers\FisioVida\PermisosController;
 use App\Http\Controllers\FisioVida\ConfiguracionController;
 use App\Http\Controllers\FisioVida\ModulosSistemaController;
 use App\Http\Controllers\FisioVida\DashboardController;
@@ -76,10 +75,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::resource('roles', RolesController::class)->only(['index', 'store', 'update', 'destroy'])->middleware('permission:roles.view');
 
     Route::resource('actividades', ActividadesController::class)->only(['index', 'store', 'update', 'destroy'])->middleware('permission:activities.view');
-
-    Route::resource('permisos', PermisosController::class)->only(['index', 'store', 'update', 'destroy'])->middleware('permission:permissions.view');
-
-    Route::patch('permisos/{permiso}/toggle-status', [PermisosController::class, 'toggleStatus'])->name('permisos.toggle-status')->middleware('permission:permissions.update');
 
     Route::patch('usuarios/{usuario}/toggle-status', [UsuariosController::class, 'toggleStatus'])->name('usuarios.toggle-status')->middleware('permission:users.update');
 

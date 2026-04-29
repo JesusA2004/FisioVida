@@ -175,9 +175,7 @@ const setPrimaryNormal = (event: MouseEvent) => {
     <Head title="Pacientes" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
-        <section
-            class="w-full space-y-5 rounded-[2rem] border border-zinc-200 bg-white p-4 shadow-sm transition-all duration-300 sm:p-5 dark:border-zinc-800 dark:bg-zinc-950"
-        >
+        <section class="w-full space-y-5">
             <div
                 v-if="!moduleEnabled"
                 class="rounded-2xl border border-amber-300/70 bg-amber-50 p-4 text-amber-800 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-200"

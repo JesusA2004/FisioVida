@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ref, watch } from 'vue';
 import { Head, router } from '@inertiajs/vue3';
 import AppLayout from '@/layouts/AppLayout.vue';
 import type { BreadcrumbItem } from '@/types';
@@ -20,13 +21,39 @@ import {
     DialogTitle,
     DialogDescription,
 } from '@/components/ui/dialog';
-import { UserPlus, ShieldCheck, Power, Pencil, Trash2 } from 'lucide-vue-next';
+import {
+    UserPlus,
+    ShieldCheck,
+    Power,
+    Pencil,
+    Trash2,
+    Search,
+    X,
+    AlertCircle,
+    Users,
+    Mail,
+    KeyRound,
+    Settings2,
+    UserRound,
+    LockKeyhole,
+    Info,
+    CheckCircle2,
+} from 'lucide-vue-next';
 import SearchableSelect from '@/components/ui/SearchableSelect.vue';
 import { tGeneralStatus, tModule } from '@/lib/labels';
+import FvPagination from '@/components/fv/FvPagination.vue';
 
 const props = defineProps<{
     rows: UsuarioRow[];
-    page: { current_page: number; last_page: number; total: number };
+    page: {
+        current_page: number;
+        last_page: number;
+        per_page?: number | string;
+        per_page_selected?: number | string;
+        from?: number | null;
+        to?: number | null;
+        total: number;
+    };
     filters: { q?: string; status?: string };
     roles: UsuarioRole[];
 }>();
@@ -38,6 +65,7 @@ const breadcrumbs: BreadcrumbItem[] = [
 const {
     form,
     isOpen,
+    isEditing,
     openCreate,
     openEdit,
     toggleRole,
@@ -45,403 +73,815 @@ const {
     submit,
     toggleStatus,
     destroyUser,
-    editingId,
 } = useUsuarioCrud();
 
-const applyFilter = (e: Event) => {
-    const target = e.target as HTMLInputElement;
+const search = ref(props.filters.q ?? '');
+const selectedStatus = ref<string | null>(props.filters.status ?? null);
+let searchTimer: ReturnType<typeof setTimeout> | null = null;
+
+watch(
+    () => props.filters,
+    (filters) => {
+        search.value = filters.q ?? '';
+        selectedStatus.value = filters.status ?? null;
+    },
+    { deep: true },
+);
+
+watch(search, (value) => {
+    if (searchTimer) clearTimeout(searchTimer);
+
+    searchTimer = setTimeout(() => {
+        applyFilters({
+            q: value.trim(),
+            status: selectedStatus.value ?? '',
+            page: 1,
+        });
+    }, 450);
+});
+
+const applyFilters = (extra: Record<string, string | number>) => {
     router.get(
-        route('usuarios.index'),
-        { ...props.filters, q: target.value },
+        '/usuarios',
+        { ...props.filters, ...extra },
         { preserveState: true, replace: true },
     );
 };
 
-const goPage = (page: number) => {
-    router.get(
-        route('usuarios.index'),
-        { ...props.filters, page },
-        { preserveState: true, replace: true },
-    );
+const applyStatus = (value: string | number | null) => {
+    selectedStatus.value = value ? String(value) : null;
+
+    applyFilters({
+        q: search.value.trim(),
+        status: selectedStatus.value ?? '',
+        page: 1,
+    });
+};
+
+const clearSearch = () => {
+    search.value = '';
+};
+
+const statusClass = (status: UsuarioRow['status']) =>
+    status === 'active'
+        ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/40 dark:bg-emerald-950/40 dark:text-emerald-300'
+        : 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900/40 dark:bg-amber-950/40 dark:text-amber-300';
+
+const roleNames = (row: UsuarioRow) => {
+    if (row.is_super_admin) return 'Super administrador';
+    if (!row.roles || row.roles.length === 0) return 'Sin roles asignados';
+
+    return row.roles.map((role) => role.name).join(', ');
+};
+
+const moduleItems = [
+    { key: 'mod_agenda', label: tModule('appointments') },
+    { key: 'mod_pacientes', label: tModule('patients') },
+    { key: 'mod_sesiones', label: tModule('sessions') },
+    { key: 'mod_ejercicios', label: tModule('exercises') },
+    { key: 'mod_archivos', label: tModule('files') },
+    { key: 'mod_reportes', label: tModule('reports') },
+    { key: 'mod_cobranza', label: tModule('payments') },
+    { key: 'mod_config', label: tModule('settings') },
+] as const;
+
+const inputBase =
+    'h-11 rounded-2xl border-zinc-200 bg-white shadow-sm transition-all duration-200 placeholder:text-zinc-400 focus-visible:border-[color:var(--primary)] focus-visible:ring-2 focus-visible:ring-[color:var(--primary)]/20 dark:border-zinc-800 dark:bg-zinc-900/80';
+
+const labelBase = 'text-sm font-medium text-zinc-800 dark:text-zinc-100';
+
+const sectionTitleBase =
+    'flex items-center gap-2 text-sm font-semibold text-zinc-900 dark:text-zinc-100';
+
+const primaryButtonStyle = {
+    backgroundColor: 'var(--primary)',
+    color: 'var(--primary-foreground)',
+};
+
+const primarySoftStyle = {
+    backgroundColor: 'color-mix(in srgb, var(--primary) 8%, white)',
+};
+
+const setPrimaryHover = (event: MouseEvent) => {
+    const hoverColor =
+        getComputedStyle(document.documentElement)
+            .getPropertyValue('--primary-hover')
+            .trim() || 'var(--primary)';
+
+    (event.currentTarget as HTMLElement).style.backgroundColor = hoverColor;
+};
+
+const setPrimaryNormal = (event: MouseEvent) => {
+    (event.currentTarget as HTMLElement).style.backgroundColor =
+        'var(--primary)';
 };
 </script>
 
 <template>
     <Head title="Usuarios" />
+
     <AppLayout :breadcrumbs="breadcrumbs">
-        <section
-            class="space-y-6 rounded-3xl bg-white p-6 shadow-xl transition-all duration-300 dark:bg-zinc-950"
-        >
+        <section class="w-full space-y-5">
             <div
-                class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between"
+                class="relative overflow-hidden rounded-[2rem] border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/40"
             >
-                <div>
-                    <h1
-                        class="text-2xl font-semibold text-zinc-900 dark:text-zinc-100"
-                    >
-                        Usuarios
-                    </h1>
-                    <p class="text-sm text-zinc-500 dark:text-zinc-400">
-                        Gestión de accesos basada en roles.
-                    </p>
-                </div>
-                <Button
-                    class="rounded-2xl shadow-lg transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl"
-                    @click="openCreate"
-                    ><UserPlus class="mr-2 h-4 w-4" />Nuevo usuario</Button
+                <div
+                    class="pointer-events-none absolute -top-20 -right-20 h-52 w-52 rounded-full blur-3xl"
+                    :style="{
+                        backgroundColor:
+                            'color-mix(in srgb, var(--primary) 16%, transparent)',
+                    }"
+                />
+
+                <div
+                    class="relative flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between"
                 >
+                    <div class="flex items-start gap-4">
+                        <div
+                            class="grid h-12 w-12 shrink-0 place-items-center rounded-2xl shadow-lg"
+                            :style="primaryButtonStyle"
+                        >
+                            <Users class="h-6 w-6" />
+                        </div>
+
+                        <div>
+                            <h1
+                                class="text-2xl font-semibold tracking-tight text-zinc-950 dark:text-zinc-50"
+                            >
+                                Usuarios
+                            </h1>
+
+                            <p
+                                class="mt-1 max-w-2xl text-sm leading-6 text-zinc-600 dark:text-zinc-400"
+                            >
+                                Administra las cuentas de acceso. Cada usuario
+                                debe tener al menos un rol asignado, salvo que
+                                sea super administrador.
+                            </p>
+                        </div>
+                    </div>
+
+                    <Button
+                        class="h-11 rounded-2xl px-5 shadow-lg transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl"
+                        :style="primaryButtonStyle"
+                        @mouseenter="setPrimaryHover"
+                        @mouseleave="setPrimaryNormal"
+                        @click="openCreate"
+                    >
+                        <UserPlus class="mr-2 h-4 w-4" />
+                        Nuevo usuario
+                    </Button>
+                </div>
             </div>
 
-            <div class="grid gap-3 md:grid-cols-3">
-                <Input
-                    :default-value="props.filters.q ?? ''"
-                    placeholder="Buscar por nombre o email"
-                    @change="applyFilter"
-                />
-                <SearchableSelect
-                    :model-value="props.filters.status ?? null"
-                    :options="[
-                        { value: null, label: 'Todos los estados' },
-                        { value: 'active', label: 'Activo' },
-                        { value: 'blocked', label: 'Bloqueado' },
-                        { value: 'inactive', label: 'Inactivo' },
-                    ]"
-                    placeholder="Filtrar estado"
-                    clearable
-                    @update:model-value="
-                        (value) =>
-                            router.get(
-                                route('usuarios.index'),
-                                { ...props.filters, status: value ?? '' },
-                                { preserveState: true, replace: true },
-                            )
-                    "
-                />
+            <div
+                class="rounded-[1.75rem] border border-zinc-200 bg-zinc-50 p-4 shadow-sm transition-all duration-300 dark:border-zinc-800 dark:bg-zinc-900/40"
+            >
+                <div class="grid gap-3 lg:grid-cols-[1fr_260px]">
+                    <div class="relative">
+                        <Search
+                            class="pointer-events-none absolute top-3.5 left-3 h-4 w-4 text-zinc-400"
+                        />
+
+                        <Input
+                            v-model="search"
+                            class="h-11 rounded-2xl border-zinc-200 bg-white pr-10 pl-9 shadow-sm transition-all duration-200 focus-visible:border-[color:var(--primary)] focus-visible:ring-2 focus-visible:ring-[color:var(--primary)]/20 dark:border-zinc-800 dark:bg-zinc-950"
+                            placeholder="Buscar por nombre o correo"
+                        />
+
+                        <button
+                            v-if="search"
+                            type="button"
+                            class="absolute top-3 right-3 grid h-5 w-5 place-items-center rounded-full text-zinc-400 transition hover:bg-zinc-100 hover:text-zinc-700 dark:hover:bg-zinc-800 dark:hover:text-zinc-200"
+                            @click="clearSearch"
+                        >
+                            <X class="h-3.5 w-3.5" />
+                        </button>
+                    </div>
+
+                    <SearchableSelect
+                        :model-value="selectedStatus"
+                        :options="[
+                            { value: null, label: 'Todos los estados' },
+                            {
+                                value: 'active',
+                                label: tGeneralStatus('active'),
+                            },
+                            {
+                                value: 'blocked',
+                                label: tGeneralStatus('blocked'),
+                            },
+                        ]"
+                        placeholder="Filtrar estado"
+                        clearable
+                        @update:model-value="applyStatus"
+                    />
+                </div>
             </div>
 
             <div
                 v-if="props.rows.length === 0"
-                class="rounded-3xl border border-dashed border-zinc-300 bg-zinc-50 p-10 text-center dark:border-zinc-700 dark:bg-zinc-900/40"
+                class="rounded-[2rem] border border-dashed border-zinc-300 bg-zinc-50 p-10 text-center transition-all duration-300 dark:border-zinc-700 dark:bg-zinc-900/40"
             >
+                <div
+                    class="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-white shadow-sm dark:bg-zinc-950"
+                >
+                    <AlertCircle class="h-6 w-6 text-zinc-400" />
+                </div>
+
                 <h3
-                    class="text-lg font-semibold text-zinc-800 dark:text-zinc-100"
+                    class="mt-4 text-lg font-semibold text-zinc-800 dark:text-zinc-100"
                 >
                     Sin usuarios para mostrar
                 </h3>
+
                 <p class="mt-2 text-sm text-zinc-500 dark:text-zinc-400">
-                    Ajusta filtros o crea un usuario nuevo.
+                    Crea un usuario nuevo o ajusta la búsqueda y filtros.
                 </p>
             </div>
 
-            <div
-                v-else
-                class="overflow-hidden rounded-2xl border border-zinc-200 dark:border-zinc-800"
-            >
-                <table
-                    class="min-w-full divide-y divide-zinc-200 text-sm dark:divide-zinc-800"
+            <div v-else class="grid gap-4 xl:grid-cols-2">
+                <article
+                    v-for="row in props.rows"
+                    :key="row.id"
+                    class="group rounded-[1.75rem] border border-zinc-200 bg-white p-4 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-[color:var(--primary)] hover:shadow-xl dark:border-zinc-800 dark:bg-zinc-900/60"
                 >
-                    <thead class="bg-zinc-50 dark:bg-zinc-900/50">
-                        <tr>
-                            <th class="px-4 py-3 text-left font-medium">
-                                Nombre
-                            </th>
-                            <th class="px-4 py-3 text-left font-medium">
-                                Email
-                            </th>
-                            <th class="px-4 py-3 text-left font-medium">
-                                Estado
-                            </th>
-                            <th class="px-4 py-3 text-left font-medium">
-                                Roles
-                            </th>
-                            <th class="px-4 py-3 text-right font-medium">
-                                Acciones
-                            </th>
-                        </tr>
-                    </thead>
-                    <tbody
-                        class="divide-y divide-zinc-100 dark:divide-zinc-800"
+                    <div
+                        class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between"
                     >
-                        <tr
-                            v-for="row in props.rows"
-                            :key="row.id"
-                            class="transition-all duration-300 hover:bg-zinc-50 dark:hover:bg-zinc-900/50"
-                        >
-                            <td class="px-4 py-3">
-                                {{ row.name }}
+                        <div class="min-w-0">
+                            <div class="flex flex-wrap items-center gap-2">
+                                <h3
+                                    class="text-base font-semibold text-zinc-950 dark:text-zinc-50"
+                                >
+                                    {{ row.name || 'Usuario sin nombre' }}
+                                </h3>
+
+                                <Badge
+                                    class="rounded-full border px-3 py-1 text-xs"
+                                    :class="statusClass(row.status)"
+                                >
+                                    {{ tGeneralStatus(row.status) }}
+                                </Badge>
+
                                 <Badge
                                     v-if="row.is_super_admin"
-                                    class="ml-2 rounded-full bg-indigo-100 px-2 py-1 text-xs text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300"
-                                    ><ShieldCheck
-                                        class="mr-1 inline h-3 w-3"
-                                    />super administrador</Badge
+                                    class="rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1 text-xs text-indigo-700 dark:border-indigo-900/40 dark:bg-indigo-950/40 dark:text-indigo-300"
                                 >
-                            </td>
-                            <td class="px-4 py-3">{{ row.email }}</td>
-                            <td class="px-4 py-3">
-                                <Badge
-                                    class="rounded-full px-3 py-1 text-xs"
-                                    :class="
-                                        row.status === 'active'
-                                            ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300'
-                                            : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300'
-                                    "
-                                    >{{ tGeneralStatus(row.status) }}</Badge
-                                >
-                            </td>
-                            <td class="px-4 py-3">
-                                <span
-                                    v-if="row.roles.length === 0"
-                                    class="text-zinc-400"
-                                    >Sin roles</span
-                                >
-                                <div v-else class="flex flex-wrap gap-1">
-                                    <span
-                                        v-for="role in row.roles"
-                                        :key="role.id"
-                                        class="rounded-full bg-zinc-100 px-2 py-1 text-xs dark:bg-zinc-800"
-                                        >{{ role.name }}</span
-                                    >
+                                    Super administrador
+                                </Badge>
+                            </div>
+
+                            <div
+                                class="mt-3 grid gap-2 text-xs text-zinc-500 sm:grid-cols-2 dark:text-zinc-400"
+                            >
+                                <div class="flex items-center gap-2">
+                                    <Mail class="h-3.5 w-3.5 shrink-0" />
+                                    <span class="truncate">
+                                        {{ row.email }}
+                                    </span>
                                 </div>
-                            </td>
-                            <td class="px-4 py-3 text-right">
-                                <div class="inline-flex gap-2">
-                                    <Button
-                                        variant="outline"
-                                        class="rounded-xl"
-                                        @click="openEdit(row)"
-                                        ><Pencil
-                                            class="mr-2 h-4 w-4"
-                                        />Editar</Button
-                                    >
-                                    <Button
-                                        variant="outline"
-                                        class="rounded-xl"
-                                        @click="toggleStatus(row)"
-                                        ><Power class="mr-2 h-4 w-4" />{{
-                                            row.status === 'active'
-                                                ? 'Bloquear'
-                                                : 'Activar'
-                                        }}</Button
-                                    >
-                                    <Button
-                                        variant="destructive"
-                                        class="rounded-xl"
-                                        @click="destroyUser(row.id)"
-                                        ><Trash2
-                                            class="mr-2 h-4 w-4"
-                                        />Eliminar</Button
-                                    >
+
+                                <div class="flex items-center gap-2">
+                                    <ShieldCheck class="h-3.5 w-3.5 shrink-0" />
+                                    <span class="truncate">
+                                        {{ roleNames(row) }}
+                                    </span>
                                 </div>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
+                            </div>
+                        </div>
+
+                        <div
+                            class="grid h-12 w-12 shrink-0 place-items-center rounded-2xl"
+                            :style="primarySoftStyle"
+                        >
+                            <UserRound
+                                class="h-5 w-5"
+                                :style="{ color: 'var(--primary)' }"
+                            />
+                        </div>
+                    </div>
+
+                    <div
+                        class="mt-4 rounded-2xl p-3 text-xs leading-5 text-zinc-600 transition-colors duration-300 dark:text-zinc-300"
+                        :style="primarySoftStyle"
+                    >
+                        <p>
+                            <strong>Roles:</strong>
+                            {{ roleNames(row) }}
+                        </p>
+
+                        <p class="mt-1">
+                            <strong>Último acceso:</strong>
+                            {{ row.last_login_at || 'Sin registro' }}
+                        </p>
+                    </div>
+
+                    <div class="mt-4 flex flex-wrap gap-2">
+                        <Button
+                            variant="outline"
+                            class="h-10 rounded-xl border-zinc-200 bg-white transition-all duration-200 hover:-translate-y-0.5 hover:border-[color:var(--primary)] hover:text-[color:var(--primary)]"
+                            @click="openEdit(row)"
+                        >
+                            <Pencil class="mr-2 h-4 w-4" />
+                            Editar
+                        </Button>
+
+                        <Button
+                            variant="outline"
+                            class="h-10 rounded-xl border-zinc-200 bg-white transition-all duration-200 hover:-translate-y-0.5 hover:border-[color:var(--primary)] hover:text-[color:var(--primary)]"
+                            @click="toggleStatus(row)"
+                        >
+                            <Power class="mr-2 h-4 w-4" />
+                            {{
+                                row.status === 'active' ? 'Bloquear' : 'Activar'
+                            }}
+                        </Button>
+
+                        <Button
+                            variant="destructive"
+                            class="h-10 rounded-xl transition-all duration-200 hover:-translate-y-0.5"
+                            @click="destroyUser(row.id)"
+                        >
+                            <Trash2 class="mr-2 h-4 w-4" />
+                            Eliminar
+                        </Button>
+                    </div>
+                </article>
             </div>
 
-            <div
-                class="flex items-center justify-between rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3 dark:border-zinc-800 dark:bg-zinc-900/40"
-            >
-                <p class="text-sm text-zinc-500 dark:text-zinc-400">
-                    Total: {{ props.page.total }}
-                </p>
-                <div class="flex gap-2">
-                    <Button
-                        variant="outline"
-                        :disabled="props.page.current_page <= 1"
-                        @click="goPage(props.page.current_page - 1)"
-                        >Anterior</Button
-                    >
-                    <Button
-                        variant="outline"
-                        :disabled="
-                            props.page.current_page >= props.page.last_page
-                        "
-                        @click="goPage(props.page.current_page + 1)"
-                        >Siguiente</Button
-                    >
-                </div>
-            </div>
+            <FvPagination
+                :page="props.page"
+                item-label="usuarios"
+                :per-page-options="[10, 15, 20, 50, 'all']"
+                @change="
+                    (page) =>
+                        applyFilters({
+                            q: search.trim(),
+                            status: selectedStatus ?? '',
+                            page,
+                        })
+                "
+                @per-page-change="
+                    (perPage) =>
+                        applyFilters({
+                            q: search.trim(),
+                            status: selectedStatus ?? '',
+                            page: 1,
+                            per_page: perPage,
+                        })
+                "
+            />
         </section>
 
         <Dialog :open="isOpen" @update:open="closeModal">
             <DialogContent
-                class="max-h-[90vh] max-w-5xl overflow-y-auto rounded-3xl border-none bg-white shadow-2xl dark:bg-zinc-950"
+                class="flex max-h-[94dvh] w-[calc(100vw-1rem)] max-w-none !gap-0 overflow-hidden rounded-[1.75rem] border border-zinc-200 bg-white !p-0 shadow-2xl sm:w-[calc(100vw-2rem)] sm:!max-w-[calc(100vw-2rem)] md:!max-w-[92vw] lg:!max-w-[1080px] xl:!max-w-[1220px] 2xl:!max-w-[1320px] dark:border-zinc-800 dark:bg-zinc-950"
             >
-                <DialogHeader>
-                    <DialogTitle>{{
-                        editingId ? 'Editar usuario' : 'Nuevo usuario'
-                    }}</DialogTitle>
-                    <DialogDescription
-                        >Captura la información y guarda los
-                        cambios.</DialogDescription
+                <div class="flex max-h-[94dvh] min-h-0 w-full flex-col">
+                    <DialogHeader
+                        class="shrink-0 border-b border-zinc-100 bg-white px-4 py-4 sm:px-6 lg:px-7 dark:border-zinc-800 dark:bg-zinc-950"
                     >
-                </DialogHeader>
-
-                <div class="grid gap-4 md:grid-cols-2">
-                    <div class="space-y-2">
-                        <Label for="name">Nombre</Label>
-                        <Input id="name" v-model="form.name" />
-                        <p v-if="form.errors.name" class="text-xs text-red-500">
-                            {{ form.errors.name }}
-                        </p>
-                    </div>
-                    <div class="space-y-2">
-                        <Label for="email">Email</Label>
-                        <Input id="email" v-model="form.email" />
-                        <p
-                            v-if="form.errors.email"
-                            class="text-xs text-red-500"
-                        >
-                            {{ form.errors.email }}
-                        </p>
-                    </div>
-                    <div class="space-y-2">
-                        <Label for="password">Contraseña</Label>
-                        <Input
-                            id="password"
-                            v-model="form.password"
-                            type="password"
-                        />
-                        <p class="text-xs text-zinc-400">
-                            En edición, deja vacío para conservar la contraseña
-                            actual.
-                        </p>
-                    </div>
-                    <div class="space-y-2">
-                        <Label for="status">Estado</Label>
-                        <SearchableSelect
-                            id="status"
-                            v-model="form.status"
-                            :options="[
-                                { value: 'active', label: 'Activo' },
-                                { value: 'blocked', label: 'Bloqueado' },
-                            ]"
-                        />
-                    </div>
-
-                    <div class="space-y-2 md:col-span-2">
-                        <Label>Roles asignados</Label>
                         <div
-                            class="grid gap-2 rounded-2xl border border-zinc-200 p-4 md:grid-cols-2 dark:border-zinc-800"
+                            class="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between"
                         >
-                            <label
-                                v-for="role in props.roles"
-                                :key="role.id"
-                                class="flex items-center gap-3 text-sm"
+                            <div class="min-w-0">
+                                <DialogTitle
+                                    class="flex items-center gap-2 text-lg font-semibold text-zinc-950 sm:text-xl dark:text-zinc-50"
+                                >
+                                    <span
+                                        class="grid h-9 w-9 shrink-0 place-items-center rounded-2xl shadow-sm"
+                                        :style="primaryButtonStyle"
+                                    >
+                                        <UserRound class="h-4 w-4" />
+                                    </span>
+
+                                    <span>
+                                        {{
+                                            isEditing
+                                                ? 'Editar usuario'
+                                                : 'Nuevo usuario'
+                                        }}
+                                    </span>
+                                </DialogTitle>
+
+                                <DialogDescription
+                                    class="mt-2 max-w-3xl text-sm leading-6 text-zinc-500 dark:text-zinc-400"
+                                >
+                                    Captura la información de acceso y asigna
+                                    los roles correspondientes.
+                                </DialogDescription>
+                            </div>
+
+                            <div
+                                class="rounded-2xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs leading-5 text-zinc-500 lg:w-72 dark:border-zinc-800 dark:bg-zinc-900/60 dark:text-zinc-400"
                             >
-                                <Checkbox
-                                    :model-value="
-                                        form.role_ids.includes(role.id)
-                                    "
-                                    @update:model-value="toggleRole(role.id)"
-                                />
-                                <span>{{ role.name }}</span>
-                            </label>
+                                <span
+                                    class="font-medium text-zinc-700 dark:text-zinc-200"
+                                >
+                                    Importante:
+                                </span>
+                                Al crear un usuario se enviará un correo con sus
+                                credenciales.
+                            </div>
                         </div>
-                    </div>
+                    </DialogHeader>
 
-                    <div class="space-y-3 md:col-span-2">
-                        <Label>Compatibilidad de módulos legacy</Label>
-                        <div
-                            class="grid gap-3 rounded-2xl border border-zinc-200 p-4 md:grid-cols-2 dark:border-zinc-800"
-                        >
-                            <label
-                                class="flex items-center justify-between text-sm"
-                                ><span>Super administrador</span
-                                ><Checkbox
-                                    :model-value="form.is_super_admin"
-                                    @update:model-value="
-                                        (value) =>
-                                            (form.is_super_admin = !!value)
-                                    "
-                            /></label>
-                            <label
-                                class="flex items-center justify-between text-sm"
-                                ><span>{{ tModule('appointments') }}</span
-                                ><Checkbox
-                                    :model-value="form.mod_agenda"
-                                    @update:model-value="
-                                        (value) => (form.mod_agenda = !!value)
-                                    "
-                            /></label>
-                            <label
-                                class="flex items-center justify-between text-sm"
-                                ><span>{{ tModule('patients') }}</span
-                                ><Checkbox
-                                    :model-value="form.mod_pacientes"
-                                    @update:model-value="
-                                        (value) =>
-                                            (form.mod_pacientes = !!value)
-                                    "
-                            /></label>
-                            <label
-                                class="flex items-center justify-between text-sm"
-                                ><span>{{ tModule('sessions') }}</span
-                                ><Checkbox
-                                    :model-value="form.mod_sesiones"
-                                    @update:model-value="
-                                        (value) => (form.mod_sesiones = !!value)
-                                    "
-                            /></label>
-                            <label
-                                class="flex items-center justify-between text-sm"
-                                ><span>{{ tModule('exercises') }}</span
-                                ><Checkbox
-                                    :model-value="form.mod_ejercicios"
-                                    @update:model-value="
-                                        (value) =>
-                                            (form.mod_ejercicios = !!value)
-                                    "
-                            /></label>
-                            <label
-                                class="flex items-center justify-between text-sm"
-                                ><span>{{ tModule('files') }}</span
-                                ><Checkbox
-                                    :model-value="form.mod_archivos"
-                                    @update:model-value="
-                                        (value) => (form.mod_archivos = !!value)
-                                    "
-                            /></label>
-                            <label
-                                class="flex items-center justify-between text-sm"
-                                ><span>{{ tModule('reports') }}</span
-                                ><Checkbox
-                                    :model-value="form.mod_reportes"
-                                    @update:model-value="
-                                        (value) => (form.mod_reportes = !!value)
-                                    "
-                            /></label>
-                            <label
-                                class="flex items-center justify-between text-sm"
-                                ><span>{{ tModule('payments') }}</span
-                                ><Checkbox
-                                    :model-value="form.mod_cobranza"
-                                    @update:model-value="
-                                        (value) => (form.mod_cobranza = !!value)
-                                    "
-                            /></label>
-                            <label
-                                class="flex items-center justify-between text-sm"
-                                ><span>{{ tModule('settings') }}</span
-                                ><Checkbox
-                                    :model-value="form.mod_config"
-                                    @update:model-value="
-                                        (value) => (form.mod_config = !!value)
-                                    "
-                            /></label>
-                        </div>
-                    </div>
-                </div>
-
-                <DialogFooter>
-                    <Button variant="outline" @click="closeModal"
-                        >Cancelar</Button
+                    <div
+                        class="min-h-0 flex-1 overflow-y-auto overscroll-contain bg-zinc-50/70 px-4 py-4 sm:px-6 sm:py-5 lg:px-7 dark:bg-zinc-950"
                     >
-                    <Button :disabled="form.processing" @click="submit">{{
-                        form.processing ? 'Guardando...' : 'Guardar'
-                    }}</Button>
-                </DialogFooter>
+                        <div
+                            class="grid gap-4 pb-5 lg:grid-cols-[minmax(0,1fr)_minmax(360px,0.65fr)] xl:grid-cols-[minmax(0,1.2fr)_minmax(420px,0.8fr)]"
+                        >
+                            <div class="space-y-4">
+                                <section
+                                    class="rounded-[1.5rem] border border-zinc-200 bg-white p-4 shadow-sm sm:p-5 dark:border-zinc-800 dark:bg-zinc-900/50"
+                                >
+                                    <div
+                                        class="mb-4 flex flex-col gap-1 border-b border-zinc-100 pb-3 dark:border-zinc-800"
+                                    >
+                                        <h3 :class="sectionTitleBase">
+                                            <Info
+                                                class="h-4 w-4"
+                                                :style="{
+                                                    color: 'var(--primary)',
+                                                }"
+                                            />
+                                            Información de acceso
+                                        </h3>
+
+                                        <p
+                                            class="text-xs leading-5 text-zinc-500 dark:text-zinc-400"
+                                        >
+                                            Datos principales para iniciar
+                                            sesión en el sistema.
+                                        </p>
+                                    </div>
+
+                                    <div
+                                        class="grid gap-4 md:grid-cols-2 xl:grid-cols-3"
+                                    >
+                                        <div class="space-y-2">
+                                            <Label :class="labelBase">
+                                                Nombre
+                                                <span class="text-red-500"
+                                                    >*</span
+                                                >
+                                            </Label>
+
+                                            <Input
+                                                v-model="form.name"
+                                                :class="inputBase"
+                                                placeholder="Ej. Mariana Torres"
+                                                autocomplete="name"
+                                            />
+
+                                            <p
+                                                v-if="form.errors.name"
+                                                class="text-xs text-red-500"
+                                            >
+                                                {{ form.errors.name }}
+                                            </p>
+                                        </div>
+
+                                        <div class="space-y-2">
+                                            <Label :class="labelBase">
+                                                Correo electrónico
+                                                <span class="text-red-500"
+                                                    >*</span
+                                                >
+                                            </Label>
+
+                                            <Input
+                                                v-model="form.email"
+                                                :class="inputBase"
+                                                type="email"
+                                                placeholder="usuario@correo.com"
+                                                autocomplete="email"
+                                            />
+
+                                            <p
+                                                v-if="form.errors.email"
+                                                class="text-xs text-red-500"
+                                            >
+                                                {{ form.errors.email }}
+                                            </p>
+                                        </div>
+
+                                        <div class="space-y-2">
+                                            <Label :class="labelBase">
+                                                Contraseña
+                                                <span
+                                                    v-if="!isEditing"
+                                                    class="text-red-500"
+                                                    >*</span
+                                                >
+                                                <span
+                                                    v-else
+                                                    class="text-xs font-normal text-zinc-400"
+                                                >
+                                                    opcional
+                                                </span>
+                                            </Label>
+
+                                            <Input
+                                                v-model="form.password"
+                                                :class="inputBase"
+                                                type="password"
+                                                autocomplete="new-password"
+                                                placeholder="Mínimo 8 caracteres"
+                                            />
+
+                                            <p
+                                                v-if="form.errors.password"
+                                                class="text-xs text-red-500"
+                                            >
+                                                {{ form.errors.password }}
+                                            </p>
+
+                                            <p
+                                                v-else
+                                                class="text-xs text-zinc-400"
+                                            >
+                                                En edición, deja vacío para
+                                                conservar la contraseña actual.
+                                            </p>
+                                        </div>
+
+                                        <div class="space-y-2">
+                                            <Label :class="labelBase">
+                                                Estado
+                                            </Label>
+
+                                            <SearchableSelect
+                                                v-model="form.status"
+                                                :options="[
+                                                    {
+                                                        value: 'active',
+                                                        label: tGeneralStatus(
+                                                            'active',
+                                                        ),
+                                                    },
+                                                    {
+                                                        value: 'blocked',
+                                                        label: tGeneralStatus(
+                                                            'blocked',
+                                                        ),
+                                                    },
+                                                ]"
+                                            />
+
+                                            <p
+                                                v-if="form.errors.status"
+                                                class="text-xs text-red-500"
+                                            >
+                                                {{ form.errors.status }}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </section>
+
+                                <section
+                                    class="rounded-[1.5rem] border border-zinc-200 bg-white p-4 shadow-sm sm:p-5 dark:border-zinc-800 dark:bg-zinc-900/50"
+                                >
+                                    <div
+                                        class="mb-4 flex flex-col gap-1 border-b border-zinc-100 pb-3 dark:border-zinc-800"
+                                    >
+                                        <h3 :class="sectionTitleBase">
+                                            <ShieldCheck
+                                                class="h-4 w-4"
+                                                :style="{
+                                                    color: 'var(--primary)',
+                                                }"
+                                            />
+                                            Roles asignados
+                                        </h3>
+
+                                        <p
+                                            class="text-xs leading-5 text-zinc-500 dark:text-zinc-400"
+                                        >
+                                            Los permisos se heredan desde los
+                                            roles seleccionados.
+                                        </p>
+                                    </div>
+
+                                    <div
+                                        class="grid gap-3 md:grid-cols-2 xl:grid-cols-3"
+                                    >
+                                        <button
+                                            v-for="role in props.roles"
+                                            :key="role.id"
+                                            type="button"
+                                            class="flex items-center gap-3 rounded-2xl border p-3 text-left text-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-[color:var(--primary)] hover:shadow-sm"
+                                            :class="
+                                                form.role_ids.includes(role.id)
+                                                    ? 'border-[color:var(--primary)] bg-[color-mix(in_srgb,var(--primary)_8%,white)] dark:bg-zinc-900'
+                                                    : 'border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900/60'
+                                            "
+                                            @click="toggleRole(role.id)"
+                                        >
+                                            <Checkbox
+                                                :model-value="
+                                                    form.role_ids.includes(
+                                                        role.id,
+                                                    )
+                                                "
+                                                @click.stop
+                                                @update:model-value="
+                                                    toggleRole(role.id)
+                                                "
+                                            />
+
+                                            <span
+                                                class="font-medium text-zinc-900 dark:text-zinc-100"
+                                            >
+                                                {{ role.name }}
+                                            </span>
+                                        </button>
+                                    </div>
+
+                                    <p
+                                        v-if="form.errors.role_ids"
+                                        class="mt-3 text-xs text-red-500"
+                                    >
+                                        {{ form.errors.role_ids }}
+                                    </p>
+                                </section>
+                            </div>
+
+                            <div class="space-y-4">
+                                <section
+                                    class="rounded-[1.5rem] border border-zinc-200 bg-white p-4 shadow-sm sm:p-5 dark:border-zinc-800 dark:bg-zinc-900/50"
+                                >
+                                    <div
+                                        class="mb-4 flex flex-col gap-1 border-b border-zinc-100 pb-3 dark:border-zinc-800"
+                                    >
+                                        <h3 :class="sectionTitleBase">
+                                            <KeyRound
+                                                class="h-4 w-4"
+                                                :style="{
+                                                    color: 'var(--primary)',
+                                                }"
+                                            />
+                                            Tipo de acceso
+                                        </h3>
+                                    </div>
+
+                                    <button
+                                        type="button"
+                                        class="flex w-full items-center justify-between gap-3 rounded-2xl border p-4 text-left transition-all duration-200 hover:-translate-y-0.5 hover:border-[color:var(--primary)]"
+                                        :class="
+                                            form.is_super_admin
+                                                ? 'border-[color:var(--primary)] bg-[color-mix(in_srgb,var(--primary)_8%,white)]'
+                                                : 'border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900/60'
+                                        "
+                                        @click="
+                                            form.is_super_admin =
+                                                !form.is_super_admin
+                                        "
+                                    >
+                                        <div>
+                                            <p
+                                                class="text-sm font-semibold text-zinc-900 dark:text-zinc-100"
+                                            >
+                                                Super administrador
+                                            </p>
+
+                                            <p
+                                                class="mt-1 text-xs leading-5 text-zinc-500 dark:text-zinc-400"
+                                            >
+                                                Tendrá acceso completo al
+                                                sistema.
+                                            </p>
+                                        </div>
+
+                                        <Checkbox
+                                            :model-value="form.is_super_admin"
+                                            @click.stop
+                                            @update:model-value="
+                                                (value) =>
+                                                    (form.is_super_admin =
+                                                        !!value)
+                                            "
+                                        />
+                                    </button>
+                                </section>
+
+                                <section
+                                    class="rounded-[1.5rem] border border-zinc-200 bg-white p-4 shadow-sm sm:p-5 dark:border-zinc-800 dark:bg-zinc-900/50"
+                                >
+                                    <div
+                                        class="mb-4 flex flex-col gap-1 border-b border-zinc-100 pb-3 dark:border-zinc-800"
+                                    >
+                                        <h3 :class="sectionTitleBase">
+                                            <Settings2
+                                                class="h-4 w-4"
+                                                :style="{
+                                                    color: 'var(--primary)',
+                                                }"
+                                            />
+                                            Módulos heredados
+                                        </h3>
+
+                                        <p
+                                            class="text-xs leading-5 text-zinc-500 dark:text-zinc-400"
+                                        >
+                                            Compatibilidad del sistema. Los
+                                            permisos principales vienen del rol.
+                                        </p>
+                                    </div>
+
+                                    <div class="grid gap-2">
+                                        <label
+                                            v-for="item in moduleItems"
+                                            :key="item.key"
+                                            class="flex items-center justify-between gap-3 rounded-2xl border border-zinc-200 bg-white px-3 py-2 text-sm dark:border-zinc-800 dark:bg-zinc-900/60"
+                                        >
+                                            <span
+                                                class="text-zinc-700 dark:text-zinc-200"
+                                            >
+                                                {{ item.label }}
+                                            </span>
+
+                                            <Checkbox
+                                                :model-value="form[item.key]"
+                                                @update:model-value="
+                                                    (value) =>
+                                                        (form[item.key] =
+                                                            !!value)
+                                                "
+                                            />
+                                        </label>
+                                    </div>
+                                </section>
+
+                                <section
+                                    class="rounded-[1.5rem] border border-zinc-200 bg-white p-4 shadow-sm sm:p-5 dark:border-zinc-800 dark:bg-zinc-900/50"
+                                >
+                                    <div
+                                        class="flex items-start gap-3 rounded-2xl p-4"
+                                        :style="primarySoftStyle"
+                                    >
+                                        <CheckCircle2
+                                            class="mt-0.5 h-5 w-5 shrink-0"
+                                            :style="{ color: 'var(--primary)' }"
+                                        />
+
+                                        <div>
+                                            <p
+                                                class="text-sm font-semibold text-zinc-900 dark:text-zinc-100"
+                                            >
+                                                Correo automático
+                                            </p>
+
+                                            <p
+                                                class="mt-1 text-xs leading-5 text-zinc-600 dark:text-zinc-300"
+                                            >
+                                                Al crear el usuario se enviará
+                                                un correo con la URL de acceso,
+                                                correo y contraseña.
+                                            </p>
+                                        </div>
+                                    </div>
+                                </section>
+                            </div>
+                        </div>
+                    </div>
+
+                    <DialogFooter
+                        class="shrink-0 border-t border-zinc-100 bg-white px-4 py-3 sm:px-6 lg:px-7 dark:border-zinc-800 dark:bg-zinc-950"
+                    >
+                        <div
+                            class="flex w-full flex-col-reverse gap-2 sm:flex-row sm:justify-end"
+                        >
+                            <Button
+                                variant="outline"
+                                class="h-11 w-full rounded-2xl px-5 transition-all duration-200 hover:-translate-y-0.5 hover:border-[color:var(--primary)] hover:text-[color:var(--primary)] sm:w-auto sm:min-w-36"
+                                :disabled="form.processing"
+                                @click="closeModal"
+                            >
+                                Cancelar
+                            </Button>
+
+                            <Button
+                                class="h-11 w-full rounded-2xl px-5 shadow-lg transition-all duration-300 hover:-translate-y-0.5 sm:w-auto sm:min-w-40"
+                                :style="primaryButtonStyle"
+                                :disabled="form.processing"
+                                @mouseenter="setPrimaryHover"
+                                @mouseleave="setPrimaryNormal"
+                                @click="submit"
+                            >
+                                {{
+                                    form.processing
+                                        ? 'Guardando...'
+                                        : isEditing
+                                          ? 'Actualizar usuario'
+                                          : 'Crear usuario'
+                                }}
+                            </Button>
+                        </div>
+                    </DialogFooter>
+                </div>
             </DialogContent>
         </Dialog>
     </AppLayout>
