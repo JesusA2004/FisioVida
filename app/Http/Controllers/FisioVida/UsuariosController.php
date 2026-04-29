@@ -5,6 +5,7 @@ namespace App\Http\Controllers\FisioVida;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\FisioVida\Concerns\CrudHelpers;
 use App\Mail\UserCredentialsMail;
+use App\Models\Persona;
 use App\Models\Role;
 use App\Models\User;
 use App\Services\Audit\AuditLogService;
@@ -16,17 +17,19 @@ use Illuminate\Support\Facades\Mail;
 use Inertia\Inertia;
 use Throwable;
 
-class UsuariosController extends Controller
-{
+class UsuariosController extends Controller {
+
     use CrudHelpers;
 
-    public function index(Request $request)
-    {
+    public function index(Request $request) {
         $q = $this->like($request->string('q'));
         $status = $request->string('status')->toString();
 
         $query = User::query()
-            ->with(['roles:id,name'])
+            ->with([
+                'roles:id,name',
+                'persona:id,tipo,status,nombres,apellido_paterno,apellido_materno,telefono,email,sexo,fecha_nacimiento,direccion',
+            ])
             ->whereNull('deleted_at')
             ->orderByDesc('id');
 
@@ -38,25 +41,50 @@ class UsuariosController extends Controller
             $query->where(function ($builder) use ($q) {
                 $builder
                     ->where('name', 'like', $q)
-                    ->orWhere('email', 'like', $q);
+                    ->orWhere('email', 'like', $q)
+                    ->orWhereHas('persona', function ($personaQuery) use ($q) {
+                        $personaQuery
+                            ->where('nombres', 'like', $q)
+                            ->orWhere('apellido_paterno', 'like', $q)
+                            ->orWhere('apellido_materno', 'like', $q)
+                            ->orWhere('telefono', 'like', $q)
+                            ->orWhere('email', 'like', $q);
+                    });
             });
         }
 
         $p = $query->paginate(10)->withQueryString();
 
         $rows = collect($p->items())->map(function (User $user) {
+            $persona = $user->persona;
+
             return [
                 'id' => $user->id,
+                'persona_id' => $user->persona_id,
+
                 'name' => $user->name,
                 'email' => $user->email,
                 'status' => $user->status,
                 'is_super_admin' => (bool) $user->is_super_admin,
+
+                'persona_tipo' => $persona?->tipo,
+                'persona_status' => $persona?->status,
+                'nombres' => $persona?->nombres ?? '',
+                'apellido_paterno' => $persona?->apellido_paterno ?? '',
+                'apellido_materno' => $persona?->apellido_materno ?? '',
+                'telefono' => $persona?->telefono ?? '',
+                'persona_email' => $persona?->email ?? $user->email,
+                'sexo' => $persona?->sexo,
+                'fecha_nacimiento' => $persona?->fecha_nacimiento,
+                'direccion' => $persona?->direccion,
+
                 'roles' => $user->roles
                     ->map(fn ($role) => [
                         'id' => $role->id,
                         'name' => $role->name,
                     ])
                     ->values(),
+
                 'role_ids' => $user->roles->pluck('id')->values(),
 
                 'mod_agenda' => (bool) $user->mod_agenda,
@@ -86,11 +114,14 @@ class UsuariosController extends Controller
         ]);
     }
 
-    public function store(Request $request)
-    {
+    public function store(Request $request) {
         $data = $request->validate([
-            'name' => ['required', 'string', 'max:190'],
+            'nombres' => ['required', 'string', 'max:120'],
+            'apellido_paterno' => ['nullable', 'string', 'max:120'],
+            'apellido_materno' => ['nullable', 'string', 'max:120'],
+            'telefono' => ['nullable', 'string', 'max:30'],
             'email' => ['required', 'email', 'max:190', 'unique:users,email'],
+
             'password' => ['required', 'string', 'min:8', 'max:255'],
             'status' => ['required', 'in:active,blocked'],
             'is_super_admin' => ['boolean'],
@@ -107,7 +138,7 @@ class UsuariosController extends Controller
             'mod_cobranza' => ['boolean'],
             'mod_config' => ['boolean'],
         ], [
-            'name.required' => 'El nombre del usuario es obligatorio.',
+            'nombres.required' => 'El nombre de la persona es obligatorio.',
             'email.required' => 'El correo electrónico es obligatorio.',
             'email.email' => 'Ingresa un correo electrónico válido.',
             'email.unique' => 'Ya existe un usuario con este correo.',
@@ -116,10 +147,7 @@ class UsuariosController extends Controller
             'status.required' => 'El estado del usuario es obligatorio.',
         ]);
 
-        if (
-            empty($data['is_super_admin']) &&
-            empty($data['role_ids'])
-        ) {
+        if (empty($data['is_super_admin']) && empty($data['role_ids'])) {
             return back()
                 ->withErrors([
                     'role_ids' => 'Selecciona al menos un rol para el usuario.',
@@ -132,12 +160,44 @@ class UsuariosController extends Controller
         /** @var User $user */
         $user = DB::transaction(function () use ($data) {
             $roleIds = $data['role_ids'] ?? [];
-            unset($data['role_ids']);
 
-            $data['password'] = Hash::make($data['password']);
+            $personaStatus = $data['status'] === 'active' ? 'active' : 'inactive';
+
+            /** @var Persona $persona */
+            $persona = Persona::query()->create([
+                'tipo' => 'staff',
+                'status' => $personaStatus,
+                'nombres' => trim($data['nombres']),
+                'apellido_paterno' => $data['apellido_paterno'] ? trim($data['apellido_paterno']) : null,
+                'apellido_materno' => $data['apellido_materno'] ? trim($data['apellido_materno']) : null,
+                'telefono' => $data['telefono'] ? trim($data['telefono']) : null,
+                'email' => trim($data['email']),
+            ]);
+
+            $fullName = $this->buildFullName(
+                $persona->nombres,
+                $persona->apellido_paterno,
+                $persona->apellido_materno
+            );
 
             /** @var User $user */
-            $user = User::query()->create($data);
+            $user = User::query()->create([
+                'persona_id' => $persona->id,
+                'name' => $fullName,
+                'email' => trim($data['email']),
+                'password' => Hash::make($data['password']),
+                'status' => $data['status'],
+                'is_super_admin' => (bool) ($data['is_super_admin'] ?? false),
+
+                'mod_agenda' => (bool) ($data['mod_agenda'] ?? false),
+                'mod_pacientes' => (bool) ($data['mod_pacientes'] ?? false),
+                'mod_sesiones' => (bool) ($data['mod_sesiones'] ?? false),
+                'mod_ejercicios' => (bool) ($data['mod_ejercicios'] ?? false),
+                'mod_archivos' => (bool) ($data['mod_archivos'] ?? false),
+                'mod_reportes' => (bool) ($data['mod_reportes'] ?? false),
+                'mod_cobranza' => (bool) ($data['mod_cobranza'] ?? false),
+                'mod_config' => (bool) ($data['mod_config'] ?? false),
+            ]);
 
             $user->roles()->sync($roleIds);
 
@@ -147,10 +207,13 @@ class UsuariosController extends Controller
                 'user',
                 $user->id,
                 'El usuario '.request()->user()?->name.' creó al usuario '.$user->name.'.',
-                ['roles' => $roleIds] + $data
+                [
+                    'persona_id' => $persona->id,
+                    'roles' => $roleIds,
+                ]
             );
 
-            return $user->load('roles:id,name');
+            return $user->load('roles:id,name', 'persona');
         });
 
         try {
@@ -177,11 +240,14 @@ class UsuariosController extends Controller
         return back()->with('success', 'Usuario creado y correo enviado correctamente.');
     }
 
-    public function update(Request $request, User $usuario)
-    {
+    public function update(Request $request, User $usuario) {
         $data = $request->validate([
-            'name' => ['required', 'string', 'max:190'],
+            'nombres' => ['required', 'string', 'max:120'],
+            'apellido_paterno' => ['nullable', 'string', 'max:120'],
+            'apellido_materno' => ['nullable', 'string', 'max:120'],
+            'telefono' => ['nullable', 'string', 'max:30'],
             'email' => ['required', 'email', 'max:190', "unique:users,email,{$usuario->id}"],
+
             'password' => ['nullable', 'string', 'min:8', 'max:255'],
             'status' => ['required', 'in:active,blocked'],
             'is_super_admin' => ['boolean'],
@@ -198,7 +264,7 @@ class UsuariosController extends Controller
             'mod_cobranza' => ['boolean'],
             'mod_config' => ['boolean'],
         ], [
-            'name.required' => 'El nombre del usuario es obligatorio.',
+            'nombres.required' => 'El nombre de la persona es obligatorio.',
             'email.required' => 'El correo electrónico es obligatorio.',
             'email.email' => 'Ingresa un correo electrónico válido.',
             'email.unique' => 'Ya existe un usuario con este correo.',
@@ -206,10 +272,7 @@ class UsuariosController extends Controller
             'status.required' => 'El estado del usuario es obligatorio.',
         ]);
 
-        if (
-            empty($data['is_super_admin']) &&
-            empty($data['role_ids'])
-        ) {
+        if (empty($data['is_super_admin']) && empty($data['role_ids'])) {
             return back()
                 ->withErrors([
                     'role_ids' => 'Selecciona al menos un rol para el usuario.',
@@ -218,18 +281,65 @@ class UsuariosController extends Controller
         }
 
         DB::transaction(function () use ($data, $usuario) {
-            $before = $usuario->toArray();
+            $before = $usuario->load('persona')->toArray();
 
             $roleIds = $data['role_ids'] ?? [];
-            unset($data['role_ids']);
+            $personaStatus = $data['status'] === 'active' ? 'active' : 'inactive';
 
-            if (! empty($data['password'])) {
-                $data['password'] = Hash::make($data['password']);
+            $persona = $usuario->persona;
+
+            if (! $persona) {
+                $persona = Persona::query()->create([
+                    'tipo' => 'staff',
+                    'status' => $personaStatus,
+                    'nombres' => trim($data['nombres']),
+                    'apellido_paterno' => $data['apellido_paterno'] ? trim($data['apellido_paterno']) : null,
+                    'apellido_materno' => $data['apellido_materno'] ? trim($data['apellido_materno']) : null,
+                    'telefono' => $data['telefono'] ? trim($data['telefono']) : null,
+                    'email' => trim($data['email']),
+                ]);
+
+                $usuario->persona_id = $persona->id;
             } else {
-                unset($data['password']);
+                $persona->update([
+                    'tipo' => $persona->tipo === 'paciente' ? 'ambos' : $persona->tipo,
+                    'status' => $personaStatus,
+                    'nombres' => trim($data['nombres']),
+                    'apellido_paterno' => $data['apellido_paterno'] ? trim($data['apellido_paterno']) : null,
+                    'apellido_materno' => $data['apellido_materno'] ? trim($data['apellido_materno']) : null,
+                    'telefono' => $data['telefono'] ? trim($data['telefono']) : null,
+                    'email' => trim($data['email']),
+                ]);
             }
 
-            $usuario->update($data);
+            $fullName = $this->buildFullName(
+                $data['nombres'],
+                $data['apellido_paterno'] ?? null,
+                $data['apellido_materno'] ?? null
+            );
+
+            $userPayload = [
+                'persona_id' => $persona->id,
+                'name' => $fullName,
+                'email' => trim($data['email']),
+                'status' => $data['status'],
+                'is_super_admin' => (bool) ($data['is_super_admin'] ?? false),
+
+                'mod_agenda' => (bool) ($data['mod_agenda'] ?? false),
+                'mod_pacientes' => (bool) ($data['mod_pacientes'] ?? false),
+                'mod_sesiones' => (bool) ($data['mod_sesiones'] ?? false),
+                'mod_ejercicios' => (bool) ($data['mod_ejercicios'] ?? false),
+                'mod_archivos' => (bool) ($data['mod_archivos'] ?? false),
+                'mod_reportes' => (bool) ($data['mod_reportes'] ?? false),
+                'mod_cobranza' => (bool) ($data['mod_cobranza'] ?? false),
+                'mod_config' => (bool) ($data['mod_config'] ?? false),
+            ];
+
+            if (! empty($data['password'])) {
+                $userPayload['password'] = Hash::make($data['password']);
+            }
+
+            $usuario->update($userPayload);
             $usuario->roles()->sync($roleIds);
 
             app(AuditLogService::class)->updated(
@@ -239,21 +349,29 @@ class UsuariosController extends Controller
                 $usuario->id,
                 'El usuario '.request()->user()?->name.' actualizó al usuario '.$usuario->name.'.',
                 $before,
-                ['roles' => $roleIds] + $data
+                [
+                    'persona_id' => $persona->id,
+                    'roles' => $roleIds,
+                ] + $userPayload
             );
         });
 
         return back()->with('success', 'Usuario actualizado.');
     }
 
-    public function toggleStatus(User $usuario)
-    {
+    public function toggleStatus(User $usuario) {
         $from = $usuario->status;
+        $to = $usuario->status === 'active' ? 'blocked' : 'active';
 
         $usuario->update([
-            'status' => $usuario->status === 'active' ? 'blocked' : 'active',
+            'status' => $to,
         ]);
 
+        if ($usuario->persona) {
+            $usuario->persona->update([
+                'status' => $to === 'active' ? 'active' : 'inactive',
+            ]);
+        }
         app(AuditLogService::class)->statusChanged(
             request(),
             'Usuarios',
@@ -263,25 +381,38 @@ class UsuariosController extends Controller
             $from,
             $usuario->status
         );
-
         return back()->with('success', 'Estado del usuario actualizado.');
     }
 
-    public function destroy(User $usuario)
-    {
-        $before = $usuario->toArray();
+    public function destroy(User $usuario) {
+        $before = $usuario->load('persona')->toArray();
+        DB::transaction(function () use ($usuario, $before) {
+            $usuario->delete();
 
-        $usuario->delete();
-
-        app(AuditLogService::class)->deleted(
-            request(),
-            'Usuarios',
-            'user',
-            $usuario->id,
-            'El usuario '.request()->user()?->name.' eliminó al usuario '.$usuario->name.'.',
-            $before
-        );
+            if ($usuario->persona) {
+                $usuario->persona->update([
+                    'status' => 'inactive',
+                ]);
+            }
+            app(AuditLogService::class)->deleted(
+                request(),
+                'Usuarios',
+                'user',
+                $usuario->id,
+                'El usuario '.request()->user()?->name.' eliminó al usuario '.$usuario->name.'.',
+                $before
+            );
+        });
         return back()->with('success', 'Usuario eliminado.');
+    }
+
+    private function buildFullName(string $nombres, ?string $apellidoPaterno, ?string $apellidoMaterno): string
+    {
+        return trim(collect([
+            $nombres,
+            $apellidoPaterno,
+            $apellidoMaterno,
+        ])->filter()->implode(' '));
     }
 
 }

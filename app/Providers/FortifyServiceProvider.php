@@ -12,23 +12,26 @@ use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Laravel\Fortify\Features;
 use Laravel\Fortify\Fortify;
+use App\Models\User;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\ValidationException;
 
 class FortifyServiceProvider extends ServiceProvider
 {
-    /**
+
+/**
      * Register any application services.
      */
-    public function register(): void
-    {
+    public function register(): void {
         //
     }
 
     /**
      * Bootstrap any application services.
      */
-    public function boot(): void
-    {
+    public function boot(): void {
         $this->configureActions();
+        $this->configureAuthentication();
         $this->configureViews();
         $this->configureRateLimiting();
     }
@@ -42,11 +45,35 @@ class FortifyServiceProvider extends ServiceProvider
         Fortify::createUsersUsing(CreateNewUser::class);
     }
 
+    private function configureAuthentication(): void
+    {
+        Fortify::authenticateUsing(function (Request $request) {
+            $email = (string) $request->input('email');
+            $password = (string) $request->input('password');
+
+            /** @var User|null $user */
+            $user = User::query()
+                ->where('email', $email)
+                ->first();
+
+            if (! $user || ! Hash::check($password, $user->password)) {
+                return null;
+            }
+
+            if ($user->status === 'blocked') {
+                throw ValidationException::withMessages([
+                    'email' => 'Tu usuario está bloqueado. Contacta al administrador.',
+                ]);
+            }
+
+            return $user;
+        });
+    }
+
     /**
      * Configure Fortify views.
      */
-    private function configureViews(): void
-    {
+    private function configureViews(): void {
         Fortify::loginView(fn (Request $request) => Inertia::render('auth/Login', [
             'canResetPassword' => Features::enabled(Features::resetPasswords()),
             'canRegister' => Features::enabled(Features::registration()),
@@ -76,8 +103,7 @@ class FortifyServiceProvider extends ServiceProvider
     /**
      * Configure rate limiting.
      */
-    private function configureRateLimiting(): void
-    {
+    private function configureRateLimiting(): void {
         RateLimiter::for('two-factor', function (Request $request) {
             return Limit::perMinute(5)->by($request->session()->get('login.id'));
         });
@@ -88,4 +114,5 @@ class FortifyServiceProvider extends ServiceProvider
             return Limit::perMinute(5)->by($throttleKey);
         });
     }
+
 }

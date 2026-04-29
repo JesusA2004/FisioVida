@@ -35,9 +35,9 @@ import {
     KeyRound,
     Settings2,
     UserRound,
-    LockKeyhole,
     Info,
     CheckCircle2,
+    Phone,
 } from 'lucide-vue-next';
 import SearchableSelect from '@/components/ui/SearchableSelect.vue';
 import { tGeneralStatus, tModule } from '@/lib/labels';
@@ -73,6 +73,7 @@ const {
     submit,
     toggleStatus,
     destroyUser,
+    onlyDigits,
 } = useUsuarioCrud();
 
 const search = ref(props.filters.q ?? '');
@@ -126,6 +127,14 @@ const statusClass = (status: UsuarioRow['status']) =>
     status === 'active'
         ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/40 dark:bg-emerald-950/40 dark:text-emerald-300'
         : 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900/40 dark:bg-amber-950/40 dark:text-amber-300';
+
+const fullName = (row: UsuarioRow) =>
+    [row.nombres, row.apellido_paterno, row.apellido_materno]
+        .filter(Boolean)
+        .join(' ')
+        .trim() ||
+    row.name ||
+    'Usuario sin nombre';
 
 const roleNames = (row: UsuarioRow) => {
     if (row.is_super_admin) return 'Super administrador';
@@ -215,8 +224,8 @@ const setPrimaryNormal = (event: MouseEvent) => {
                                 class="mt-1 max-w-2xl text-sm leading-6 text-zinc-600 dark:text-zinc-400"
                             >
                                 Administra las cuentas de acceso. Cada usuario
-                                debe tener al menos un rol asignado, salvo que
-                                sea super administrador.
+                                se relaciona con una persona tipo staff y hereda
+                                permisos mediante roles.
                             </p>
                         </div>
                     </div>
@@ -246,7 +255,7 @@ const setPrimaryNormal = (event: MouseEvent) => {
                         <Input
                             v-model="search"
                             class="h-11 rounded-2xl border-zinc-200 bg-white pr-10 pl-9 shadow-sm transition-all duration-200 focus-visible:border-[color:var(--primary)] focus-visible:ring-2 focus-visible:ring-[color:var(--primary)]/20 dark:border-zinc-800 dark:bg-zinc-950"
-                            placeholder="Buscar por nombre o correo"
+                            placeholder="Buscar por nombre, correo o teléfono"
                         />
 
                         <button
@@ -314,7 +323,7 @@ const setPrimaryNormal = (event: MouseEvent) => {
                                 <h3
                                     class="text-base font-semibold text-zinc-950 dark:text-zinc-50"
                                 >
-                                    {{ row.name || 'Usuario sin nombre' }}
+                                    {{ fullName(row) }}
                                 </h3>
 
                                 <Badge
@@ -343,6 +352,15 @@ const setPrimaryNormal = (event: MouseEvent) => {
                                 </div>
 
                                 <div class="flex items-center gap-2">
+                                    <Phone class="h-3.5 w-3.5 shrink-0" />
+                                    <span class="truncate">
+                                        {{ row.telefono || 'Sin teléfono' }}
+                                    </span>
+                                </div>
+
+                                <div
+                                    class="flex items-center gap-2 sm:col-span-2"
+                                >
                                     <ShieldCheck class="h-3.5 w-3.5 shrink-0" />
                                     <span class="truncate">
                                         {{ roleNames(row) }}
@@ -468,8 +486,8 @@ const setPrimaryNormal = (event: MouseEvent) => {
                                 <DialogDescription
                                     class="mt-2 max-w-3xl text-sm leading-6 text-zinc-500 dark:text-zinc-400"
                                 >
-                                    Captura la información de acceso y asigna
-                                    los roles correspondientes.
+                                    Primero se registra la persona como staff,
+                                    después se crea su acceso al sistema.
                                 </DialogDescription>
                             </div>
 
@@ -507,14 +525,16 @@ const setPrimaryNormal = (event: MouseEvent) => {
                                                     color: 'var(--primary)',
                                                 }"
                                             />
-                                            Información de acceso
+                                            Información de la persona
                                         </h3>
 
                                         <p
                                             class="text-xs leading-5 text-zinc-500 dark:text-zinc-400"
                                         >
-                                            Datos principales para iniciar
-                                            sesión en el sistema.
+                                            Estos datos se guardan en personas
+                                            como staff. Si también fuera
+                                            paciente, el sistema puede manejarlo
+                                            como ambos.
                                         </p>
                                     </div>
 
@@ -523,24 +543,114 @@ const setPrimaryNormal = (event: MouseEvent) => {
                                     >
                                         <div class="space-y-2">
                                             <Label :class="labelBase">
-                                                Nombre
+                                                Nombre(s)
                                                 <span class="text-red-500"
                                                     >*</span
                                                 >
                                             </Label>
 
                                             <Input
-                                                v-model="form.name"
+                                                v-model="form.nombres"
                                                 :class="inputBase"
-                                                placeholder="Ej. Mariana Torres"
-                                                autocomplete="name"
+                                                placeholder="Ej. Mariana"
+                                                autocomplete="given-name"
                                             />
 
                                             <p
-                                                v-if="form.errors.name"
+                                                v-if="form.errors.nombres"
                                                 class="text-xs text-red-500"
                                             >
-                                                {{ form.errors.name }}
+                                                {{ form.errors.nombres }}
+                                            </p>
+                                        </div>
+
+                                        <div class="space-y-2">
+                                            <Label :class="labelBase">
+                                                Apellido paterno
+                                                <span
+                                                    class="text-xs font-normal text-zinc-400"
+                                                >
+                                                    opcional
+                                                </span>
+                                            </Label>
+
+                                            <Input
+                                                v-model="form.apellido_paterno"
+                                                :class="inputBase"
+                                                placeholder="Ej. Torres"
+                                                autocomplete="family-name"
+                                            />
+
+                                            <p
+                                                v-if="
+                                                    form.errors.apellido_paterno
+                                                "
+                                                class="text-xs text-red-500"
+                                            >
+                                                {{
+                                                    form.errors.apellido_paterno
+                                                }}
+                                            </p>
+                                        </div>
+
+                                        <div class="space-y-2">
+                                            <Label :class="labelBase">
+                                                Apellido materno
+                                                <span
+                                                    class="text-xs font-normal text-zinc-400"
+                                                >
+                                                    opcional
+                                                </span>
+                                            </Label>
+
+                                            <Input
+                                                v-model="form.apellido_materno"
+                                                :class="inputBase"
+                                                placeholder="Ej. Méndez"
+                                                autocomplete="family-name"
+                                            />
+
+                                            <p
+                                                v-if="
+                                                    form.errors.apellido_materno
+                                                "
+                                                class="text-xs text-red-500"
+                                            >
+                                                {{
+                                                    form.errors.apellido_materno
+                                                }}
+                                            </p>
+                                        </div>
+
+                                        <div class="space-y-2">
+                                            <Label :class="labelBase">
+                                                Teléfono
+                                                <span
+                                                    class="text-xs font-normal text-zinc-400"
+                                                >
+                                                    opcional
+                                                </span>
+                                            </Label>
+
+                                            <Input
+                                                v-model="form.telefono"
+                                                :class="inputBase"
+                                                inputmode="numeric"
+                                                maxlength="10"
+                                                placeholder="Ej. 7771234567"
+                                                autocomplete="tel"
+                                                @input="
+                                                    form.telefono = onlyDigits(
+                                                        form.telefono,
+                                                    )
+                                                "
+                                            />
+
+                                            <p
+                                                v-if="form.errors.telefono"
+                                                class="text-xs text-red-500"
+                                            >
+                                                {{ form.errors.telefono }}
                                             </p>
                                         </div>
 
@@ -873,7 +983,9 @@ const setPrimaryNormal = (event: MouseEvent) => {
                             >
                                 {{
                                     form.processing
-                                        ? 'Guardando...'
+                                        ? isEditing
+                                            ? 'Actualizando...'
+                                            : 'Creando y enviando...'
                                         : isEditing
                                           ? 'Actualizar usuario'
                                           : 'Crear usuario'

@@ -1,6 +1,6 @@
 import { computed, ref } from 'vue';
 import { router, useForm } from '@inertiajs/vue3';
-import { swalConfirm, swalToast } from '@/lib/swal';
+import { swalClose, swalConfirm, swalProgress, swalToast } from '@/lib/swal';
 
 export type UsuarioRole = {
     id: number;
@@ -9,12 +9,24 @@ export type UsuarioRole = {
 
 export type UsuarioRow = {
     id: number;
+    persona_id: number | null;
+
     name: string;
     email: string;
     status: 'active' | 'blocked';
     is_super_admin: boolean;
+
+    persona_tipo?: 'paciente' | 'staff' | 'ambos' | null;
+    persona_status?: 'active' | 'inactive' | null;
+    nombres: string;
+    apellido_paterno: string;
+    apellido_materno: string;
+    telefono: string;
+    persona_email?: string | null;
+
     roles: UsuarioRole[];
     role_ids: number[];
+
     mod_agenda: boolean;
     mod_pacientes: boolean;
     mod_sesiones: boolean;
@@ -23,6 +35,7 @@ export type UsuarioRow = {
     mod_reportes: boolean;
     mod_cobranza: boolean;
     mod_config: boolean;
+
     last_login_at?: string | null;
     last_login_ip?: string | null;
 };
@@ -32,12 +45,17 @@ export const useUsuarioCrud = () => {
     const editingId = ref<number | null>(null);
 
     const form = useForm({
-        name: '',
+        nombres: '',
+        apellido_paterno: '',
+        apellido_materno: '',
+        telefono: '',
         email: '',
+
         password: '',
         status: 'active' as 'active' | 'blocked',
         is_super_admin: false,
         role_ids: [] as number[],
+
         mod_agenda: true,
         mod_pacientes: true,
         mod_sesiones: true,
@@ -50,13 +68,15 @@ export const useUsuarioCrud = () => {
 
     const isEditing = computed(() => editingId.value !== null);
 
+    const onlyDigits = (value: string) => value.replace(/\D+/g, '');
+
     const validateBeforeSubmit = () => {
         form.clearErrors();
 
         const errors: Record<string, string> = {};
 
-        if (!form.name.trim()) {
-            errors.name = 'El nombre del usuario es obligatorio.';
+        if (!form.nombres.trim()) {
+            errors.nombres = 'El nombre de la persona es obligatorio.';
         }
 
         if (!form.email.trim()) {
@@ -89,11 +109,16 @@ export const useUsuarioCrud = () => {
 
     const openCreate = () => {
         editingId.value = null;
+
         form.reset();
         form.clearErrors();
 
-        form.name = '';
+        form.nombres = '';
+        form.apellido_paterno = '';
+        form.apellido_materno = '';
+        form.telefono = '';
         form.email = '';
+
         form.password = '';
         form.status = 'active';
         form.is_super_admin = false;
@@ -115,8 +140,12 @@ export const useUsuarioCrud = () => {
         editingId.value = row.id;
         form.clearErrors();
 
-        form.name = row.name;
-        form.email = row.email;
+        form.nombres = row.nombres ?? row.name ?? '';
+        form.apellido_paterno = row.apellido_paterno ?? '';
+        form.apellido_materno = row.apellido_materno ?? '';
+        form.telefono = row.telefono ?? '';
+        form.email = row.email ?? '';
+
         form.password = '';
         form.status = row.status;
         form.is_super_admin = row.is_super_admin;
@@ -157,35 +186,59 @@ export const useUsuarioCrud = () => {
                 : '¿Deseas crear este usuario?',
             isEditing.value
                 ? 'Se actualizarán sus datos y roles asignados.'
-                : 'Se enviará un correo al usuario con sus credenciales de acceso.',
+                : 'Primero se registrará la persona, después el usuario y se enviará un correo con sus credenciales.',
             isEditing.value ? 'Sí, actualizar' : 'Sí, crear',
         );
 
         if (!ok) return;
 
         if (isEditing.value && editingId.value) {
+            swalProgress(
+                'Actualizando usuario...',
+                'Estamos guardando los datos de la persona y sus accesos.',
+            );
+
             form.put(`/usuarios/${editingId.value}`, {
                 preserveScroll: true,
                 onSuccess: () => {
+                    swalClose();
                     swalToast('Usuario actualizado correctamente', 'success');
                     closeModal();
                 },
-                onError: () => swalToast('Revisa el formulario', 'warning'),
+                onError: () => {
+                    swalClose();
+                    swalToast('Revisa el formulario', 'warning');
+                },
+                onFinish: () => {
+                    if (form.hasErrors) swalClose();
+                },
             });
 
             return;
         }
 
+        swalProgress(
+            'Creando usuario...',
+            'Estamos registrando la persona, creando el usuario y enviando sus credenciales por correo.',
+        );
+
         form.post('/usuarios', {
             preserveScroll: true,
             onSuccess: () => {
+                swalClose();
                 swalToast(
                     'Usuario creado y correo enviado correctamente',
                     'success',
                 );
                 closeModal();
             },
-            onError: () => swalToast('Revisa el formulario', 'warning'),
+            onError: () => {
+                swalClose();
+                swalToast('Revisa el formulario', 'warning');
+            },
+            onFinish: () => {
+                if (form.hasErrors) swalClose();
+            },
         });
     };
 
@@ -214,7 +267,7 @@ export const useUsuarioCrud = () => {
     const destroyUser = async (id: number) => {
         const ok = await swalConfirm(
             '¿Deseas eliminar este usuario?',
-            'El usuario quedará eliminado del listado principal.',
+            'El usuario quedará eliminado del listado principal y su persona se marcará como inactiva.',
             'Sí, eliminar',
         );
 
@@ -239,5 +292,6 @@ export const useUsuarioCrud = () => {
         toggleStatus,
         destroyUser,
         editingId,
+        onlyDigits,
     };
 };
