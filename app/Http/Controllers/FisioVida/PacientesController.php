@@ -13,12 +13,11 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Inertia\Inertia;
 
-class PacientesController extends Controller
-{
+class PacientesController extends Controller {
+
     use CrudHelpers;
 
-    public function index(Request $request)
-    {
+    public function index(Request $request) {
         $q = $this->like($request->string('q'));
         $status = $request->string('status')->toString();
         $hasEmail = Schema::hasColumn('personas', 'email');
@@ -64,8 +63,7 @@ class PacientesController extends Controller
         ]);
     }
 
-    public function store(PacienteStoreRequest $request)
-    {
+    public function store(PacienteStoreRequest $request) {
         $payload = $this->sanitizePersonaPayload($request->validated());
         $payload['tipo'] = 'paciente';
         $payload['created_at'] = now();
@@ -85,8 +83,9 @@ class PacientesController extends Controller
         return back()->with('success', 'Paciente creado.');
     }
 
-    public function update(PacienteUpdateRequest $request, string $id)
+    public function update(PacienteUpdateRequest $request, string $paciente)
     {
+        $id = $paciente;
         $old = (array) DB::table('personas')->where('id', $id)->first();
         $payload = $this->sanitizePersonaPayload($request->validated());
         $payload['updated_at'] = now();
@@ -105,8 +104,9 @@ class PacientesController extends Controller
         return back()->with('success', 'Paciente actualizado.');
     }
 
-    public function destroy(Request $request, string $id)
+    public function destroy(Request $request, string $paciente)
     {
+        $id = $paciente;
         $old = (array) DB::table('personas')->where('id', $id)->first();
         DB::table('personas')->where('id', $id)->update(['deleted_at' => now(), 'updated_at' => now()]);
         app(AuditLogService::class)->deleted(
@@ -121,8 +121,8 @@ class PacientesController extends Controller
         return back()->with('success', 'Paciente eliminado.');
     }
 
-    public function show(string $id)
-    {
+    public function show(string $paciente) {
+        $id = $paciente;
         $hasEmail = Schema::hasColumn('personas', 'email');
         $patient = DB::table('personas')
             ->where('id', $id)

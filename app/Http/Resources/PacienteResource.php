@@ -5,17 +5,27 @@ namespace App\Http\Resources;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
-class PacienteResource extends JsonResource
-{
+class PacienteResource extends JsonResource {
+
     public function toArray(Request $request): array
     {
+        $nombres = $this->nombres;
+        $apellidoPaterno = $this->apellido_paterno;
+        $apellidoMaterno = $this->apellido_materno;
+
         return [
             'id' => $this->id,
+
+            'nombres' => $nombres,
+            'apellido_paterno' => $apellidoPaterno,
+            'apellido_materno' => $apellidoMaterno,
+
             'full_name' => trim(implode(' ', array_filter([
-                $this->nombres,
-                $this->apellido_paterno,
-                $this->apellido_materno,
+                $nombres,
+                $apellidoPaterno,
+                $apellidoMaterno,
             ]))),
+
             'tipo' => $this->tipo,
             'status' => $this->status,
             'telefono' => $this->telefono,
@@ -30,4 +40,5 @@ class PacienteResource extends JsonResource
             'updated_at' => $this->updated_at,
         ];
     }
+
 }
