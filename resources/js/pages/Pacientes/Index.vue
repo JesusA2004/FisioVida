@@ -33,6 +33,9 @@ import {
     AlertCircle,
     Loader2,
     X,
+    Info,
+    ContactRound,
+    NotebookText,
 } from 'lucide-vue-next';
 import SearchableSelect from '@/components/ui/SearchableSelect.vue';
 import DatePicker from '@/components/ui/DatePicker.vue';
@@ -140,6 +143,9 @@ const inputBase =
     'h-11 rounded-2xl border-zinc-200 bg-white shadow-sm transition-all duration-200 placeholder:text-zinc-400 focus-visible:border-[color:var(--primary)] focus-visible:ring-2 focus-visible:ring-[color:var(--primary)]/20 dark:border-zinc-800 dark:bg-zinc-900/80';
 
 const labelBase = 'text-sm font-medium text-zinc-800 dark:text-zinc-100';
+
+const sectionTitleBase =
+    'flex items-center gap-2 text-sm font-semibold text-zinc-900 dark:text-zinc-100';
 
 const primaryButtonStyle = {
     backgroundColor: 'var(--primary)',
@@ -477,404 +483,523 @@ const setPrimaryNormal = (event: MouseEvent) => {
 
         <Dialog :open="isOpen" @update:open="closeModal">
             <DialogContent
-                class="max-h-[92vh] max-w-5xl overflow-hidden rounded-[2rem] border-none bg-white p-0 shadow-2xl dark:bg-zinc-950"
+                class="flex max-h-[94dvh] w-[calc(100vw-1rem)] max-w-none !gap-0 overflow-hidden rounded-[1.75rem] border border-zinc-200 bg-white !p-0 shadow-2xl sm:w-[calc(100vw-2rem)] sm:!max-w-[calc(100vw-2rem)] md:!max-w-[94vw] lg:!max-w-[1120px] xl:!max-w-[1280px] 2xl:!max-w-[1380px] dark:border-zinc-800 dark:bg-zinc-950"
             >
-                <div class="flex max-h-[92vh] flex-col">
+                <div class="flex max-h-[94dvh] min-h-0 w-full flex-col">
                     <DialogHeader
-                        class="border-b border-zinc-100 px-5 py-4 sm:px-6 dark:border-zinc-800"
+                        class="shrink-0 border-b border-zinc-100 bg-white px-4 py-4 sm:px-6 lg:px-7 dark:border-zinc-800 dark:bg-zinc-950"
                     >
-                        <div class="flex items-start justify-between gap-4">
-                            <div>
-                                <DialogTitle class="text-xl">
-                                    {{
-                                        isEditing
-                                            ? 'Editar paciente'
-                                            : 'Nuevo paciente'
-                                    }}
-                                </DialogTitle>
+                        <div
+                            class="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between"
+                        >
+                            <div class="min-w-0">
+                                <DialogTitle
+                                    class="flex items-center gap-2 text-lg font-semibold text-zinc-950 sm:text-xl dark:text-zinc-50"
+                                >
+                                    <span
+                                        class="grid h-9 w-9 shrink-0 place-items-center rounded-2xl shadow-sm"
+                                        :style="primaryButtonStyle"
+                                    >
+                                        <UserRound class="h-4 w-4" />
+                                    </span>
 
-                                <DialogDescription class="mt-1">
-                                    Los campos marcados como opcionales pueden
-                                    quedarse vacíos.
-                                </DialogDescription>
+                                    <span>
+                                        {{
+                                            isEditing
+                                                ? 'Editar paciente'
+                                                : 'Nuevo paciente'
+                                        }}
+                                    </span>
+                                </DialogTitle>
                             </div>
                         </div>
                     </DialogHeader>
 
                     <div
-                        class="flex-1 overflow-y-auto px-5 py-5 [-ms-overflow-style:none] [scrollbar-width:none] sm:px-6 dark:bg-zinc-950 [&::-webkit-scrollbar]:hidden"
+                        class="min-h-0 flex-1 overflow-y-auto overscroll-contain bg-zinc-50/70 px-4 py-4 sm:px-6 sm:py-5 lg:px-7 dark:bg-zinc-950"
                     >
-                        <div class="grid gap-4 lg:grid-cols-2">
-                            <div class="space-y-2">
-                                <Label :class="labelBase">
-                                    Nombres
-                                    <span class="text-red-500">*</span>
-                                </Label>
-
-                                <Input
-                                    v-model="form.nombres"
-                                    :class="inputBase"
-                                    placeholder="Ej. Andrea"
-                                    autocomplete="given-name"
-                                />
-
-                                <p
-                                    v-if="form.errors.nombres"
-                                    class="text-xs text-red-500"
+                        <div
+                            class="grid gap-4 pb-5 lg:grid-cols-[minmax(0,1.35fr)_minmax(360px,0.65fr)] xl:grid-cols-[minmax(0,1.45fr)_minmax(420px,0.55fr)]"
+                        >
+                            <div class="space-y-4">
+                                <section
+                                    class="rounded-[1.5rem] border border-zinc-200 bg-white p-4 shadow-sm sm:p-5 dark:border-zinc-800 dark:bg-zinc-900/50"
                                 >
-                                    {{ form.errors.nombres }}
-                                </p>
-                            </div>
-
-                            <div class="space-y-2">
-                                <Label :class="labelBase">Estado</Label>
-
-                                <SearchableSelect
-                                    v-model="form.status"
-                                    :options="[
-                                        {
-                                            value: 'active',
-                                            label: tGeneralStatus('active'),
-                                        },
-                                        {
-                                            value: 'inactive',
-                                            label: tGeneralStatus('inactive'),
-                                        },
-                                    ]"
-                                />
-                            </div>
-
-                            <div class="space-y-2">
-                                <Label :class="labelBase">
-                                    Apellido paterno
-                                    <span
-                                        class="text-xs font-normal text-zinc-400"
+                                    <div
+                                        class="mb-4 flex flex-col gap-1 border-b border-zinc-100 pb-3 dark:border-zinc-800"
                                     >
-                                        opcional
-                                    </span>
-                                </Label>
-
-                                <Input
-                                    v-model="form.apellido_paterno"
-                                    :class="inputBase"
-                                    placeholder="Ej. Fuentes"
-                                    autocomplete="family-name"
-                                />
-
-                                <p
-                                    v-if="form.errors.apellido_paterno"
-                                    class="text-xs text-red-500"
-                                >
-                                    {{ form.errors.apellido_paterno }}
-                                </p>
-                            </div>
-
-                            <div class="space-y-2">
-                                <Label :class="labelBase">
-                                    Apellido materno
-                                    <span
-                                        class="text-xs font-normal text-zinc-400"
-                                    >
-                                        opcional
-                                    </span>
-                                </Label>
-
-                                <Input
-                                    v-model="form.apellido_materno"
-                                    :class="inputBase"
-                                    placeholder="Ej. Peña"
-                                    autocomplete="family-name"
-                                />
-
-                                <p
-                                    v-if="form.errors.apellido_materno"
-                                    class="text-xs text-red-500"
-                                >
-                                    {{ form.errors.apellido_materno }}
-                                </p>
-                            </div>
-
-                            <div class="space-y-2">
-                                <Label :class="labelBase">
-                                    Teléfono
-                                    <span
-                                        class="text-xs font-normal text-zinc-400"
-                                    >
-                                        10 dígitos
-                                    </span>
-                                </Label>
-
-                                <Input
-                                    v-model="form.telefono"
-                                    :class="inputBase"
-                                    inputmode="numeric"
-                                    maxlength="10"
-                                    placeholder="Ej. 7771234567"
-                                    autocomplete="tel"
-                                    @input="normalizePhone('telefono')"
-                                />
-
-                                <p
-                                    v-if="form.errors.telefono"
-                                    class="text-xs text-red-500"
-                                >
-                                    {{ form.errors.telefono }}
-                                </p>
-                            </div>
-
-                            <div class="space-y-2">
-                                <Label :class="labelBase">
-                                    Email
-                                    <span
-                                        class="text-xs font-normal text-zinc-400"
-                                    >
-                                        opcional
-                                    </span>
-                                </Label>
-
-                                <Input
-                                    v-model="form.email"
-                                    :class="inputBase"
-                                    type="email"
-                                    placeholder="Ej. paciente@correo.com"
-                                    autocomplete="email"
-                                />
-
-                                <p
-                                    v-if="form.errors.email"
-                                    class="text-xs text-red-500"
-                                >
-                                    {{ form.errors.email }}
-                                </p>
-                            </div>
-
-                            <div class="space-y-2">
-                                <Label :class="labelBase">
-                                    Fecha nacimiento
-                                    <span
-                                        class="text-xs font-normal text-zinc-400"
-                                    >
-                                        opcional
-                                    </span>
-                                </Label>
-
-                                <DatePicker v-model="form.fecha_nacimiento" />
-
-                                <p
-                                    v-if="form.errors.fecha_nacimiento"
-                                    class="text-xs text-red-500"
-                                >
-                                    {{ form.errors.fecha_nacimiento }}
-                                </p>
-                            </div>
-
-                            <div class="space-y-2">
-                                <Label :class="labelBase">
-                                    Sexo
-                                    <span
-                                        class="text-xs font-normal text-zinc-400"
-                                    >
-                                        opcional
-                                    </span>
-                                </Label>
-
-                                <SearchableSelect
-                                    v-model="form.sexo"
-                                    :options="[
-                                        {
-                                            value: '',
-                                            label: 'No especificado',
-                                        },
-                                        { value: 'M', label: 'Masculino' },
-                                        { value: 'F', label: 'Femenino' },
-                                        {
-                                            value: 'X',
-                                            label: 'No especificado / Otro',
-                                        },
-                                    ]"
-                                />
-
-                                <p
-                                    v-if="form.errors.sexo"
-                                    class="text-xs text-red-500"
-                                >
-                                    {{ form.errors.sexo }}
-                                </p>
-                            </div>
-
-                            <div class="space-y-2 lg:col-span-2">
-                                <Label :class="labelBase">
-                                    Dirección
-                                    <span
-                                        class="text-xs font-normal text-zinc-400"
-                                    >
-                                        opcional
-                                    </span>
-                                </Label>
-
-                                <Input
-                                    v-model="form.direccion"
-                                    :class="inputBase"
-                                    placeholder="Calle, número, colonia, ciudad"
-                                    autocomplete="street-address"
-                                />
-
-                                <p
-                                    v-if="form.errors.direccion"
-                                    class="text-xs text-red-500"
-                                >
-                                    {{ form.errors.direccion }}
-                                </p>
-                            </div>
-
-                            <div
-                                class="rounded-[1.5rem] border border-zinc-200 bg-zinc-50 p-4 lg:col-span-2 dark:border-zinc-800 dark:bg-zinc-900/40"
-                            >
-                                <div class="mb-4 flex items-center gap-2">
-                                    <ShieldAlert
-                                        class="h-4 w-4"
-                                        :style="{ color: 'var(--primary)' }"
-                                    />
-                                    <h3
-                                        class="text-sm font-semibold text-zinc-900 dark:text-zinc-100"
-                                    >
-                                        Contacto de emergencia
-                                    </h3>
-                                </div>
-
-                                <div class="grid gap-4 lg:grid-cols-2">
-                                    <div class="space-y-2">
-                                        <Label :class="labelBase">
-                                            Nombre del contacto
-                                            <span
-                                                class="text-xs font-normal text-zinc-400"
-                                            >
-                                                opcional
-                                            </span>
-                                        </Label>
-
-                                        <Input
-                                            v-model="
-                                                form.contacto_emergencia_nombre
-                                            "
-                                            :class="inputBase"
-                                            placeholder="Ej. Familiar o responsable"
-                                        />
+                                        <h3 :class="sectionTitleBase">
+                                            <Info
+                                                class="h-4 w-4"
+                                                :style="{
+                                                    color: 'var(--primary)',
+                                                }"
+                                            />
+                                            Información principal
+                                        </h3>
 
                                         <p
-                                            v-if="
-                                                form.errors
-                                                    .contacto_emergencia_nombre
-                                            "
-                                            class="text-xs text-red-500"
+                                            class="text-xs leading-5 text-zinc-500 dark:text-zinc-400"
                                         >
-                                            {{
-                                                form.errors
-                                                    .contacto_emergencia_nombre
-                                            }}
+                                            Datos básicos para identificar al
+                                            paciente dentro del sistema.
                                         </p>
                                     </div>
 
-                                    <div class="space-y-2">
-                                        <Label :class="labelBase">
-                                            Teléfono de emergencia
-                                            <span
-                                                class="text-xs font-normal text-zinc-400"
-                                            >
-                                                10 dígitos
-                                            </span>
-                                        </Label>
+                                    <div
+                                        class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3"
+                                    >
+                                        <div class="space-y-2">
+                                            <Label :class="labelBase">
+                                                Nombres
+                                                <span class="text-red-500"
+                                                    >*</span
+                                                >
+                                            </Label>
 
-                                        <Input
-                                            v-model="
-                                                form.contacto_emergencia_telefono
-                                            "
-                                            :class="inputBase"
-                                            inputmode="numeric"
-                                            maxlength="10"
-                                            placeholder="Ej. 7777654321"
-                                            @input="
-                                                normalizePhone(
-                                                    'contacto_emergencia_telefono',
-                                                )
-                                            "
+                                            <Input
+                                                v-model="form.nombres"
+                                                :class="inputBase"
+                                                placeholder="Ej. Andrea"
+                                                autocomplete="given-name"
+                                            />
+
+                                            <p
+                                                v-if="form.errors.nombres"
+                                                class="text-xs text-red-500"
+                                            >
+                                                {{ form.errors.nombres }}
+                                            </p>
+                                        </div>
+
+                                        <div class="space-y-2">
+                                            <Label :class="labelBase">
+                                                Apellido paterno
+                                                <span
+                                                    class="text-xs font-normal text-zinc-400"
+                                                >
+                                                    opcional
+                                                </span>
+                                            </Label>
+
+                                            <Input
+                                                v-model="form.apellido_paterno"
+                                                :class="inputBase"
+                                                placeholder="Ej. Fuentes"
+                                                autocomplete="family-name"
+                                            />
+
+                                            <p
+                                                v-if="
+                                                    form.errors.apellido_paterno
+                                                "
+                                                class="text-xs text-red-500"
+                                            >
+                                                {{
+                                                    form.errors.apellido_paterno
+                                                }}
+                                            </p>
+                                        </div>
+
+                                        <div class="space-y-2">
+                                            <Label :class="labelBase">
+                                                Apellido materno
+                                                <span
+                                                    class="text-xs font-normal text-zinc-400"
+                                                >
+                                                    opcional
+                                                </span>
+                                            </Label>
+
+                                            <Input
+                                                v-model="form.apellido_materno"
+                                                :class="inputBase"
+                                                placeholder="Ej. Peña"
+                                                autocomplete="family-name"
+                                            />
+
+                                            <p
+                                                v-if="
+                                                    form.errors.apellido_materno
+                                                "
+                                                class="text-xs text-red-500"
+                                            >
+                                                {{
+                                                    form.errors.apellido_materno
+                                                }}
+                                            </p>
+                                        </div>
+
+                                        <div class="space-y-2">
+                                            <Label :class="labelBase"
+                                                >Estado</Label
+                                            >
+
+                                            <SearchableSelect
+                                                v-model="form.status"
+                                                :options="[
+                                                    {
+                                                        value: 'active',
+                                                        label: tGeneralStatus(
+                                                            'active',
+                                                        ),
+                                                    },
+                                                    {
+                                                        value: 'inactive',
+                                                        label: tGeneralStatus(
+                                                            'inactive',
+                                                        ),
+                                                    },
+                                                ]"
+                                            />
+                                        </div>
+
+                                        <div class="space-y-2">
+                                            <Label :class="labelBase">
+                                                Fecha nacimiento
+                                                <span
+                                                    class="text-xs font-normal text-zinc-400"
+                                                >
+                                                    opcional
+                                                </span>
+                                            </Label>
+
+                                            <DatePicker
+                                                v-model="form.fecha_nacimiento"
+                                            />
+
+                                            <p
+                                                v-if="
+                                                    form.errors.fecha_nacimiento
+                                                "
+                                                class="text-xs text-red-500"
+                                            >
+                                                {{
+                                                    form.errors.fecha_nacimiento
+                                                }}
+                                            </p>
+                                        </div>
+
+                                        <div class="space-y-2">
+                                            <Label :class="labelBase">
+                                                Sexo
+                                                <span
+                                                    class="text-xs font-normal text-zinc-400"
+                                                >
+                                                    opcional
+                                                </span>
+                                            </Label>
+
+                                            <SearchableSelect
+                                                v-model="form.sexo"
+                                                :options="[
+                                                    {
+                                                        value: '',
+                                                        label: 'No especificado',
+                                                    },
+                                                    {
+                                                        value: 'M',
+                                                        label: 'Masculino',
+                                                    },
+                                                    {
+                                                        value: 'F',
+                                                        label: 'Femenino',
+                                                    },
+                                                    {
+                                                        value: 'X',
+                                                        label: 'No especificado / Otro',
+                                                    },
+                                                ]"
+                                            />
+
+                                            <p
+                                                v-if="form.errors.sexo"
+                                                class="text-xs text-red-500"
+                                            >
+                                                {{ form.errors.sexo }}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </section>
+
+                                <section
+                                    class="rounded-[1.5rem] border border-zinc-200 bg-white p-4 shadow-sm sm:p-5 dark:border-zinc-800 dark:bg-zinc-900/50"
+                                >
+                                    <div
+                                        class="mb-4 flex flex-col gap-1 border-b border-zinc-100 pb-3 dark:border-zinc-800"
+                                    >
+                                        <h3 :class="sectionTitleBase">
+                                            <ContactRound
+                                                class="h-4 w-4"
+                                                :style="{
+                                                    color: 'var(--primary)',
+                                                }"
+                                            />
+                                            Contacto y ubicación
+                                        </h3>
+
+                                        <p
+                                            class="text-xs leading-5 text-zinc-500 dark:text-zinc-400"
+                                        >
+                                            Información para comunicación y
+                                            localización del paciente.
+                                        </p>
+                                    </div>
+
+                                    <div
+                                        class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3"
+                                    >
+                                        <div class="space-y-2">
+                                            <Label :class="labelBase">
+                                                Teléfono
+                                                <span
+                                                    class="text-xs font-normal text-zinc-400"
+                                                >
+                                                    10 dígitos
+                                                </span>
+                                            </Label>
+
+                                            <Input
+                                                v-model="form.telefono"
+                                                :class="inputBase"
+                                                inputmode="numeric"
+                                                maxlength="10"
+                                                placeholder="Ej. 7771234567"
+                                                autocomplete="tel"
+                                                @input="
+                                                    normalizePhone('telefono')
+                                                "
+                                            />
+
+                                            <p
+                                                v-if="form.errors.telefono"
+                                                class="text-xs text-red-500"
+                                            >
+                                                {{ form.errors.telefono }}
+                                            </p>
+                                        </div>
+
+                                        <div class="space-y-2">
+                                            <Label :class="labelBase">
+                                                Email
+                                                <span
+                                                    class="text-xs font-normal text-zinc-400"
+                                                >
+                                                    opcional
+                                                </span>
+                                            </Label>
+
+                                            <Input
+                                                v-model="form.email"
+                                                :class="inputBase"
+                                                type="email"
+                                                placeholder="Ej. paciente@correo.com"
+                                                autocomplete="email"
+                                            />
+
+                                            <p
+                                                v-if="form.errors.email"
+                                                class="text-xs text-red-500"
+                                            >
+                                                {{ form.errors.email }}
+                                            </p>
+                                        </div>
+
+                                        <div
+                                            class="space-y-2 sm:col-span-2 xl:col-span-1"
+                                        >
+                                            <Label :class="labelBase">
+                                                Dirección
+                                                <span
+                                                    class="text-xs font-normal text-zinc-400"
+                                                >
+                                                    opcional
+                                                </span>
+                                            </Label>
+
+                                            <Input
+                                                v-model="form.direccion"
+                                                :class="inputBase"
+                                                placeholder="Calle, número, colonia, ciudad"
+                                                autocomplete="street-address"
+                                            />
+
+                                            <p
+                                                v-if="form.errors.direccion"
+                                                class="text-xs text-red-500"
+                                            >
+                                                {{ form.errors.direccion }}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </section>
+                            </div>
+
+                            <div class="space-y-4">
+                                <section
+                                    class="rounded-[1.5rem] border border-zinc-200 bg-white p-4 shadow-sm sm:p-5 dark:border-zinc-800 dark:bg-zinc-900/50"
+                                >
+                                    <div
+                                        class="mb-4 flex flex-col gap-1 border-b border-zinc-100 pb-3 dark:border-zinc-800"
+                                    >
+                                        <h3 :class="sectionTitleBase">
+                                            <ShieldAlert
+                                                class="h-4 w-4"
+                                                :style="{
+                                                    color: 'var(--primary)',
+                                                }"
+                                            />
+                                            Contacto de emergencia
+                                        </h3>
+                                    </div>
+
+                                    <div class="grid gap-4">
+                                        <div class="space-y-2">
+                                            <Label :class="labelBase">
+                                                Nombre del contacto
+                                                <span
+                                                    class="text-xs font-normal text-zinc-400"
+                                                >
+                                                    opcional
+                                                </span>
+                                            </Label>
+
+                                            <Input
+                                                v-model="
+                                                    form.contacto_emergencia_nombre
+                                                "
+                                                :class="inputBase"
+                                                placeholder="Ej. Familiar o responsable"
+                                            />
+
+                                            <p
+                                                v-if="
+                                                    form.errors
+                                                        .contacto_emergencia_nombre
+                                                "
+                                                class="text-xs text-red-500"
+                                            >
+                                                {{
+                                                    form.errors
+                                                        .contacto_emergencia_nombre
+                                                }}
+                                            </p>
+                                        </div>
+
+                                        <div class="space-y-2">
+                                            <Label :class="labelBase">
+                                                Teléfono de emergencia
+                                                <span
+                                                    class="text-xs font-normal text-zinc-400"
+                                                >
+                                                    10 dígitos
+                                                </span>
+                                            </Label>
+
+                                            <Input
+                                                v-model="
+                                                    form.contacto_emergencia_telefono
+                                                "
+                                                :class="inputBase"
+                                                inputmode="numeric"
+                                                maxlength="10"
+                                                placeholder="Ej. 7777654321"
+                                                @input="
+                                                    normalizePhone(
+                                                        'contacto_emergencia_telefono',
+                                                    )
+                                                "
+                                            />
+
+                                            <p
+                                                v-if="
+                                                    form.errors
+                                                        .contacto_emergencia_telefono
+                                                "
+                                                class="text-xs text-red-500"
+                                            >
+                                                {{
+                                                    form.errors
+                                                        .contacto_emergencia_telefono
+                                                }}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </section>
+
+                                <section
+                                    class="rounded-[1.5rem] border border-zinc-200 bg-white p-4 shadow-sm sm:p-5 dark:border-zinc-800 dark:bg-zinc-900/50"
+                                >
+                                    <div
+                                        class="mb-4 flex flex-col gap-1 border-b border-zinc-100 pb-3 dark:border-zinc-800"
+                                    >
+                                        <h3 :class="sectionTitleBase">
+                                            <NotebookText
+                                                class="h-4 w-4"
+                                                :style="{
+                                                    color: 'var(--primary)',
+                                                }"
+                                            />
+                                            Notas adicionales
+                                        </h3>
+                                    </div>
+
+                                    <div class="space-y-2">
+                                        <textarea
+                                            v-model="form.notas"
+                                            class="min-h-44 w-full resize-y rounded-2xl border border-zinc-200 bg-white p-3 text-sm shadow-sm transition-all duration-200 placeholder:text-zinc-400 focus:border-[color:var(--primary)] focus:ring-2 focus:ring-[color:var(--primary)]/20 focus:outline-none lg:min-h-34 dark:border-zinc-800 dark:bg-zinc-900/80"
+                                            placeholder="Observaciones importantes del paciente"
                                         />
 
                                         <p
-                                            v-if="
-                                                form.errors
-                                                    .contacto_emergencia_telefono
-                                            "
+                                            v-if="form.errors.notas"
                                             class="text-xs text-red-500"
                                         >
-                                            {{
-                                                form.errors
-                                                    .contacto_emergencia_telefono
-                                            }}
+                                            {{ form.errors.notas }}
                                         </p>
                                     </div>
-                                </div>
-                            </div>
-
-                            <div class="space-y-2 lg:col-span-2">
-                                <Label :class="labelBase">
-                                    Notas
-                                    <span
-                                        class="text-xs font-normal text-zinc-400"
-                                    >
-                                        opcional
-                                    </span>
-                                </Label>
-
-                                <textarea
-                                    v-model="form.notas"
-                                    class="min-h-28 w-full resize-y rounded-2xl border border-zinc-200 bg-white p-3 text-sm shadow-sm transition-all duration-200 placeholder:text-zinc-400 focus:border-[color:var(--primary)] focus:ring-2 focus:ring-[color:var(--primary)]/20 focus:outline-none dark:border-zinc-800 dark:bg-zinc-900/80"
-                                    placeholder="Observaciones importantes del paciente"
-                                />
-
-                                <p
-                                    v-if="form.errors.notas"
-                                    class="text-xs text-red-500"
-                                >
-                                    {{ form.errors.notas }}
-                                </p>
+                                </section>
                             </div>
                         </div>
                     </div>
 
                     <DialogFooter
-                        class="border-t border-zinc-100 bg-white px-5 py-4 sm:px-6 dark:border-zinc-800 dark:bg-zinc-950"
+                        class="shrink-0 border-t border-zinc-100 bg-white px-4 py-3 sm:px-6 lg:px-7 dark:border-zinc-800 dark:bg-zinc-950"
                     >
-                        <Button
-                            variant="outline"
-                            class="h-11 rounded-2xl px-5 transition-all duration-200 hover:-translate-y-0.5 hover:border-[color:var(--primary)] hover:text-[color:var(--primary)]"
-                            :disabled="form.processing || isSubmitting"
-                            @click="closeModal(false)"
+                        <div
+                            class="flex w-full flex-col-reverse gap-2 sm:flex-row sm:justify-end"
                         >
-                            Cancelar
-                        </Button>
+                            <Button
+                                variant="outline"
+                                class="h-11 w-full rounded-2xl px-5 transition-all duration-200 hover:-translate-y-0.5 hover:border-[color:var(--primary)] hover:text-[color:var(--primary)] sm:w-auto sm:min-w-36"
+                                :disabled="form.processing || isSubmitting"
+                                @click="closeModal(false)"
+                            >
+                                Cancelar
+                            </Button>
 
-                        <Button
-                            class="h-11 rounded-2xl px-5 shadow-lg transition-all duration-300 hover:-translate-y-0.5"
-                            :style="primaryButtonStyle"
-                            :disabled="form.processing || isSubmitting"
-                            @mouseenter="setPrimaryHover"
-                            @mouseleave="setPrimaryNormal"
-                            @click="submit"
-                        >
-                            <Loader2
-                                v-if="form.processing || isSubmitting"
-                                class="mr-2 h-4 w-4 animate-spin"
-                            />
+                            <Button
+                                class="h-11 w-full rounded-2xl px-5 shadow-lg transition-all duration-300 hover:-translate-y-0.5 sm:w-auto sm:min-w-40"
+                                :style="primaryButtonStyle"
+                                :disabled="form.processing || isSubmitting"
+                                @mouseenter="setPrimaryHover"
+                                @mouseleave="setPrimaryNormal"
+                                @click="submit"
+                            >
+                                <Loader2
+                                    v-if="form.processing || isSubmitting"
+                                    class="mr-2 h-4 w-4 animate-spin"
+                                />
 
-                            {{
-                                form.processing || isSubmitting
-                                    ? 'Guardando...'
-                                    : isEditing
-                                      ? 'Actualizar'
-                                      : 'Crear paciente'
-                            }}
-                        </Button>
+                                {{
+                                    form.processing || isSubmitting
+                                        ? 'Guardando...'
+                                        : isEditing
+                                          ? 'Actualizar'
+                                          : 'Crear paciente'
+                                }}
+                            </Button>
+                        </div>
                     </DialogFooter>
                 </div>
             </DialogContent>

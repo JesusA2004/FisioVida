@@ -118,7 +118,7 @@ const footerNavItems: NavItem[] = [];
                     <SidebarMenuButton
                         size="lg"
                         as-child
-                        class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground"
+                        class="hover:bg-white hover:text-sidebar-accent-foreground data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground"
                     >
                         <Link href="/dashboard">
                             <AppLogo />
