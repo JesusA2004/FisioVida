@@ -91,8 +91,6 @@ const mainNavItems = computed<NavItem[]>(() => {
         });
     if (canAccess('roles', 'roles.view'))
         items.push({ title: 'Roles', href: '/roles', icon: ShieldCheck });
-    if (canAccess('permisos', 'permissions.view'))
-        items.push({ title: 'Permisos', href: '/permisos', icon: KeyRound });
     if (canAccess('usuarios', 'users.view'))
         items.push({ title: 'Usuarios', href: '/usuarios', icon: Users });
     if (canAccess('logs', 'logs.view'))

@@ -20,7 +20,6 @@ class ModuleSettingsSeeder extends Seeder
             ['module' => 'actividades', 'label' => 'Actividades'],
             ['module' => 'usuarios', 'label' => 'Usuarios'],
             ['module' => 'roles', 'label' => 'Roles'],
-            ['module' => 'permisos', 'label' => 'Permisos'],
             ['module' => 'reportes', 'label' => 'Reportes'],
             ['module' => 'logs', 'label' => 'Logs'],
             ['module' => 'configuracion', 'label' => 'Configuración'],
