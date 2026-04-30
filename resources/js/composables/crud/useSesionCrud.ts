@@ -37,6 +37,7 @@ export const useSesionCrud = (filters: {
         plan: '',
         pain_scale: '' as number | '',
         notes: '',
+        exercise_ids: [] as number[],
     });
 
     const permissions = computed<string[]>(
@@ -127,11 +128,12 @@ export const useSesionCrud = (filters: {
         form.plan = '';
         form.pain_scale = '';
         form.notes = '';
+        form.exercise_ids = [];
 
         isOpen.value = true;
     };
 
-    const openEdit = (row: SesionRow) => {
+    const openEdit = (row: SesionRow, exerciseIds: number[] = []) => {
         editingId.value = row.id;
 
         form.clearErrors();
@@ -146,6 +148,7 @@ export const useSesionCrud = (filters: {
         form.plan = row.plan ?? '';
         form.pain_scale = (row.pain_scale ?? '') as number | '';
         form.notes = row.notes ?? '';
+        form.exercise_ids = exerciseIds;
 
         isOpen.value = true;
     };
@@ -155,12 +158,23 @@ export const useSesionCrud = (filters: {
         form.clearErrors();
     };
 
+    const toggleExercise = (exerciseId: number) => {
+        if (form.exercise_ids.includes(exerciseId)) {
+            form.exercise_ids = form.exercise_ids.filter(
+                (id) => id !== exerciseId,
+            );
+            return;
+        }
+
+        form.exercise_ids = [...form.exercise_ids, exerciseId];
+    };
+
     const submit = async () => {
         if (!validateBeforeSubmit()) return;
 
         const ok = await swalConfirm(
             editingId.value ? '¿Actualizar sesión?' : '¿Crear sesión?',
-            'Se guardará la información clínica de la sesión.',
+            'Se guardará la información clínica y los ejercicios seleccionados.',
             editingId.value ? 'Sí, actualizar' : 'Sí, crear',
         );
 
@@ -206,12 +220,12 @@ export const useSesionCrud = (filters: {
         });
     };
 
-    const goToPatient = (patientPersonaId: number) => {
-        router.visit(`/pacientes/${patientPersonaId}`);
+    const goToPatients = () => {
+        router.visit('/pacientes');
     };
 
-    const goToExercises = () => {
-        router.visit('/ejercicios');
+    const goToTherapists = () => {
+        router.visit('/usuarios');
     };
 
     return {
@@ -227,7 +241,8 @@ export const useSesionCrud = (filters: {
         closeModal,
         submit,
         destroySesion,
-        goToPatient,
-        goToExercises,
+        toggleExercise,
+        goToPatients,
+        goToTherapists,
     };
 };

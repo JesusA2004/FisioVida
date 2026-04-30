@@ -1,8 +1,28 @@
 <script setup lang="ts">
-import { Head } from '@inertiajs/vue3';
+import { computed, ref } from 'vue';
+import { Head, router } from '@inertiajs/vue3';
 import AppLayout from '@/layouts/AppLayout.vue';
 import type { BreadcrumbItem } from '@/types';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import {
+    Activity,
+    AlertCircle,
+    CalendarClock,
+    CheckCircle2,
+    ClipboardList,
+    CreditCard,
+    FileText,
+    FolderOpen,
+    HeartPulse,
+    Mail,
+    MapPin,
+    NotebookText,
+    Phone,
+    ShieldAlert,
+    Stethoscope,
+    UserRound,
+} from 'lucide-vue-next';
 import {
     tActivityStatus,
     tAppointmentStatus,
@@ -12,161 +32,944 @@ import {
 } from '@/lib/labels';
 import { formatDateMx, formatDateTimeMx } from '@/lib/dates';
 
+type Patient = {
+    id: number;
+    full_name: string;
+    status: string;
+    telefono?: string | null;
+    email?: string | null;
+    fecha_nacimiento?: string | null;
+    sexo?: string | null;
+    direccion?: string | null;
+    emergency_contact_name?: string | null;
+    emergency_contact_phone?: string | null;
+    notes?: string | null;
+};
+
+type Appointment = {
+    id: number;
+    start_at: string;
+    end_at?: string | null;
+    status: string;
+    therapist_name?: string | null;
+    notes?: string | null;
+};
+
+type Session = {
+    id: number;
+    appointment_id?: number | null;
+    session_date: string;
+    therapist_name?: string | null;
+    pain_scale?: number | null;
+    subjective?: string | null;
+    objective?: string | null;
+    assessment?: string | null;
+    plan?: string | null;
+    notes?: string | null;
+};
+
+type PatientFile = {
+    id: number;
+    original_name: string;
+    file_type?: string | null;
+    mime?: string | null;
+    created_at: string;
+};
+
+type Payment = {
+    id: number;
+    amount?: number | string | null;
+    currency?: string | null;
+    status: string;
+    paid_at?: string | null;
+    created_at?: string | null;
+};
+
+type ActivityItem = {
+    id: number;
+    title: string;
+    priority: string;
+    status: string;
+    due_date?: string | null;
+    responsible_name?: string | null;
+};
+
 const props = defineProps<{
-    patient: any;
-    appointments: any[];
-    sessions: any[];
-    files: any[];
-    payments: any[];
-    activities: any[];
+    patient: Patient;
+    appointments: Appointment[];
+    sessions: Session[];
+    files: PatientFile[];
+    payments: Payment[];
+    activities: ActivityItem[];
 }>();
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Pacientes', href: '/pacientes' },
     { title: 'Expediente', href: `/pacientes/${props.patient.id}` },
 ];
+
+const activeTab = ref<'resumen' | 'clinico' | 'citas' | 'archivos' | 'pagos' | 'seguimiento'>(
+    'resumen',
+);
+
+const primaryButtonStyle = {
+    backgroundColor: 'var(--primary)',
+    color: 'var(--primary-foreground)',
+};
+
+const primarySoftStyle = {
+    backgroundColor: 'color-mix(in srgb, var(--primary) 8%, white)',
+};
+
+const setPrimaryHover = (event: MouseEvent) => {
+    const hoverColor =
+        getComputedStyle(document.documentElement)
+            .getPropertyValue('--primary-hover')
+            .trim() || 'var(--primary)';
+
+    (event.currentTarget as HTMLElement).style.backgroundColor = hoverColor;
+};
+
+const setPrimaryNormal = (event: MouseEvent) => {
+    (event.currentTarget as HTMLElement).style.backgroundColor =
+        'var(--primary)';
+};
+
+const patientInitials = computed(() => {
+    return props.patient.full_name
+        .split(' ')
+        .filter(Boolean)
+        .slice(0, 2)
+        .map((word) => word[0])
+        .join('')
+        .toUpperCase();
+});
+
+const sortedSessions = computed(() =>
+    [...props.sessions].sort((a, b) =>
+        String(b.session_date).localeCompare(String(a.session_date)),
+    ),
+);
+
+const sortedAppointments = computed(() =>
+    [...props.appointments].sort((a, b) =>
+        String(b.start_at).localeCompare(String(a.start_at)),
+    ),
+);
+
+const latestSession = computed(() => sortedSessions.value[0] ?? null);
+
+const nextAppointment = computed(() => {
+    const now = new Date().getTime();
+
+    return [...props.appointments]
+        .filter((appointment) => {
+            const time = new Date(appointment.start_at).getTime();
+
+            return !Number.isNaN(time) && time >= now;
+        })
+        .sort((a, b) => String(a.start_at).localeCompare(String(b.start_at)))[0] ?? null;
+});
+
+const painValues = computed(() =>
+    props.sessions
+        .map((session) => session.pain_scale)
+        .filter((value): value is number => value !== null && value !== undefined),
+);
+
+const averagePain = computed(() => {
+    if (painValues.value.length === 0) return null;
+
+    return Number(
+        (
+            painValues.value.reduce((sum, value) => sum + value, 0) /
+            painValues.value.length
+        ).toFixed(1),
+    );
+});
+
+const lastPain = computed(() => latestSession.value?.pain_scale ?? null);
+
+const paidTotal = computed(() => {
+    return props.payments
+        .filter((payment) => payment.status === 'paid')
+        .reduce((sum, payment) => sum + Number(payment.amount ?? 0), 0);
+});
+
+const pendingPayments = computed(() =>
+    props.payments.filter((payment) => payment.status !== 'paid'),
+);
+
+const pendingActivities = computed(() =>
+    props.activities.filter((activity) => !['done', 'completed', 'closed'].includes(activity.status)),
+);
+
+const timelineItems = computed(() => {
+    const sessionItems = props.sessions.map((session) => ({
+        id: `session-${session.id}`,
+        type: 'Sesión',
+        title: session.assessment || 'Sesión clínica registrada',
+        description: session.plan || session.notes || 'Sin plan registrado.',
+        date: session.session_date,
+        icon: HeartPulse,
+        meta: `${session.therapist_name || 'Sin terapeuta'} · Dolor ${session.pain_scale ?? '—'}/10`,
+    }));
+
+    const appointmentItems = props.appointments.map((appointment) => ({
+        id: `appointment-${appointment.id}`,
+        type: 'Cita',
+        title: tAppointmentStatus(appointment.status),
+        description: appointment.notes || 'Sin notas registradas.',
+        date: appointment.start_at,
+        icon: CalendarClock,
+        meta: appointment.therapist_name || 'Sin terapeuta',
+    }));
+
+    const activityItems = props.activities.map((activity) => ({
+        id: `activity-${activity.id}`,
+        type: 'Seguimiento',
+        title: activity.title,
+        description: `${tPriority(activity.priority)} · ${tActivityStatus(activity.status)}`,
+        date: activity.due_date || '',
+        icon: ClipboardList,
+        meta: activity.responsible_name || 'Sin responsable',
+    }));
+
+    return [...sessionItems, ...appointmentItems, ...activityItems]
+        .filter((item) => item.date)
+        .sort((a, b) => String(b.date).localeCompare(String(a.date)));
+});
+
+const statusBadgeClass = (status: string) =>
+    status === 'active'
+        ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/40 dark:bg-emerald-950/40 dark:text-emerald-300'
+        : 'border-zinc-200 bg-zinc-100 text-zinc-700 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300';
+
+const painBadgeClass = (value?: number | null) => {
+    if (value === null || value === undefined) {
+        return 'border-zinc-200 bg-zinc-50 text-zinc-600 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300';
+    }
+
+    if (value <= 3) {
+        return 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/40 dark:bg-emerald-950/40 dark:text-emerald-300';
+    }
+
+    if (value <= 6) {
+        return 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900/40 dark:bg-amber-950/40 dark:text-amber-300';
+    }
+
+    return 'border-red-200 bg-red-50 text-red-700 dark:border-red-900/40 dark:bg-red-950/40 dark:text-red-300';
+};
+
+const appointmentBadgeClass = (status: string) => {
+    if (status === 'done') {
+        return 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/40 dark:bg-emerald-950/40 dark:text-emerald-300';
+    }
+
+    if (status === 'cancelled' || status === 'no_show') {
+        return 'border-red-200 bg-red-50 text-red-700 dark:border-red-900/40 dark:bg-red-950/40 dark:text-red-300';
+    }
+
+    if (status === 'arrived' || status === 'confirmed') {
+        return 'border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-900/40 dark:bg-sky-950/40 dark:text-sky-300';
+    }
+
+    return 'border-zinc-200 bg-zinc-50 text-zinc-700 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300';
+};
+
+const paymentBadgeClass = (status: string) =>
+    status === 'paid'
+        ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/40 dark:bg-emerald-950/40 dark:text-emerald-300'
+        : 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900/40 dark:bg-amber-950/40 dark:text-amber-300';
+
+const formatMoney = (amount: number | string | null | undefined, currency = 'MXN') =>
+    Number(amount ?? 0).toLocaleString('es-MX', {
+        style: 'currency',
+        currency,
+    });
+
+const tabs = [
+    { key: 'resumen', label: 'Resumen' },
+    { key: 'clinico', label: 'Clínico' },
+    { key: 'citas', label: 'Citas' },
+    { key: 'archivos', label: 'Archivos' },
+    { key: 'pagos', label: 'Pagos' },
+    { key: 'seguimiento', label: 'Seguimiento' },
+] as const;
+
+const goToSessions = () => {
+    router.visit('/sesiones');
+};
+
+const goToAppointments = () => {
+    router.visit('/citas');
+};
+
+const goToFiles = () => {
+    router.visit('/archivos');
+};
+
+const goToPayments = () => {
+    router.visit('/pagos');
+};
 </script>
 
 <template>
     <Head :title="`Expediente - ${props.patient.full_name}`" />
+
     <AppLayout :breadcrumbs="breadcrumbs">
-        <section
-            class="space-y-6 rounded-3xl bg-white p-6 shadow-xl dark:bg-zinc-950"
-        >
-            <header>
-                <h1 class="text-2xl font-semibold">
-                    {{ props.patient.full_name }}
-                </h1>
-                <p class="text-sm text-zinc-500">
-                    Expediente clínico integral del paciente.
-                </p>
-            </header>
+        <section class="w-full space-y-5">
+            <div
+                class="relative overflow-hidden rounded-[2rem] border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/40"
+            >
+                <div
+                    class="pointer-events-none absolute -top-24 -right-24 h-64 w-64 rounded-full blur-3xl"
+                    :style="{
+                        backgroundColor:
+                            'color-mix(in srgb, var(--primary) 16%, transparent)',
+                    }"
+                />
+
+                <div
+                    class="relative flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between"
+                >
+                    <div class="flex items-start gap-4">
+                        <div
+                            class="grid h-14 w-14 shrink-0 place-items-center rounded-2xl text-lg font-semibold shadow-lg"
+                            :style="primaryButtonStyle"
+                        >
+                            {{ patientInitials }}
+                        </div>
+
+                        <div class="min-w-0">
+                            <div class="flex flex-wrap items-center gap-2">
+                                <h1
+                                    class="text-2xl font-semibold tracking-tight text-zinc-950 dark:text-zinc-50"
+                                >
+                                    {{ props.patient.full_name }}
+                                </h1>
+
+                                <Badge
+                                    class="rounded-full border px-3 py-1 text-xs"
+                                    :class="statusBadgeClass(props.patient.status)"
+                                >
+                                    {{ tGeneralStatus(props.patient.status) }}
+                                </Badge>
+                            </div>
+
+                            <p
+                                class="mt-1 max-w-3xl text-sm leading-6 text-zinc-600 dark:text-zinc-400"
+                            >
+                                Expediente clínico integral del paciente:
+                                evolución, citas, sesiones, archivos, pagos y
+                                seguimiento.
+                            </p>
+
+                            <div
+                                class="mt-3 grid gap-2 text-xs text-zinc-500 sm:grid-cols-2 lg:grid-cols-4 dark:text-zinc-400"
+                            >
+                                <div class="flex items-center gap-2">
+                                    <Phone class="h-3.5 w-3.5 shrink-0" />
+                                    <span>{{ props.patient.telefono || 'Sin teléfono' }}</span>
+                                </div>
+
+                                <div class="flex items-center gap-2">
+                                    <Mail class="h-3.5 w-3.5 shrink-0" />
+                                    <span class="truncate">
+                                        {{ props.patient.email || 'Sin correo' }}
+                                    </span>
+                                </div>
+
+                                <div class="flex items-center gap-2">
+                                    <UserRound class="h-3.5 w-3.5 shrink-0" />
+                                    <span>
+                                        {{
+                                            props.patient.fecha_nacimiento
+                                                ? formatDateMx(props.patient.fecha_nacimiento)
+                                                : 'Sin nacimiento'
+                                        }}
+                                    </span>
+                                </div>
+
+                                <div class="flex items-center gap-2">
+                                    <MapPin class="h-3.5 w-3.5 shrink-0" />
+                                    <span class="truncate">
+                                        {{ props.patient.direccion || 'Sin dirección' }}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid gap-2 sm:grid-cols-2 xl:w-[420px]">
+                        <Button
+                            class="h-11 rounded-2xl shadow-lg transition-all duration-300 hover:-translate-y-0.5"
+                            :style="primaryButtonStyle"
+                            @mouseenter="setPrimaryHover"
+                            @mouseleave="setPrimaryNormal"
+                            @click="goToSessions"
+                        >
+                            <HeartPulse class="mr-2 h-4 w-4" />
+                            Nueva sesión
+                        </Button>
+
+                        <Button
+                            variant="outline"
+                            class="h-11 rounded-2xl border-zinc-200 bg-white transition-all duration-200 hover:-translate-y-0.5 hover:border-[color:var(--primary)] hover:text-[color:var(--primary)]"
+                            @click="goToAppointments"
+                        >
+                            <CalendarClock class="mr-2 h-4 w-4" />
+                            Agendar cita
+                        </Button>
+                    </div>
+                </div>
+            </div>
 
             <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                <article class="rounded-2xl border p-3">
-                    <p class="text-xs text-zinc-500">Estado</p>
-                    <p class="font-medium">
-                        {{ tGeneralStatus(props.patient.status) }}
-                    </p>
-                </article>
-                <article class="rounded-2xl border p-3">
-                    <p class="text-xs text-zinc-500">Teléfono</p>
-                    <p class="font-medium">
-                        {{ props.patient.telefono || '—' }}
-                    </p>
-                </article>
-                <article class="rounded-2xl border p-3">
-                    <p class="text-xs text-zinc-500">Email</p>
-                    <p class="font-medium">{{ props.patient.email || '—' }}</p>
-                </article>
-                <article class="rounded-2xl border p-3">
-                    <p class="text-xs text-zinc-500">Nacimiento</p>
-                    <p class="font-medium">
+                <article
+                    class="rounded-[1.5rem] border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/50"
+                >
+                    <div class="flex items-center justify-between gap-3">
+                        <div>
+                            <p class="text-xs text-zinc-500">Sesiones</p>
+                            <p class="mt-1 text-2xl font-semibold text-zinc-950 dark:text-zinc-50">
+                                {{ props.sessions.length }}
+                            </p>
+                        </div>
+
+                        <div class="grid h-11 w-11 place-items-center rounded-2xl" :style="primarySoftStyle">
+                            <HeartPulse class="h-5 w-5" :style="{ color: 'var(--primary)' }" />
+                        </div>
+                    </div>
+
+                    <p class="mt-3 text-xs text-zinc-500">
+                        Última:
                         {{
-                            props.patient.fecha_nacimiento
-                                ? formatDateMx(props.patient.fecha_nacimiento)
-                                : '—'
+                            latestSession
+                                ? formatDateMx(latestSession.session_date)
+                                : 'Sin sesiones'
                         }}
                     </p>
                 </article>
+
+                <article
+                    class="rounded-[1.5rem] border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/50"
+                >
+                    <div class="flex items-center justify-between gap-3">
+                        <div>
+                            <p class="text-xs text-zinc-500">Dolor promedio</p>
+                            <p class="mt-1 text-2xl font-semibold text-zinc-950 dark:text-zinc-50">
+                                {{ averagePain ?? '—' }}/10
+                            </p>
+                        </div>
+
+                        <Badge
+                            class="rounded-full border px-3 py-1 text-xs"
+                            :class="painBadgeClass(averagePain)"
+                        >
+                            Último {{ lastPain ?? '—' }}/10
+                        </Badge>
+                    </div>
+
+                    <p class="mt-3 text-xs text-zinc-500">
+                        Basado en sesiones registradas con escala de dolor.
+                    </p>
+                </article>
+
+                <article
+                    class="rounded-[1.5rem] border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/50"
+                >
+                    <div class="flex items-center justify-between gap-3">
+                        <div>
+                            <p class="text-xs text-zinc-500">Próxima cita</p>
+                            <p class="mt-1 text-sm font-semibold text-zinc-950 dark:text-zinc-50">
+                                {{
+                                    nextAppointment
+                                        ? formatDateTimeMx(nextAppointment.start_at)
+                                        : 'Sin cita próxima'
+                                }}
+                            </p>
+                        </div>
+
+                        <div class="grid h-11 w-11 place-items-center rounded-2xl" :style="primarySoftStyle">
+                            <CalendarClock class="h-5 w-5" :style="{ color: 'var(--primary)' }" />
+                        </div>
+                    </div>
+
+                    <p class="mt-3 text-xs text-zinc-500">
+                        Total de citas: {{ props.appointments.length }}
+                    </p>
+                </article>
+
+                <article
+                    class="rounded-[1.5rem] border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/50"
+                >
+                    <div class="flex items-center justify-between gap-3">
+                        <div>
+                            <p class="text-xs text-zinc-500">Pagos</p>
+                            <p class="mt-1 text-sm font-semibold text-zinc-950 dark:text-zinc-50">
+                                {{ formatMoney(paidTotal) }}
+                            </p>
+                        </div>
+
+                        <div class="grid h-11 w-11 place-items-center rounded-2xl" :style="primarySoftStyle">
+                            <CreditCard class="h-5 w-5" :style="{ color: 'var(--primary)' }" />
+                        </div>
+                    </div>
+
+                    <p class="mt-3 text-xs text-zinc-500">
+                        Pendientes: {{ pendingPayments.length }}
+                    </p>
+                </article>
             </div>
 
-            <div class="grid gap-4 xl:grid-cols-2">
-                <section class="rounded-2xl border p-4">
-                    <h3 class="mb-2 font-semibold">Historial de citas</h3>
-                    <ul class="space-y-2 text-sm">
-                        <li
-                            v-for="item in props.appointments"
-                            :key="item.id"
-                            class="rounded-xl bg-zinc-50 p-2 dark:bg-zinc-900"
-                        >
-                            <span class="font-medium">{{
-                                formatDateTimeMx(item.start_at)
-                            }}</span>
-                            · {{ item.therapist_name || 'Sin terapeuta' }} ·
-                            {{ tAppointmentStatus(item.status) }}
-                        </li>
-                    </ul>
+            <div
+                class="flex gap-2 overflow-x-auto rounded-[1.5rem] border border-zinc-200 bg-white p-2 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/50"
+            >
+                <button
+                    v-for="tab in tabs"
+                    :key="tab.key"
+                    type="button"
+                    class="shrink-0 rounded-2xl px-4 py-2 text-sm font-medium transition-all duration-200"
+                    :class="
+                        activeTab === tab.key
+                            ? 'text-white shadow-sm'
+                            : 'text-zinc-600 hover:bg-zinc-100 hover:text-zinc-950 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-50'
+                    "
+                    :style="activeTab === tab.key ? primaryButtonStyle : undefined"
+                    @click="activeTab = tab.key"
+                >
+                    {{ tab.label }}
+                </button>
+            </div>
+
+            <div v-if="activeTab === 'resumen'" class="grid gap-5 xl:grid-cols-[1fr_420px]">
+                <section
+                    class="rounded-[2rem] border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/50"
+                >
+                    <div class="mb-4 flex items-center justify-between gap-3 border-b border-zinc-100 pb-3 dark:border-zinc-800">
+                        <h2 class="flex items-center gap-2 text-base font-semibold text-zinc-950 dark:text-zinc-50">
+                            <NotebookText class="h-4 w-4" :style="{ color: 'var(--primary)' }" />
+                            Resumen clínico reciente
+                        </h2>
+                    </div>
+
+                    <div v-if="latestSession" class="space-y-3">
+                        <div class="rounded-2xl p-4" :style="primarySoftStyle">
+                            <div class="flex flex-wrap items-center gap-2">
+                                <p class="text-sm font-semibold text-zinc-950 dark:text-zinc-50">
+                                    Última sesión:
+                                    {{ formatDateMx(latestSession.session_date) }}
+                                </p>
+
+                                <Badge
+                                    class="rounded-full border px-3 py-1 text-xs"
+                                    :class="painBadgeClass(latestSession.pain_scale)"
+                                >
+                                    Dolor {{ latestSession.pain_scale ?? '—' }}/10
+                                </Badge>
+                            </div>
+
+                            <p class="mt-2 text-xs text-zinc-500 dark:text-zinc-400">
+                                Terapeuta:
+                                {{ latestSession.therapist_name || 'Sin terapeuta' }}
+                            </p>
+                        </div>
+
+                        <div class="grid gap-3 lg:grid-cols-2">
+                            <div class="rounded-2xl border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-950/40">
+                                <p class="text-xs font-semibold text-zinc-500">Evaluación</p>
+                                <p class="mt-2 whitespace-pre-line text-sm leading-6 text-zinc-700 dark:text-zinc-300">
+                                    {{ latestSession.assessment || 'Sin evaluación registrada.' }}
+                                </p>
+                            </div>
+
+                            <div class="rounded-2xl border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-950/40">
+                                <p class="text-xs font-semibold text-zinc-500">Plan</p>
+                                <p class="mt-2 whitespace-pre-line text-sm leading-6 text-zinc-700 dark:text-zinc-300">
+                                    {{ latestSession.plan || 'Sin plan registrado.' }}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div
+                        v-else
+                        class="rounded-2xl border border-dashed border-zinc-300 bg-zinc-50 p-6 text-center dark:border-zinc-700 dark:bg-zinc-950/40"
+                    >
+                        <AlertCircle class="mx-auto h-6 w-6 text-zinc-400" />
+                        <p class="mt-3 text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                            Aún no hay sesiones clínicas registradas.
+                        </p>
+                        <p class="mt-1 text-xs text-zinc-500">
+                            Registra una sesión para iniciar la evolución clínica del paciente.
+                        </p>
+                    </div>
                 </section>
 
-                <section class="rounded-2xl border p-4">
-                    <h3 class="mb-2 font-semibold">Historial de sesiones</h3>
-                    <ul class="space-y-2 text-sm">
-                        <li
-                            v-for="item in props.sessions"
-                            :key="item.id"
-                            class="rounded-xl bg-zinc-50 p-2 dark:bg-zinc-900"
-                        >
-                            {{ formatDateMx(item.session_date) }} ·
-                            {{ item.therapist_name || 'Sin terapeuta' }} · Dolor
-                            {{ item.pain_scale ?? '—' }}/10
-                        </li>
-                    </ul>
-                </section>
+                <aside class="space-y-5">
+                    <section
+                        class="rounded-[2rem] border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/50"
+                    >
+                        <h2 class="flex items-center gap-2 text-base font-semibold text-zinc-950 dark:text-zinc-50">
+                            <ShieldAlert class="h-4 w-4" :style="{ color: 'var(--primary)' }" />
+                            Contacto de emergencia
+                        </h2>
 
-                <section class="rounded-2xl border p-4">
-                    <h3 class="mb-2 font-semibold">Documentos y archivos</h3>
-                    <ul class="space-y-2 text-sm">
-                        <li
+                        <div class="mt-4 rounded-2xl p-4" :style="primarySoftStyle">
+                            <p class="text-sm font-semibold text-zinc-950 dark:text-zinc-50">
+                                {{ props.patient.emergency_contact_name || 'Sin contacto registrado' }}
+                            </p>
+                            <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-300">
+                                {{ props.patient.emergency_contact_phone || 'Sin teléfono' }}
+                            </p>
+                        </div>
+                    </section>
+
+                    <section
+                        class="rounded-[2rem] border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/50"
+                    >
+                        <h2 class="flex items-center gap-2 text-base font-semibold text-zinc-950 dark:text-zinc-50">
+                            <ClipboardList class="h-4 w-4" :style="{ color: 'var(--primary)' }" />
+                            Seguimientos pendientes
+                        </h2>
+
+                        <div v-if="pendingActivities.length" class="mt-4 space-y-3">
+                            <div
+                                v-for="item in pendingActivities.slice(0, 4)"
+                                :key="item.id"
+                                class="rounded-2xl border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-800 dark:bg-zinc-950/40"
+                            >
+                                <p class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                                    {{ item.title }}
+                                </p>
+                                <p class="mt-1 text-xs text-zinc-500">
+                                    {{
+                                        item.due_date
+                                            ? formatDateTimeMx(item.due_date)
+                                            : 'Sin fecha'
+                                    }}
+                                    · {{ tPriority(item.priority) }}
+                                </p>
+                            </div>
+                        </div>
+
+                        <div
+                            v-else
+                            class="mt-4 rounded-2xl border border-dashed border-zinc-300 bg-zinc-50 p-4 text-sm text-zinc-500 dark:border-zinc-700 dark:bg-zinc-950/40"
+                        >
+                            No hay seguimientos pendientes.
+                        </div>
+                    </section>
+                </aside>
+            </div>
+
+            <div v-if="activeTab === 'clinico'" class="space-y-4">
+                <section
+                    class="rounded-[2rem] border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/50"
+                >
+                    <h2 class="flex items-center gap-2 text-base font-semibold text-zinc-950 dark:text-zinc-50">
+                        <Stethoscope class="h-4 w-4" :style="{ color: 'var(--primary)' }" />
+                        Evolución clínica
+                    </h2>
+
+                    <div v-if="sortedSessions.length" class="mt-4 space-y-4">
+                        <article
+                            v-for="item in sortedSessions"
+                            :key="item.id"
+                            class="rounded-[1.5rem] border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950/40"
+                        >
+                            <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                                <div>
+                                    <div class="flex flex-wrap items-center gap-2">
+                                        <p class="font-semibold text-zinc-950 dark:text-zinc-50">
+                                            {{ formatDateMx(item.session_date) }}
+                                        </p>
+
+                                        <Badge
+                                            class="rounded-full border px-3 py-1 text-xs"
+                                            :class="painBadgeClass(item.pain_scale)"
+                                        >
+                                            Dolor {{ item.pain_scale ?? '—' }}/10
+                                        </Badge>
+                                    </div>
+
+                                    <p class="mt-1 text-xs text-zinc-500">
+                                        {{ item.therapist_name || 'Sin terapeuta' }}
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div class="mt-4 grid gap-3 lg:grid-cols-2">
+                                <div class="rounded-2xl p-3 text-sm leading-6 text-zinc-700 dark:text-zinc-300" :style="primarySoftStyle">
+                                    <strong>Subjetivo:</strong>
+                                    <p class="mt-1 whitespace-pre-line">
+                                        {{ item.subjective || 'Sin información.' }}
+                                    </p>
+                                </div>
+
+                                <div class="rounded-2xl p-3 text-sm leading-6 text-zinc-700 dark:text-zinc-300" :style="primarySoftStyle">
+                                    <strong>Objetivo:</strong>
+                                    <p class="mt-1 whitespace-pre-line">
+                                        {{ item.objective || 'Sin información.' }}
+                                    </p>
+                                </div>
+
+                                <div class="rounded-2xl p-3 text-sm leading-6 text-zinc-700 dark:text-zinc-300" :style="primarySoftStyle">
+                                    <strong>Evaluación:</strong>
+                                    <p class="mt-1 whitespace-pre-line">
+                                        {{ item.assessment || 'Sin evaluación.' }}
+                                    </p>
+                                </div>
+
+                                <div class="rounded-2xl p-3 text-sm leading-6 text-zinc-700 dark:text-zinc-300" :style="primarySoftStyle">
+                                    <strong>Plan:</strong>
+                                    <p class="mt-1 whitespace-pre-line">
+                                        {{ item.plan || 'Sin plan.' }}
+                                    </p>
+                                </div>
+                            </div>
+                        </article>
+                    </div>
+
+                    <div
+                        v-else
+                        class="mt-4 rounded-2xl border border-dashed border-zinc-300 bg-zinc-50 p-6 text-center text-sm text-zinc-500 dark:border-zinc-700 dark:bg-zinc-950/40"
+                    >
+                        No hay sesiones clínicas registradas.
+                    </div>
+                </section>
+            </div>
+
+            <div v-if="activeTab === 'citas'" class="space-y-4">
+                <section
+                    class="rounded-[2rem] border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/50"
+                >
+                    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <h2 class="flex items-center gap-2 text-base font-semibold text-zinc-950 dark:text-zinc-50">
+                            <CalendarClock class="h-4 w-4" :style="{ color: 'var(--primary)' }" />
+                            Historial de citas
+                        </h2>
+
+                        <Button
+                            variant="outline"
+                            class="h-10 rounded-xl border-zinc-200 bg-white transition-all duration-200 hover:-translate-y-0.5 hover:border-[color:var(--primary)] hover:text-[color:var(--primary)]"
+                            @click="goToAppointments"
+                        >
+                            Agendar cita
+                        </Button>
+                    </div>
+
+                    <div v-if="sortedAppointments.length" class="mt-4 grid gap-3 lg:grid-cols-2">
+                        <article
+                            v-for="item in sortedAppointments"
+                            :key="item.id"
+                            class="rounded-[1.5rem] border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-950/40"
+                        >
+                            <div class="flex flex-wrap items-center justify-between gap-2">
+                                <p class="text-sm font-semibold text-zinc-950 dark:text-zinc-50">
+                                    {{ formatDateTimeMx(item.start_at) }}
+                                </p>
+
+                                <Badge
+                                    class="rounded-full border px-3 py-1 text-xs"
+                                    :class="appointmentBadgeClass(item.status)"
+                                >
+                                    {{ tAppointmentStatus(item.status) }}
+                                </Badge>
+                            </div>
+
+                            <p class="mt-2 text-xs text-zinc-500">
+                                Terapeuta:
+                                {{ item.therapist_name || 'Sin terapeuta' }}
+                            </p>
+
+                            <p class="mt-3 text-sm leading-6 text-zinc-600 dark:text-zinc-300">
+                                {{ item.notes || 'Sin notas registradas.' }}
+                            </p>
+                        </article>
+                    </div>
+
+                    <div
+                        v-else
+                        class="mt-4 rounded-2xl border border-dashed border-zinc-300 bg-zinc-50 p-6 text-center text-sm text-zinc-500 dark:border-zinc-700 dark:bg-zinc-950/40"
+                    >
+                        No hay citas registradas.
+                    </div>
+                </section>
+            </div>
+
+            <div v-if="activeTab === 'archivos'" class="space-y-4">
+                <section
+                    class="rounded-[2rem] border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/50"
+                >
+                    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <h2 class="flex items-center gap-2 text-base font-semibold text-zinc-950 dark:text-zinc-50">
+                            <FolderOpen class="h-4 w-4" :style="{ color: 'var(--primary)' }" />
+                            Documentos y archivos
+                        </h2>
+
+                        <Button
+                            variant="outline"
+                            class="h-10 rounded-xl border-zinc-200 bg-white transition-all duration-200 hover:-translate-y-0.5 hover:border-[color:var(--primary)] hover:text-[color:var(--primary)]"
+                            @click="goToFiles"
+                        >
+                            Ir a archivos
+                        </Button>
+                    </div>
+
+                    <div v-if="props.files.length" class="mt-4 grid gap-3 lg:grid-cols-2">
+                        <article
                             v-for="item in props.files"
                             :key="item.id"
-                            class="rounded-xl bg-zinc-50 p-2 dark:bg-zinc-900"
+                            class="rounded-[1.5rem] border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-950/40"
                         >
-                            {{ item.original_name }} ·
-                            {{ item.file_type || item.mime || '—' }} ·
-                            {{ formatDateTimeMx(item.created_at) }}
-                        </li>
-                    </ul>
-                </section>
+                            <div class="flex items-start gap-3">
+                                <div class="grid h-10 w-10 place-items-center rounded-2xl" :style="primarySoftStyle">
+                                    <FileText class="h-5 w-5" :style="{ color: 'var(--primary)' }" />
+                                </div>
 
-                <section class="rounded-2xl border p-4">
-                    <h3 class="mb-2 font-semibold">Pagos relacionados</h3>
-                    <ul class="space-y-2 text-sm">
-                        <li
-                            v-for="item in props.payments"
-                            :key="item.id"
-                            class="rounded-xl bg-zinc-50 p-2 dark:bg-zinc-900"
-                        >
-                            {{
-                                Number(item.amount ?? 0).toLocaleString(
-                                    'es-MX',
-                                    {
-                                        style: 'currency',
-                                        currency: item.currency || 'MXN',
-                                    },
-                                )
-                            }}
-                            · {{ tPaymentStatus(item.status) }} ·
-                            {{
-                                item.paid_at
-                                    ? formatDateTimeMx(item.paid_at)
-                                    : '—'
-                            }}
-                        </li>
-                    </ul>
+                                <div class="min-w-0">
+                                    <p class="truncate text-sm font-semibold text-zinc-950 dark:text-zinc-50">
+                                        {{ item.original_name }}
+                                    </p>
+
+                                    <p class="mt-1 text-xs text-zinc-500">
+                                        {{ item.file_type || item.mime || 'Archivo' }}
+                                        · {{ formatDateTimeMx(item.created_at) }}
+                                    </p>
+                                </div>
+                            </div>
+                        </article>
+                    </div>
+
+                    <div
+                        v-else
+                        class="mt-4 rounded-2xl border border-dashed border-zinc-300 bg-zinc-50 p-6 text-center text-sm text-zinc-500 dark:border-zinc-700 dark:bg-zinc-950/40"
+                    >
+                        No hay archivos cargados para este paciente.
+                    </div>
                 </section>
             </div>
 
-            <section class="rounded-2xl border p-4">
-                <h3 class="mb-2 font-semibold">
-                    Línea de tiempo de seguimiento
-                </h3>
-                <ul class="space-y-2 text-sm">
-                    <li
-                        v-for="item in props.activities"
-                        :key="item.id"
-                        class="rounded-xl bg-zinc-50 p-2 dark:bg-zinc-900"
+            <div v-if="activeTab === 'pagos'" class="space-y-4">
+                <section
+                    class="rounded-[2rem] border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/50"
+                >
+                    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <h2 class="flex items-center gap-2 text-base font-semibold text-zinc-950 dark:text-zinc-50">
+                            <CreditCard class="h-4 w-4" :style="{ color: 'var(--primary)' }" />
+                            Pagos relacionados
+                        </h2>
+
+                        <Button
+                            variant="outline"
+                            class="h-10 rounded-xl border-zinc-200 bg-white transition-all duration-200 hover:-translate-y-0.5 hover:border-[color:var(--primary)] hover:text-[color:var(--primary)]"
+                            @click="goToPayments"
+                        >
+                            Ir a cobranza
+                        </Button>
+                    </div>
+
+                    <div v-if="props.payments.length" class="mt-4 grid gap-3 lg:grid-cols-2">
+                        <article
+                            v-for="item in props.payments"
+                            :key="item.id"
+                            class="rounded-[1.5rem] border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-950/40"
+                        >
+                            <div class="flex flex-wrap items-center justify-between gap-2">
+                                <p class="text-sm font-semibold text-zinc-950 dark:text-zinc-50">
+                                    {{ formatMoney(item.amount, item.currency || 'MXN') }}
+                                </p>
+
+                                <Badge
+                                    class="rounded-full border px-3 py-1 text-xs"
+                                    :class="paymentBadgeClass(item.status)"
+                                >
+                                    {{ tPaymentStatus(item.status) }}
+                                </Badge>
+                            </div>
+
+                            <p class="mt-2 text-xs text-zinc-500">
+                                {{
+                                    item.paid_at
+                                        ? formatDateTimeMx(item.paid_at)
+                                        : item.created_at
+                                          ? formatDateTimeMx(item.created_at)
+                                          : 'Sin fecha'
+                                }}
+                            </p>
+                        </article>
+                    </div>
+
+                    <div
+                        v-else
+                        class="mt-4 rounded-2xl border border-dashed border-zinc-300 bg-zinc-50 p-6 text-center text-sm text-zinc-500 dark:border-zinc-700 dark:bg-zinc-950/40"
                     >
-                        {{
-                            item.due_date
-                                ? formatDateTimeMx(item.due_date)
-                                : 'Sin fecha'
-                        }}: {{ item.title }} · {{ tPriority(item.priority) }} ·
-                        {{ tActivityStatus(item.status) }} ·
-                        {{ item.responsible_name || 'Sin responsable' }}
-                    </li>
-                </ul>
-            </section>
+                        No hay pagos relacionados.
+                    </div>
+                </section>
+            </div>
+
+            <div v-if="activeTab === 'seguimiento'" class="space-y-4">
+                <section
+                    class="rounded-[2rem] border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/50"
+                >
+                    <h2 class="flex items-center gap-2 text-base font-semibold text-zinc-950 dark:text-zinc-50">
+                        <Activity class="h-4 w-4" :style="{ color: 'var(--primary)' }" />
+                        Línea de tiempo de seguimiento
+                    </h2>
+
+                    <div v-if="timelineItems.length" class="mt-5 space-y-4">
+                        <article
+                            v-for="item in timelineItems"
+                            :key="item.id"
+                            class="relative rounded-[1.5rem] border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-950/40"
+                        >
+                            <div class="flex items-start gap-3">
+                                <div class="grid h-10 w-10 shrink-0 place-items-center rounded-2xl" :style="primarySoftStyle">
+                                    <component
+                                        :is="item.icon"
+                                        class="h-5 w-5"
+                                        :style="{ color: 'var(--primary)' }"
+                                    />
+                                </div>
+
+                                <div class="min-w-0 flex-1">
+                                    <div class="flex flex-wrap items-center gap-2">
+                                        <Badge class="rounded-full border border-zinc-200 bg-white px-3 py-1 text-xs text-zinc-600 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300">
+                                            {{ item.type }}
+                                        </Badge>
+
+                                        <p class="text-xs text-zinc-500">
+                                            {{ formatDateTimeMx(item.date) }}
+                                        </p>
+                                    </div>
+
+                                    <p class="mt-2 text-sm font-semibold text-zinc-950 dark:text-zinc-50">
+                                        {{ item.title }}
+                                    </p>
+
+                                    <p class="mt-1 text-sm leading-6 text-zinc-600 dark:text-zinc-300">
+                                        {{ item.description }}
+                                    </p>
+
+                                    <p class="mt-2 text-xs text-zinc-500">
+                                        {{ item.meta }}
+                                    </p>
+                                </div>
+                            </div>
+                        </article>
+                    </div>
+
+                    <div
+                        v-else
+                        class="mt-4 rounded-2xl border border-dashed border-zinc-300 bg-zinc-50 p-6 text-center text-sm text-zinc-500 dark:border-zinc-700 dark:bg-zinc-950/40"
+                    >
+                        No hay eventos de seguimiento registrados.
+                    </div>
+                </section>
+            </div>
         </section>
     </AppLayout>
 </template>
