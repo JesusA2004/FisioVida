@@ -62,7 +62,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::resource('ejercicios', EjerciciosController::class)->only(['index', 'store', 'update', 'destroy'])->middleware('permission:exercises.view');
 
-    Route::resource('archivos', ArchivosController::class)->only(['index', 'store', 'destroy'])->middleware('permission:files.view');
+    Route::get('/archivos/{archivo}/descargar', [ArchivosController::class, 'download'])
+    ->name('archivos.download');
+
+    Route::resource('archivos', ArchivosController::class)
+        ->except(['create', 'edit']);
 
     Route::resource('pagos', PagosController::class)->only(['index', 'store', 'update', 'destroy'])->middleware('permission:payments.view');
 

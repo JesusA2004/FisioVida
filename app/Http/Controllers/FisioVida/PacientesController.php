@@ -170,11 +170,39 @@ class PacientesController extends Controller {
             ->get(['s.id', 's.session_date', 's.pain_scale', 's.assessment', 's.plan', 'u.name as therapist_name']);
 
         $files = DB::table('files as f')
+            ->leftJoin('therapy_sessions as s', 's.id', '=', 'f.session_id')
             ->leftJoin('users as u', 'u.id', '=', 'f.uploaded_by')
-            ->where('f.patient_persona_id', $id)
+            ->where(function ($where) use ($id) {
+                $where->where('f.patient_persona_id', $id)
+                    ->orWhere('s.patient_persona_id', $id);
+            })
             ->orderByDesc('f.id')
             ->limit(20)
-            ->get(['f.id', 'f.original_name', 'f.file_type', 'f.mime', 'f.created_at', 'u.name as uploaded_by_name']);
+            ->get([
+                'f.id',
+                'f.original_name',
+                'f.file_type',
+                'f.mime',
+                'f.created_at',
+                'f.session_id',
+                's.session_date',
+                'u.name as uploaded_by_name',
+            ])
+            ->map(function ($file) {
+                return [
+                    'id' => $file->id,
+                    'original_name' => $file->original_name,
+                    'file_type' => $file->file_type,
+                    'mime' => $file->mime,
+                    'created_at' => $file->created_at,
+                    'session_id' => $file->session_id,
+                    'session_date' => $file->session_date,
+                    'uploaded_by_name' => $file->uploaded_by_name,
+                    'preview_url' => route('archivos.show', $file->id),
+                    'download_url' => route('archivos.download', $file->id),
+                ];
+            })
+            ->values();
 
         $payments = DB::table('payments')
             ->whereNotNull('reference')

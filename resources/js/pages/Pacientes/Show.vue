@@ -9,6 +9,9 @@ import {
     Activity,
     AlertCircle,
     CalendarClock,
+    Download,
+    Eye,
+    UploadCloud,
     CheckCircle2,
     ClipboardList,
     CreditCard,
@@ -74,6 +77,11 @@ type PatientFile = {
     file_type?: string | null;
     mime?: string | null;
     created_at: string;
+    session_id?: number | null;
+    session_date?: string | null;
+    uploaded_by_name?: string | null;
+    preview_url?: string | null;
+    download_url?: string | null;
 };
 
 type Payment = {
@@ -108,9 +116,9 @@ const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Expediente', href: `/pacientes/${props.patient.id}` },
 ];
 
-const activeTab = ref<'resumen' | 'clinico' | 'citas' | 'archivos' | 'pagos' | 'seguimiento'>(
-    'resumen',
-);
+const activeTab = ref<
+    'resumen' | 'clinico' | 'citas' | 'archivos' | 'pagos' | 'seguimiento'
+>('resumen');
 
 const primaryButtonStyle = {
     backgroundColor: 'var(--primary)',
@@ -162,19 +170,25 @@ const latestSession = computed(() => sortedSessions.value[0] ?? null);
 const nextAppointment = computed(() => {
     const now = new Date().getTime();
 
-    return [...props.appointments]
-        .filter((appointment) => {
-            const time = new Date(appointment.start_at).getTime();
+    return (
+        [...props.appointments]
+            .filter((appointment) => {
+                const time = new Date(appointment.start_at).getTime();
 
-            return !Number.isNaN(time) && time >= now;
-        })
-        .sort((a, b) => String(a.start_at).localeCompare(String(b.start_at)))[0] ?? null;
+                return !Number.isNaN(time) && time >= now;
+            })
+            .sort((a, b) =>
+                String(a.start_at).localeCompare(String(b.start_at)),
+            )[0] ?? null
+    );
 });
 
 const painValues = computed(() =>
     props.sessions
         .map((session) => session.pain_scale)
-        .filter((value): value is number => value !== null && value !== undefined),
+        .filter(
+            (value): value is number => value !== null && value !== undefined,
+        ),
 );
 
 const averagePain = computed(() => {
@@ -201,7 +215,10 @@ const pendingPayments = computed(() =>
 );
 
 const pendingActivities = computed(() =>
-    props.activities.filter((activity) => !['done', 'completed', 'closed'].includes(activity.status)),
+    props.activities.filter(
+        (activity) =>
+            !['done', 'completed', 'closed'].includes(activity.status),
+    ),
 );
 
 const timelineItems = computed(() => {
@@ -282,7 +299,10 @@ const paymentBadgeClass = (status: string) =>
         ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/40 dark:bg-emerald-950/40 dark:text-emerald-300'
         : 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900/40 dark:bg-amber-950/40 dark:text-amber-300';
 
-const formatMoney = (amount: number | string | null | undefined, currency = 'MXN') =>
+const formatMoney = (
+    amount: number | string | null | undefined,
+    currency = 'MXN',
+) =>
     Number(amount ?? 0).toLocaleString('es-MX', {
         style: 'currency',
         currency,
@@ -306,7 +326,7 @@ const goToAppointments = () => {
 };
 
 const goToFiles = () => {
-    router.visit('/archivos');
+    router.visit(`/archivos?patient_persona_id=${props.patient.id}`);
 };
 
 const goToPayments = () => {
@@ -351,7 +371,9 @@ const goToPayments = () => {
 
                                 <Badge
                                     class="rounded-full border px-3 py-1 text-xs"
-                                    :class="statusBadgeClass(props.patient.status)"
+                                    :class="
+                                        statusBadgeClass(props.patient.status)
+                                    "
                                 >
                                     {{ tGeneralStatus(props.patient.status) }}
                                 </Badge>
@@ -370,13 +392,17 @@ const goToPayments = () => {
                             >
                                 <div class="flex items-center gap-2">
                                     <Phone class="h-3.5 w-3.5 shrink-0" />
-                                    <span>{{ props.patient.telefono || 'Sin teléfono' }}</span>
+                                    <span>{{
+                                        props.patient.telefono || 'Sin teléfono'
+                                    }}</span>
                                 </div>
 
                                 <div class="flex items-center gap-2">
                                     <Mail class="h-3.5 w-3.5 shrink-0" />
                                     <span class="truncate">
-                                        {{ props.patient.email || 'Sin correo' }}
+                                        {{
+                                            props.patient.email || 'Sin correo'
+                                        }}
                                     </span>
                                 </div>
 
@@ -385,7 +411,10 @@ const goToPayments = () => {
                                     <span>
                                         {{
                                             props.patient.fecha_nacimiento
-                                                ? formatDateMx(props.patient.fecha_nacimiento)
+                                                ? formatDateMx(
+                                                      props.patient
+                                                          .fecha_nacimiento,
+                                                  )
                                                 : 'Sin nacimiento'
                                         }}
                                     </span>
@@ -394,7 +423,10 @@ const goToPayments = () => {
                                 <div class="flex items-center gap-2">
                                     <MapPin class="h-3.5 w-3.5 shrink-0" />
                                     <span class="truncate">
-                                        {{ props.patient.direccion || 'Sin dirección' }}
+                                        {{
+                                            props.patient.direccion ||
+                                            'Sin dirección'
+                                        }}
                                     </span>
                                 </div>
                             </div>
@@ -432,13 +464,21 @@ const goToPayments = () => {
                     <div class="flex items-center justify-between gap-3">
                         <div>
                             <p class="text-xs text-zinc-500">Sesiones</p>
-                            <p class="mt-1 text-2xl font-semibold text-zinc-950 dark:text-zinc-50">
+                            <p
+                                class="mt-1 text-2xl font-semibold text-zinc-950 dark:text-zinc-50"
+                            >
                                 {{ props.sessions.length }}
                             </p>
                         </div>
 
-                        <div class="grid h-11 w-11 place-items-center rounded-2xl" :style="primarySoftStyle">
-                            <HeartPulse class="h-5 w-5" :style="{ color: 'var(--primary)' }" />
+                        <div
+                            class="grid h-11 w-11 place-items-center rounded-2xl"
+                            :style="primarySoftStyle"
+                        >
+                            <HeartPulse
+                                class="h-5 w-5"
+                                :style="{ color: 'var(--primary)' }"
+                            />
                         </div>
                     </div>
 
@@ -458,7 +498,9 @@ const goToPayments = () => {
                     <div class="flex items-center justify-between gap-3">
                         <div>
                             <p class="text-xs text-zinc-500">Dolor promedio</p>
-                            <p class="mt-1 text-2xl font-semibold text-zinc-950 dark:text-zinc-50">
+                            <p
+                                class="mt-1 text-2xl font-semibold text-zinc-950 dark:text-zinc-50"
+                            >
                                 {{ averagePain ?? '—' }}/10
                             </p>
                         </div>
@@ -482,17 +524,27 @@ const goToPayments = () => {
                     <div class="flex items-center justify-between gap-3">
                         <div>
                             <p class="text-xs text-zinc-500">Próxima cita</p>
-                            <p class="mt-1 text-sm font-semibold text-zinc-950 dark:text-zinc-50">
+                            <p
+                                class="mt-1 text-sm font-semibold text-zinc-950 dark:text-zinc-50"
+                            >
                                 {{
                                     nextAppointment
-                                        ? formatDateTimeMx(nextAppointment.start_at)
+                                        ? formatDateTimeMx(
+                                              nextAppointment.start_at,
+                                          )
                                         : 'Sin cita próxima'
                                 }}
                             </p>
                         </div>
 
-                        <div class="grid h-11 w-11 place-items-center rounded-2xl" :style="primarySoftStyle">
-                            <CalendarClock class="h-5 w-5" :style="{ color: 'var(--primary)' }" />
+                        <div
+                            class="grid h-11 w-11 place-items-center rounded-2xl"
+                            :style="primarySoftStyle"
+                        >
+                            <CalendarClock
+                                class="h-5 w-5"
+                                :style="{ color: 'var(--primary)' }"
+                            />
                         </div>
                     </div>
 
@@ -507,13 +559,21 @@ const goToPayments = () => {
                     <div class="flex items-center justify-between gap-3">
                         <div>
                             <p class="text-xs text-zinc-500">Pagos</p>
-                            <p class="mt-1 text-sm font-semibold text-zinc-950 dark:text-zinc-50">
+                            <p
+                                class="mt-1 text-sm font-semibold text-zinc-950 dark:text-zinc-50"
+                            >
                                 {{ formatMoney(paidTotal) }}
                             </p>
                         </div>
 
-                        <div class="grid h-11 w-11 place-items-center rounded-2xl" :style="primarySoftStyle">
-                            <CreditCard class="h-5 w-5" :style="{ color: 'var(--primary)' }" />
+                        <div
+                            class="grid h-11 w-11 place-items-center rounded-2xl"
+                            :style="primarySoftStyle"
+                        >
+                            <CreditCard
+                                class="h-5 w-5"
+                                :style="{ color: 'var(--primary)' }"
+                            />
                         </div>
                     </div>
 
@@ -536,20 +596,32 @@ const goToPayments = () => {
                             ? 'text-white shadow-sm'
                             : 'text-zinc-600 hover:bg-zinc-100 hover:text-zinc-950 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-50'
                     "
-                    :style="activeTab === tab.key ? primaryButtonStyle : undefined"
+                    :style="
+                        activeTab === tab.key ? primaryButtonStyle : undefined
+                    "
                     @click="activeTab = tab.key"
                 >
                     {{ tab.label }}
                 </button>
             </div>
 
-            <div v-if="activeTab === 'resumen'" class="grid gap-5 xl:grid-cols-[1fr_420px]">
+            <div
+                v-if="activeTab === 'resumen'"
+                class="grid gap-5 xl:grid-cols-[1fr_420px]"
+            >
                 <section
                     class="rounded-[2rem] border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/50"
                 >
-                    <div class="mb-4 flex items-center justify-between gap-3 border-b border-zinc-100 pb-3 dark:border-zinc-800">
-                        <h2 class="flex items-center gap-2 text-base font-semibold text-zinc-950 dark:text-zinc-50">
-                            <NotebookText class="h-4 w-4" :style="{ color: 'var(--primary)' }" />
+                    <div
+                        class="mb-4 flex items-center justify-between gap-3 border-b border-zinc-100 pb-3 dark:border-zinc-800"
+                    >
+                        <h2
+                            class="flex items-center gap-2 text-base font-semibold text-zinc-950 dark:text-zinc-50"
+                        >
+                            <NotebookText
+                                class="h-4 w-4"
+                                :style="{ color: 'var(--primary)' }"
+                            />
                             Resumen clínico reciente
                         </h2>
                     </div>
@@ -557,37 +629,67 @@ const goToPayments = () => {
                     <div v-if="latestSession" class="space-y-3">
                         <div class="rounded-2xl p-4" :style="primarySoftStyle">
                             <div class="flex flex-wrap items-center gap-2">
-                                <p class="text-sm font-semibold text-zinc-950 dark:text-zinc-50">
+                                <p
+                                    class="text-sm font-semibold text-zinc-950 dark:text-zinc-50"
+                                >
                                     Última sesión:
-                                    {{ formatDateMx(latestSession.session_date) }}
+                                    {{
+                                        formatDateMx(latestSession.session_date)
+                                    }}
                                 </p>
 
                                 <Badge
                                     class="rounded-full border px-3 py-1 text-xs"
-                                    :class="painBadgeClass(latestSession.pain_scale)"
+                                    :class="
+                                        painBadgeClass(latestSession.pain_scale)
+                                    "
                                 >
-                                    Dolor {{ latestSession.pain_scale ?? '—' }}/10
+                                    Dolor
+                                    {{ latestSession.pain_scale ?? '—' }}/10
                                 </Badge>
                             </div>
 
-                            <p class="mt-2 text-xs text-zinc-500 dark:text-zinc-400">
+                            <p
+                                class="mt-2 text-xs text-zinc-500 dark:text-zinc-400"
+                            >
                                 Terapeuta:
-                                {{ latestSession.therapist_name || 'Sin terapeuta' }}
+                                {{
+                                    latestSession.therapist_name ||
+                                    'Sin terapeuta'
+                                }}
                             </p>
                         </div>
 
                         <div class="grid gap-3 lg:grid-cols-2">
-                            <div class="rounded-2xl border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-950/40">
-                                <p class="text-xs font-semibold text-zinc-500">Evaluación</p>
-                                <p class="mt-2 whitespace-pre-line text-sm leading-6 text-zinc-700 dark:text-zinc-300">
-                                    {{ latestSession.assessment || 'Sin evaluación registrada.' }}
+                            <div
+                                class="rounded-2xl border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-950/40"
+                            >
+                                <p class="text-xs font-semibold text-zinc-500">
+                                    Evaluación
+                                </p>
+                                <p
+                                    class="mt-2 text-sm leading-6 whitespace-pre-line text-zinc-700 dark:text-zinc-300"
+                                >
+                                    {{
+                                        latestSession.assessment ||
+                                        'Sin evaluación registrada.'
+                                    }}
                                 </p>
                             </div>
 
-                            <div class="rounded-2xl border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-950/40">
-                                <p class="text-xs font-semibold text-zinc-500">Plan</p>
-                                <p class="mt-2 whitespace-pre-line text-sm leading-6 text-zinc-700 dark:text-zinc-300">
-                                    {{ latestSession.plan || 'Sin plan registrado.' }}
+                            <div
+                                class="rounded-2xl border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-950/40"
+                            >
+                                <p class="text-xs font-semibold text-zinc-500">
+                                    Plan
+                                </p>
+                                <p
+                                    class="mt-2 text-sm leading-6 whitespace-pre-line text-zinc-700 dark:text-zinc-300"
+                                >
+                                    {{
+                                        latestSession.plan ||
+                                        'Sin plan registrado.'
+                                    }}
                                 </p>
                             </div>
                         </div>
@@ -598,11 +700,14 @@ const goToPayments = () => {
                         class="rounded-2xl border border-dashed border-zinc-300 bg-zinc-50 p-6 text-center dark:border-zinc-700 dark:bg-zinc-950/40"
                     >
                         <AlertCircle class="mx-auto h-6 w-6 text-zinc-400" />
-                        <p class="mt-3 text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                        <p
+                            class="mt-3 text-sm font-medium text-zinc-700 dark:text-zinc-300"
+                        >
                             Aún no hay sesiones clínicas registradas.
                         </p>
                         <p class="mt-1 text-xs text-zinc-500">
-                            Registra una sesión para iniciar la evolución clínica del paciente.
+                            Registra una sesión para iniciar la evolución
+                            clínica del paciente.
                         </p>
                     </div>
                 </section>
@@ -611,17 +716,35 @@ const goToPayments = () => {
                     <section
                         class="rounded-[2rem] border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/50"
                     >
-                        <h2 class="flex items-center gap-2 text-base font-semibold text-zinc-950 dark:text-zinc-50">
-                            <ShieldAlert class="h-4 w-4" :style="{ color: 'var(--primary)' }" />
+                        <h2
+                            class="flex items-center gap-2 text-base font-semibold text-zinc-950 dark:text-zinc-50"
+                        >
+                            <ShieldAlert
+                                class="h-4 w-4"
+                                :style="{ color: 'var(--primary)' }"
+                            />
                             Contacto de emergencia
                         </h2>
 
-                        <div class="mt-4 rounded-2xl p-4" :style="primarySoftStyle">
-                            <p class="text-sm font-semibold text-zinc-950 dark:text-zinc-50">
-                                {{ props.patient.emergency_contact_name || 'Sin contacto registrado' }}
+                        <div
+                            class="mt-4 rounded-2xl p-4"
+                            :style="primarySoftStyle"
+                        >
+                            <p
+                                class="text-sm font-semibold text-zinc-950 dark:text-zinc-50"
+                            >
+                                {{
+                                    props.patient.emergency_contact_name ||
+                                    'Sin contacto registrado'
+                                }}
                             </p>
-                            <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-300">
-                                {{ props.patient.emergency_contact_phone || 'Sin teléfono' }}
+                            <p
+                                class="mt-1 text-sm text-zinc-600 dark:text-zinc-300"
+                            >
+                                {{
+                                    props.patient.emergency_contact_phone ||
+                                    'Sin teléfono'
+                                }}
                             </p>
                         </div>
                     </section>
@@ -629,18 +752,28 @@ const goToPayments = () => {
                     <section
                         class="rounded-[2rem] border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/50"
                     >
-                        <h2 class="flex items-center gap-2 text-base font-semibold text-zinc-950 dark:text-zinc-50">
-                            <ClipboardList class="h-4 w-4" :style="{ color: 'var(--primary)' }" />
+                        <h2
+                            class="flex items-center gap-2 text-base font-semibold text-zinc-950 dark:text-zinc-50"
+                        >
+                            <ClipboardList
+                                class="h-4 w-4"
+                                :style="{ color: 'var(--primary)' }"
+                            />
                             Seguimientos pendientes
                         </h2>
 
-                        <div v-if="pendingActivities.length" class="mt-4 space-y-3">
+                        <div
+                            v-if="pendingActivities.length"
+                            class="mt-4 space-y-3"
+                        >
                             <div
                                 v-for="item in pendingActivities.slice(0, 4)"
                                 :key="item.id"
                                 class="rounded-2xl border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-800 dark:bg-zinc-950/40"
                             >
-                                <p class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                                <p
+                                    class="text-sm font-semibold text-zinc-900 dark:text-zinc-100"
+                                >
                                     {{ item.title }}
                                 </p>
                                 <p class="mt-1 text-xs text-zinc-500">
@@ -668,8 +801,13 @@ const goToPayments = () => {
                 <section
                     class="rounded-[2rem] border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/50"
                 >
-                    <h2 class="flex items-center gap-2 text-base font-semibold text-zinc-950 dark:text-zinc-50">
-                        <Stethoscope class="h-4 w-4" :style="{ color: 'var(--primary)' }" />
+                    <h2
+                        class="flex items-center gap-2 text-base font-semibold text-zinc-950 dark:text-zinc-50"
+                    >
+                        <Stethoscope
+                            class="h-4 w-4"
+                            :style="{ color: 'var(--primary)' }"
+                        />
                         Evolución clínica
                     </h2>
 
@@ -679,50 +817,83 @@ const goToPayments = () => {
                             :key="item.id"
                             class="rounded-[1.5rem] border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950/40"
                         >
-                            <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                            <div
+                                class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between"
+                            >
                                 <div>
-                                    <div class="flex flex-wrap items-center gap-2">
-                                        <p class="font-semibold text-zinc-950 dark:text-zinc-50">
-                                            {{ formatDateMx(item.session_date) }}
+                                    <div
+                                        class="flex flex-wrap items-center gap-2"
+                                    >
+                                        <p
+                                            class="font-semibold text-zinc-950 dark:text-zinc-50"
+                                        >
+                                            {{
+                                                formatDateMx(item.session_date)
+                                            }}
                                         </p>
 
                                         <Badge
                                             class="rounded-full border px-3 py-1 text-xs"
-                                            :class="painBadgeClass(item.pain_scale)"
+                                            :class="
+                                                painBadgeClass(item.pain_scale)
+                                            "
                                         >
-                                            Dolor {{ item.pain_scale ?? '—' }}/10
+                                            Dolor
+                                            {{ item.pain_scale ?? '—' }}/10
                                         </Badge>
                                     </div>
 
                                     <p class="mt-1 text-xs text-zinc-500">
-                                        {{ item.therapist_name || 'Sin terapeuta' }}
+                                        {{
+                                            item.therapist_name ||
+                                            'Sin terapeuta'
+                                        }}
                                     </p>
                                 </div>
                             </div>
 
                             <div class="mt-4 grid gap-3 lg:grid-cols-2">
-                                <div class="rounded-2xl p-3 text-sm leading-6 text-zinc-700 dark:text-zinc-300" :style="primarySoftStyle">
+                                <div
+                                    class="rounded-2xl p-3 text-sm leading-6 text-zinc-700 dark:text-zinc-300"
+                                    :style="primarySoftStyle"
+                                >
                                     <strong>Subjetivo:</strong>
                                     <p class="mt-1 whitespace-pre-line">
-                                        {{ item.subjective || 'Sin información.' }}
+                                        {{
+                                            item.subjective ||
+                                            'Sin información.'
+                                        }}
                                     </p>
                                 </div>
 
-                                <div class="rounded-2xl p-3 text-sm leading-6 text-zinc-700 dark:text-zinc-300" :style="primarySoftStyle">
+                                <div
+                                    class="rounded-2xl p-3 text-sm leading-6 text-zinc-700 dark:text-zinc-300"
+                                    :style="primarySoftStyle"
+                                >
                                     <strong>Objetivo:</strong>
                                     <p class="mt-1 whitespace-pre-line">
-                                        {{ item.objective || 'Sin información.' }}
+                                        {{
+                                            item.objective || 'Sin información.'
+                                        }}
                                     </p>
                                 </div>
 
-                                <div class="rounded-2xl p-3 text-sm leading-6 text-zinc-700 dark:text-zinc-300" :style="primarySoftStyle">
+                                <div
+                                    class="rounded-2xl p-3 text-sm leading-6 text-zinc-700 dark:text-zinc-300"
+                                    :style="primarySoftStyle"
+                                >
                                     <strong>Evaluación:</strong>
                                     <p class="mt-1 whitespace-pre-line">
-                                        {{ item.assessment || 'Sin evaluación.' }}
+                                        {{
+                                            item.assessment || 'Sin evaluación.'
+                                        }}
                                     </p>
                                 </div>
 
-                                <div class="rounded-2xl p-3 text-sm leading-6 text-zinc-700 dark:text-zinc-300" :style="primarySoftStyle">
+                                <div
+                                    class="rounded-2xl p-3 text-sm leading-6 text-zinc-700 dark:text-zinc-300"
+                                    :style="primarySoftStyle"
+                                >
                                     <strong>Plan:</strong>
                                     <p class="mt-1 whitespace-pre-line">
                                         {{ item.plan || 'Sin plan.' }}
@@ -745,9 +916,16 @@ const goToPayments = () => {
                 <section
                     class="rounded-[2rem] border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/50"
                 >
-                    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                        <h2 class="flex items-center gap-2 text-base font-semibold text-zinc-950 dark:text-zinc-50">
-                            <CalendarClock class="h-4 w-4" :style="{ color: 'var(--primary)' }" />
+                    <div
+                        class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
+                    >
+                        <h2
+                            class="flex items-center gap-2 text-base font-semibold text-zinc-950 dark:text-zinc-50"
+                        >
+                            <CalendarClock
+                                class="h-4 w-4"
+                                :style="{ color: 'var(--primary)' }"
+                            />
                             Historial de citas
                         </h2>
 
@@ -760,14 +938,21 @@ const goToPayments = () => {
                         </Button>
                     </div>
 
-                    <div v-if="sortedAppointments.length" class="mt-4 grid gap-3 lg:grid-cols-2">
+                    <div
+                        v-if="sortedAppointments.length"
+                        class="mt-4 grid gap-3 lg:grid-cols-2"
+                    >
                         <article
                             v-for="item in sortedAppointments"
                             :key="item.id"
                             class="rounded-[1.5rem] border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-950/40"
                         >
-                            <div class="flex flex-wrap items-center justify-between gap-2">
-                                <p class="text-sm font-semibold text-zinc-950 dark:text-zinc-50">
+                            <div
+                                class="flex flex-wrap items-center justify-between gap-2"
+                            >
+                                <p
+                                    class="text-sm font-semibold text-zinc-950 dark:text-zinc-50"
+                                >
                                     {{ formatDateTimeMx(item.start_at) }}
                                 </p>
 
@@ -784,7 +969,9 @@ const goToPayments = () => {
                                 {{ item.therapist_name || 'Sin terapeuta' }}
                             </p>
 
-                            <p class="mt-3 text-sm leading-6 text-zinc-600 dark:text-zinc-300">
+                            <p
+                                class="mt-3 text-sm leading-6 text-zinc-600 dark:text-zinc-300"
+                            >
                                 {{ item.notes || 'Sin notas registradas.' }}
                             </p>
                         </article>
@@ -803,42 +990,127 @@ const goToPayments = () => {
                 <section
                     class="rounded-[2rem] border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/50"
                 >
-                    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                        <h2 class="flex items-center gap-2 text-base font-semibold text-zinc-950 dark:text-zinc-50">
-                            <FolderOpen class="h-4 w-4" :style="{ color: 'var(--primary)' }" />
+                    <div
+                        class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
+                    >
+                        <h2
+                            class="flex items-center gap-2 text-base font-semibold text-zinc-950 dark:text-zinc-50"
+                        >
+                            <FolderOpen
+                                class="h-4 w-4"
+                                :style="{ color: 'var(--primary)' }"
+                            />
                             Documentos y archivos
                         </h2>
 
-                        <Button
-                            variant="outline"
-                            class="h-10 rounded-xl border-zinc-200 bg-white transition-all duration-200 hover:-translate-y-0.5 hover:border-[color:var(--primary)] hover:text-[color:var(--primary)]"
-                            @click="goToFiles"
-                        >
-                            Ir a archivos
-                        </Button>
+                        <div class="flex flex-col gap-2 sm:flex-row">
+                            <button
+                                type="button"
+                                class="inline-flex h-10 items-center justify-center gap-2 rounded-xl px-4 text-sm font-medium text-white transition-all duration-200 hover:-translate-y-0.5"
+                                :style="primaryButtonStyle"
+                                @mouseenter="setPrimaryHover"
+                                @mouseleave="setPrimaryNormal"
+                                @click="goToFiles"
+                            >
+                                <UploadCloud class="h-4 w-4" />
+                                Subir archivo
+                            </button>
+
+                            <button
+                                type="button"
+                                class="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-zinc-200 bg-white px-4 text-sm font-medium text-zinc-700 transition-all duration-200 hover:-translate-y-0.5 hover:border-[color:var(--primary)] hover:text-[color:var(--primary)] dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200"
+                                @click="goToFiles"
+                            >
+                                Ir a archivos
+                            </button>
+                        </div>
                     </div>
 
-                    <div v-if="props.files.length" class="mt-4 grid gap-3 lg:grid-cols-2">
+                    <div
+                        v-if="props.files.length"
+                        class="mt-4 grid gap-3 lg:grid-cols-2"
+                    >
                         <article
                             v-for="item in props.files"
                             :key="item.id"
                             class="rounded-[1.5rem] border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-950/40"
                         >
                             <div class="flex items-start gap-3">
-                                <div class="grid h-10 w-10 place-items-center rounded-2xl" :style="primarySoftStyle">
-                                    <FileText class="h-5 w-5" :style="{ color: 'var(--primary)' }" />
+                                <div
+                                    class="grid h-10 w-10 shrink-0 place-items-center rounded-2xl"
+                                    :style="primarySoftStyle"
+                                >
+                                    <FileText
+                                        class="h-5 w-5"
+                                        :style="{ color: 'var(--primary)' }"
+                                    />
                                 </div>
 
-                                <div class="min-w-0">
-                                    <p class="truncate text-sm font-semibold text-zinc-950 dark:text-zinc-50">
+                                <div class="min-w-0 flex-1">
+                                    <p
+                                        class="truncate text-sm font-semibold text-zinc-950 dark:text-zinc-50"
+                                    >
                                         {{ item.original_name }}
                                     </p>
 
                                     <p class="mt-1 text-xs text-zinc-500">
-                                        {{ item.file_type || item.mime || 'Archivo' }}
-                                        · {{ formatDateTimeMx(item.created_at) }}
+                                        {{
+                                            item.file_type ||
+                                            item.mime ||
+                                            'Archivo'
+                                        }}
+                                        ·
+                                        {{ formatDateTimeMx(item.created_at) }}
+                                        <template v-if="item.session_id">
+                                            · Sesión #{{ item.session_id }}
+                                        </template>
+                                    </p>
+
+                                    <p
+                                        v-if="item.uploaded_by_name"
+                                        class="mt-1 text-xs text-zinc-500"
+                                    >
+                                        Subido por {{ item.uploaded_by_name }}
                                     </p>
                                 </div>
+                            </div>
+
+                            <div
+                                class="mt-4 flex flex-wrap gap-2 border-t border-zinc-200 pt-4 dark:border-zinc-800"
+                            >
+                                <a
+                                    v-if="item.preview_url"
+                                    :href="item.preview_url"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    class="inline-flex h-9 items-center justify-center gap-2 rounded-xl border border-zinc-200 bg-white px-3 text-sm font-medium text-zinc-700 transition-all duration-200 hover:-translate-y-0.5 hover:border-[color:var(--primary)] hover:text-[color:var(--primary)] dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200"
+                                >
+                                    <Eye class="h-4 w-4" />
+                                    Ver
+                                </a>
+
+                                <a
+                                    v-if="item.download_url"
+                                    :href="item.download_url"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    class="inline-flex h-9 items-center justify-center gap-2 rounded-xl border border-zinc-200 bg-white px-3 text-sm font-medium text-zinc-700 transition-all duration-200 hover:-translate-y-0.5 hover:border-[color:var(--primary)] hover:text-[color:var(--primary)] dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200"
+                                >
+                                    <Download class="h-4 w-4" />
+                                    Descargar
+                                </a>
+
+                                <button
+                                    type="button"
+                                    class="inline-flex h-9 items-center justify-center gap-2 rounded-xl px-3 text-sm font-medium text-white transition-all duration-200 hover:-translate-y-0.5"
+                                    :style="primaryButtonStyle"
+                                    @mouseenter="setPrimaryHover"
+                                    @mouseleave="setPrimaryNormal"
+                                    @click="goToFiles"
+                                >
+                                    <UploadCloud class="h-4 w-4" />
+                                    Subir más
+                                </button>
                             </div>
                         </article>
                     </div>
@@ -848,6 +1120,19 @@ const goToPayments = () => {
                         class="mt-4 rounded-2xl border border-dashed border-zinc-300 bg-zinc-50 p-6 text-center text-sm text-zinc-500 dark:border-zinc-700 dark:bg-zinc-950/40"
                     >
                         No hay archivos cargados para este paciente.
+                        <div class="mt-4">
+                            <button
+                                type="button"
+                                class="inline-flex h-10 items-center justify-center gap-2 rounded-xl px-4 text-sm font-medium text-white transition-all duration-200 hover:-translate-y-0.5"
+                                :style="primaryButtonStyle"
+                                @mouseenter="setPrimaryHover"
+                                @mouseleave="setPrimaryNormal"
+                                @click="goToFiles"
+                            >
+                                <UploadCloud class="h-4 w-4" />
+                                Subir archivo
+                            </button>
+                        </div>
                     </div>
                 </section>
             </div>
@@ -856,9 +1141,16 @@ const goToPayments = () => {
                 <section
                     class="rounded-[2rem] border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/50"
                 >
-                    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                        <h2 class="flex items-center gap-2 text-base font-semibold text-zinc-950 dark:text-zinc-50">
-                            <CreditCard class="h-4 w-4" :style="{ color: 'var(--primary)' }" />
+                    <div
+                        class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
+                    >
+                        <h2
+                            class="flex items-center gap-2 text-base font-semibold text-zinc-950 dark:text-zinc-50"
+                        >
+                            <CreditCard
+                                class="h-4 w-4"
+                                :style="{ color: 'var(--primary)' }"
+                            />
                             Pagos relacionados
                         </h2>
 
@@ -871,15 +1163,27 @@ const goToPayments = () => {
                         </Button>
                     </div>
 
-                    <div v-if="props.payments.length" class="mt-4 grid gap-3 lg:grid-cols-2">
+                    <div
+                        v-if="props.payments.length"
+                        class="mt-4 grid gap-3 lg:grid-cols-2"
+                    >
                         <article
                             v-for="item in props.payments"
                             :key="item.id"
                             class="rounded-[1.5rem] border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-950/40"
                         >
-                            <div class="flex flex-wrap items-center justify-between gap-2">
-                                <p class="text-sm font-semibold text-zinc-950 dark:text-zinc-50">
-                                    {{ formatMoney(item.amount, item.currency || 'MXN') }}
+                            <div
+                                class="flex flex-wrap items-center justify-between gap-2"
+                            >
+                                <p
+                                    class="text-sm font-semibold text-zinc-950 dark:text-zinc-50"
+                                >
+                                    {{
+                                        formatMoney(
+                                            item.amount,
+                                            item.currency || 'MXN',
+                                        )
+                                    }}
                                 </p>
 
                                 <Badge
@@ -915,8 +1219,13 @@ const goToPayments = () => {
                 <section
                     class="rounded-[2rem] border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/50"
                 >
-                    <h2 class="flex items-center gap-2 text-base font-semibold text-zinc-950 dark:text-zinc-50">
-                        <Activity class="h-4 w-4" :style="{ color: 'var(--primary)' }" />
+                    <h2
+                        class="flex items-center gap-2 text-base font-semibold text-zinc-950 dark:text-zinc-50"
+                    >
+                        <Activity
+                            class="h-4 w-4"
+                            :style="{ color: 'var(--primary)' }"
+                        />
                         Línea de tiempo de seguimiento
                     </h2>
 
@@ -927,7 +1236,10 @@ const goToPayments = () => {
                             class="relative rounded-[1.5rem] border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-950/40"
                         >
                             <div class="flex items-start gap-3">
-                                <div class="grid h-10 w-10 shrink-0 place-items-center rounded-2xl" :style="primarySoftStyle">
+                                <div
+                                    class="grid h-10 w-10 shrink-0 place-items-center rounded-2xl"
+                                    :style="primarySoftStyle"
+                                >
                                     <component
                                         :is="item.icon"
                                         class="h-5 w-5"
@@ -936,8 +1248,12 @@ const goToPayments = () => {
                                 </div>
 
                                 <div class="min-w-0 flex-1">
-                                    <div class="flex flex-wrap items-center gap-2">
-                                        <Badge class="rounded-full border border-zinc-200 bg-white px-3 py-1 text-xs text-zinc-600 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300">
+                                    <div
+                                        class="flex flex-wrap items-center gap-2"
+                                    >
+                                        <Badge
+                                            class="rounded-full border border-zinc-200 bg-white px-3 py-1 text-xs text-zinc-600 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300"
+                                        >
                                             {{ item.type }}
                                         </Badge>
 
@@ -946,11 +1262,15 @@ const goToPayments = () => {
                                         </p>
                                     </div>
 
-                                    <p class="mt-2 text-sm font-semibold text-zinc-950 dark:text-zinc-50">
+                                    <p
+                                        class="mt-2 text-sm font-semibold text-zinc-950 dark:text-zinc-50"
+                                    >
                                         {{ item.title }}
                                     </p>
 
-                                    <p class="mt-1 text-sm leading-6 text-zinc-600 dark:text-zinc-300">
+                                    <p
+                                        class="mt-1 text-sm leading-6 text-zinc-600 dark:text-zinc-300"
+                                    >
                                         {{ item.description }}
                                     </p>
 

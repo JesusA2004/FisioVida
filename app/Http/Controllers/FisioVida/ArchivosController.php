@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ArchivosController extends Controller
 {
@@ -30,15 +31,18 @@ class ArchivosController extends Controller
     public function index(Request $request)
     {
         $q = trim((string) $request->input('q', ''));
-        $perPage = $request->input('per_page', 10);
+        $perPageInput = $request->input('per_page', 10);
 
         $query = DB::table('files as f')
             ->leftJoin('personas as p', 'p.id', '=', 'f.patient_persona_id')
             ->leftJoin('therapy_sessions as s', 's.id', '=', 'f.session_id')
+            ->leftJoin('personas as sp', 'sp.id', '=', 's.patient_persona_id')
             ->leftJoin('users as u', 'u.id', '=', 'f.uploaded_by')
             ->where(function ($where) {
-                $where->whereNull('p.id')
-                    ->orWhereNull('p.deleted_at');
+                $where->whereNull('p.id')->orWhereNull('p.deleted_at');
+            })
+            ->where(function ($where) {
+                $where->whereNull('sp.id')->orWhereNull('sp.deleted_at');
             })
             ->select([
                 'f.id',
@@ -52,8 +56,12 @@ class ArchivosController extends Controller
                 'f.mime',
                 'f.size_bytes',
                 'f.created_at',
-                'f.updated_at',
-                DB::raw("TRIM(CONCAT_WS(' ', p.nombres, p.apellido_paterno, p.apellido_materno)) as patient_name"),
+                DB::raw("
+                    COALESCE(
+                        NULLIF(TRIM(CONCAT_WS(' ', p.nombres, p.apellido_paterno, p.apellido_materno)), ''),
+                        NULLIF(TRIM(CONCAT_WS(' ', sp.nombres, sp.apellido_paterno, sp.apellido_materno)), '')
+                    ) as patient_name
+                "),
                 's.session_date',
                 'u.name as uploaded_by_name',
             ])
@@ -69,6 +77,9 @@ class ArchivosController extends Controller
                     ->orWhere('p.nombres', 'like', $like)
                     ->orWhere('p.apellido_paterno', 'like', $like)
                     ->orWhere('p.apellido_materno', 'like', $like)
+                    ->orWhere('sp.nombres', 'like', $like)
+                    ->orWhere('sp.apellido_paterno', 'like', $like)
+                    ->orWhere('sp.apellido_materno', 'like', $like)
                     ->orWhere('u.name', 'like', $like);
             });
         }
@@ -85,41 +96,33 @@ class ArchivosController extends Controller
             $query->where('f.session_id', (int) $request->input('session_id'));
         }
 
-        if ($perPage === 'all') {
-            $items = $query->get();
+        $perPage = $perPageInput === 'all'
+            ? max(1, min((clone $query)->count(), 500))
+            : (int) $perPageInput;
 
-            $page = [
-                'current_page' => 1,
-                'last_page' => 1,
-                'per_page' => 'all',
-                'total' => $items->count(),
-            ];
+        $perPage = in_array($perPage, [10, 15, 20, 50], true)
+            ? $perPage
+            : 10;
 
-            $rows = $this->mapRows($items);
-        } else {
-            $perPage = (int) $perPage;
-
-            if (! in_array($perPage, [10, 15, 20, 50], true)) {
-                $perPage = 10;
-            }
-
-            $paginator = $query->paginate($perPage)->withQueryString();
-
-            $page = $this->packPaginator($paginator);
-            $page['per_page'] = $perPage;
-
-            $rows = $this->mapRows(collect($paginator->items()));
+        if ($perPageInput === 'all') {
+            $total = (clone $query)->count();
+            $perPage = max(1, min($total, 500));
         }
 
+        $paginator = $query->paginate($perPage)->withQueryString();
+
         return Inertia::render('Archivos/Index', [
-            'rows' => $rows,
-            'page' => $page,
+            'rows' => $this->mapRows(collect($paginator->items())),
+            'page' => [
+                ...$this->packPaginator($paginator),
+                'per_page_selected' => $perPageInput === 'all' ? 'all' : $perPage,
+            ],
             'filters' => [
                 'q' => $q,
-                'file_type' => $request->input('file_type'),
-                'patient_persona_id' => $request->input('patient_persona_id'),
-                'session_id' => $request->input('session_id'),
-                'per_page' => $request->input('per_page', 10),
+                'file_type' => $request->filled('file_type') ? $request->input('file_type') : '',
+                'patient_persona_id' => $request->filled('patient_persona_id') ? $request->input('patient_persona_id') : '',
+                'session_id' => $request->filled('session_id') ? $request->input('session_id') : '',
+                'per_page' => $perPageInput,
             ],
             'lookups' => [
                 'patients' => $this->patientsLookup(),
@@ -129,11 +132,46 @@ class ArchivosController extends Controller
         ]);
     }
 
+    public function show(string $archivo)
+    {
+        $row = DB::table('files')->where('id', $archivo)->first();
+
+        abort_if(! $row, 404);
+
+        $disk = $row->disk ?? 'public';
+
+        abort_if(! Storage::disk($disk)->exists($row->path), 404);
+
+        return response()->file(
+            Storage::disk($disk)->path($row->path),
+            [
+                'Content-Type' => $row->mime ?: 'application/octet-stream',
+                'Content-Disposition' => 'inline; filename="' . addslashes($row->original_name ?? 'archivo') . '"',
+            ],
+        );
+    }
+
+    public function download(string $archivo): StreamedResponse
+    {
+        $row = DB::table('files')->where('id', $archivo)->first();
+
+        abort_if(! $row, 404);
+
+        $disk = $row->disk ?? 'public';
+
+        abort_if(! Storage::disk($disk)->exists($row->path), 404);
+
+        return Storage::disk($disk)->download(
+            $row->path,
+            $row->original_name ?: basename($row->path),
+        );
+    }
+
     public function store(Request $request)
     {
         $data = $request->validate([
-            'patient_persona_id' => ['nullable', 'integer', 'exists:personas,id'],
-            'session_id' => ['nullable', 'integer', 'exists:therapy_sessions,id'],
+            'patient_persona_id' => ['nullable', 'integer', 'exists:personas,id', 'prohibits:session_id'],
+            'session_id' => ['nullable', 'integer', 'exists:therapy_sessions,id', 'prohibits:patient_persona_id'],
             'file_type' => ['required', 'string', Rule::in(array_keys($this->fileTypes))],
             'files' => ['required', 'array', 'min:1', 'max:15'],
             'files.*' => [
@@ -142,22 +180,12 @@ class ArchivosController extends Controller
                 'max:51200',
                 'mimes:pdf,jpg,jpeg,png,webp,gif,svg,doc,docx,xls,xlsx,ppt,pptx,txt,csv,zip',
             ],
-        ], [
-            'file_type.required' => 'Selecciona el tipo de archivo.',
-            'file_type.in' => 'El tipo de archivo seleccionado no es válido.',
-            'files.required' => 'Selecciona al menos un archivo.',
-            'files.array' => 'El formato de archivos no es válido.',
-            'files.min' => 'Selecciona al menos un archivo.',
-            'files.max' => 'Solo puedes subir hasta 15 archivos a la vez.',
-            'files.*.required' => 'Uno de los archivos no se recibió correctamente.',
-            'files.*.file' => 'Uno de los elementos seleccionados no es un archivo válido.',
-            'files.*.max' => 'Cada archivo debe pesar máximo 50 MB.',
-            'files.*.mimes' => 'Solo se permiten PDF, imágenes, Word, Excel, PowerPoint, TXT, CSV y ZIP.',
-        ]);
+        ], $this->validationMessages());
 
         $disk = 'public';
         $storedIds = [];
         $storedNames = [];
+        $storedPaths = [];
 
         DB::beginTransaction();
 
@@ -172,6 +200,8 @@ class ArchivosController extends Controller
 
                 $path = $uploadedFile->store($directory, $disk);
 
+                $storedPaths[] = compact('disk', 'path');
+
                 $id = DB::table('files')->insertGetId([
                     'patient_persona_id' => $data['patient_persona_id'] ?? null,
                     'session_id' => $data['session_id'] ?? null,
@@ -183,7 +213,6 @@ class ArchivosController extends Controller
                     'mime' => $uploadedFile->getClientMimeType(),
                     'size_bytes' => $uploadedFile->getSize(),
                     'created_at' => now(),
-                    'updated_at' => now(),
                 ]);
 
                 $storedIds[] = $id;
@@ -214,15 +243,11 @@ class ArchivosController extends Controller
         } catch (\Throwable $e) {
             DB::rollBack();
 
-            foreach ($storedIds as $storedId) {
-                $row = DB::table('files')->where('id', $storedId)->first();
-
-                if ($row) {
-                    try {
-                        Storage::disk($row->disk ?? 'public')->delete($row->path);
-                    } catch (\Throwable) {
-                        //
-                    }
+            foreach ($storedPaths as $storedPath) {
+                try {
+                    Storage::disk($storedPath['disk'])->delete($storedPath['path']);
+                } catch (\Throwable) {
+                    //
                 }
             }
 
@@ -240,41 +265,96 @@ class ArchivosController extends Controller
     {
         $row = DB::table('files')->where('id', $id)->first();
 
-        if (! $row) {
-            abort(404);
-        }
+        abort_if(! $row, 404);
 
         $data = $request->validate([
-            'patient_persona_id' => ['nullable', 'integer', 'exists:personas,id'],
-            'session_id' => ['nullable', 'integer', 'exists:therapy_sessions,id'],
+            'patient_persona_id' => ['nullable', 'integer', 'exists:personas,id', 'prohibits:session_id'],
+            'session_id' => ['nullable', 'integer', 'exists:therapy_sessions,id', 'prohibits:patient_persona_id'],
             'file_type' => ['required', 'string', Rule::in(array_keys($this->fileTypes))],
-        ], [
-            'file_type.required' => 'Selecciona el tipo de archivo.',
-            'file_type.in' => 'El tipo de archivo seleccionado no es válido.',
-        ]);
+            'replacement_file' => [
+                'nullable',
+                'file',
+                'max:51200',
+                'mimes:pdf,jpg,jpeg,png,webp,gif,svg,doc,docx,xls,xlsx,ppt,pptx,txt,csv,zip',
+            ],
+        ], $this->validationMessages());
 
         $oldValues = (array) $row;
+        $payload = [
+            'patient_persona_id' => $data['patient_persona_id'] ?? null,
+            'session_id' => $data['session_id'] ?? null,
+            'file_type' => $data['file_type'],
+        ];
 
-        DB::table('files')
-            ->where('id', $id)
-            ->update([
-                'patient_persona_id' => $data['patient_persona_id'] ?? null,
-                'session_id' => $data['session_id'] ?? null,
-                'file_type' => $data['file_type'],
-                'updated_at' => now(),
+        $newPath = null;
+        $oldPath = $row->path;
+        $oldDisk = $row->disk ?? 'public';
+        $disk = 'public';
+
+        DB::beginTransaction();
+
+        try {
+            if ($request->hasFile('replacement_file')) {
+                $uploadedFile = $request->file('replacement_file');
+                $directory = 'fisio-vida/archivos/' . now()->format('Y/m');
+
+                $safeOriginalName = Str::of($uploadedFile->getClientOriginalName())
+                    ->replaceMatches('/[^\pL\pN\.\-\_\s]/u', '')
+                    ->trim()
+                    ->toString();
+
+                $newPath = $uploadedFile->store($directory, $disk);
+
+                $payload = [
+                    ...$payload,
+                    'disk' => $disk,
+                    'path' => $newPath,
+                    'original_name' => $safeOriginalName !== '' ? $safeOriginalName : $uploadedFile->getClientOriginalName(),
+                    'mime' => $uploadedFile->getClientMimeType(),
+                    'size_bytes' => $uploadedFile->getSize(),
+                ];
+            }
+
+            DB::table('files')->where('id', $id)->update($payload);
+
+            if ($newPath && $oldPath) {
+                try {
+                    Storage::disk($oldDisk)->delete($oldPath);
+                } catch (\Throwable) {
+                    //
+                }
+            }
+
+            app(AuditLogService::class)->updated(
+                $request,
+                'Archivos',
+                'file',
+                (int) $id,
+                'El usuario ' . $request->user()?->name . ' actualizó el archivo "' . ($row->original_name ?? 'Sin nombre') . '".',
+                $oldValues,
+                $payload,
+            );
+
+            DB::commit();
+
+            return back()->with('success', 'Archivo actualizado correctamente.');
+        } catch (\Throwable $e) {
+            DB::rollBack();
+
+            if ($newPath) {
+                try {
+                    Storage::disk($disk)->delete($newPath);
+                } catch (\Throwable) {
+                    //
+                }
+            }
+
+            report($e);
+
+            return back()->withErrors([
+                'archivo' => 'No se pudo actualizar el archivo. Intenta nuevamente.',
             ]);
-
-        app(AuditLogService::class)->updated(
-            $request,
-            'Archivos',
-            'file',
-            (int) $id,
-            'El usuario ' . $request->user()?->name . ' actualizó el archivo "' . ($row->original_name ?? 'Sin nombre') . '".',
-            $oldValues,
-            $data,
-        );
-
-        return back()->with('success', 'Archivo actualizado correctamente.');
+        }
     }
 
     public function destroy(Request $request, string $id)
@@ -322,16 +402,6 @@ class ArchivosController extends Controller
     private function mapRows($items)
     {
         return collect($items)->map(function ($row) {
-            $url = null;
-
-            try {
-                if (! empty($row->disk) && ! empty($row->path)) {
-                    $url = Storage::disk($row->disk)->url($row->path);
-                }
-            } catch (\Throwable) {
-                $url = null;
-            }
-
             $extension = strtolower(pathinfo((string) $row->original_name, PATHINFO_EXTENSION));
             $mime = (string) ($row->mime ?? '');
 
@@ -355,8 +425,9 @@ class ArchivosController extends Controller
                 'extension' => $extension,
                 'size_bytes' => $row->size_bytes,
                 'created_at' => $row->created_at,
-                'updated_at' => $row->updated_at,
-                'url' => $url,
+                'url' => "/archivos/{$row->id}",
+                'preview_url' => "/archivos/{$row->id}",
+                'download_url' => "/archivos/{$row->id}/descargar",
                 'is_image' => $isImage,
                 'is_pdf' => $isPdf,
                 'can_preview' => $isImage || $isPdf,
@@ -385,14 +456,14 @@ class ArchivosController extends Controller
         return DB::table('therapy_sessions as s')
             ->leftJoin('personas as p', 'p.id', '=', 's.patient_persona_id')
             ->where(function ($where) {
-                $where->whereNull('p.id')
-                    ->orWhereNull('p.deleted_at');
+                $where->whereNull('p.id')->orWhereNull('p.deleted_at');
             })
             ->orderByDesc('s.session_date')
             ->orderByDesc('s.id')
             ->limit(500)
             ->get([
                 's.id',
+                's.patient_persona_id',
                 DB::raw("
                     CONCAT(
                         '#',
@@ -417,5 +488,26 @@ class ArchivosController extends Controller
             ])
             ->values()
             ->all();
+    }
+
+    private function validationMessages(): array
+    {
+        return [
+            'patient_persona_id.prohibits' => 'Selecciona un paciente o una sesión, no ambos.',
+            'session_id.prohibits' => 'Selecciona una sesión o un paciente, no ambos.',
+            'file_type.required' => 'Selecciona el tipo de archivo.',
+            'file_type.in' => 'El tipo de archivo seleccionado no es válido.',
+            'files.required' => 'Selecciona al menos un archivo.',
+            'files.array' => 'El formato de archivos no es válido.',
+            'files.min' => 'Selecciona al menos un archivo.',
+            'files.max' => 'Solo puedes subir hasta 15 archivos a la vez.',
+            'files.*.required' => 'Uno de los archivos no se recibió correctamente.',
+            'files.*.file' => 'Uno de los elementos seleccionados no es un archivo válido.',
+            'files.*.max' => 'Cada archivo debe pesar máximo 50 MB.',
+            'files.*.mimes' => 'Solo se permiten PDF, imágenes, Word, Excel, PowerPoint, TXT, CSV y ZIP.',
+            'replacement_file.file' => 'El archivo de reemplazo no es válido.',
+            'replacement_file.max' => 'El archivo de reemplazo debe pesar máximo 50 MB.',
+            'replacement_file.mimes' => 'Solo se permiten PDF, imágenes, Word, Excel, PowerPoint, TXT, CSV y ZIP.',
+        ];
     }
 }
