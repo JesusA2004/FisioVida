@@ -42,14 +42,13 @@ class PacienteStoreRequest extends FormRequest {
             'status' => ['required', Rule::in(['active', 'inactive'])],
             'nombres' => ['required', 'string', 'max:120'],
 
-            // En BD son nullable, por eso quedan opcionales.
-            'apellido_paterno' => ['nullable', 'string', 'max:120'],
-            'apellido_materno' => ['nullable', 'string', 'max:120'],
+            'apellido_paterno' => ['required', 'string', 'max:120'],
+            'apellido_materno' => ['required', 'string', 'max:120'],
 
             'fecha_nacimiento' => ['nullable', 'date', 'before_or_equal:today'],
             'sexo' => ['nullable', Rule::in(['M', 'F', 'X'])],
 
-            'telefono' => ['nullable', 'digits:10'],
+            'telefono' => ['required', 'digits:10'],
             'email' => ['nullable', 'email:rfc,dns', 'max:190'],
 
             'direccion' => ['nullable', 'string', 'max:255'],
@@ -65,12 +64,16 @@ class PacienteStoreRequest extends FormRequest {
             'nombres.required' => 'El nombre del paciente es obligatorio.',
             'nombres.max' => 'El nombre no puede superar 120 caracteres.',
 
+            'apellido_paterno.required' => 'El apellido paterno del paciente es obligatorio.',
             'apellido_paterno.max' => 'El apellido paterno no puede superar 120 caracteres.',
+
+            'apellido_materno.required' => 'El apellido materno del paciente es obligatorio.',
             'apellido_materno.max' => 'El apellido materno no puede superar 120 caracteres.',
 
             'fecha_nacimiento.date' => 'La fecha de nacimiento no es válida.',
             'fecha_nacimiento.before_or_equal' => 'La fecha de nacimiento no puede ser futura.',
 
+            'telefono.required' => 'El teléfono del paciente es obligatorio.',
             'telefono.digits' => 'El teléfono debe tener exactamente 10 dígitos.',
             'contacto_emergencia_telefono.digits' => 'El teléfono de emergencia debe tener exactamente 10 dígitos.',
 

@@ -34,8 +34,10 @@ import {
     Loader2,
     X,
     Info,
+    HelpCircle,
     ContactRound,
     NotebookText,
+    CheckCircle2,
 } from 'lucide-vue-next';
 import SearchableSelect from '@/components/ui/SearchableSelect.vue';
 import DatePicker from '@/components/ui/DatePicker.vue';
@@ -67,6 +69,7 @@ const {
     editingId,
     isSubmitting,
     deletingId,
+    activatingId,
     can,
     moduleEnabled,
     applyFilters,
@@ -75,6 +78,7 @@ const {
     closeModal,
     submit,
     destroyPaciente,
+    activatePaciente,
     onlyDigits,
 } = usePacienteCrud(props.filters);
 
@@ -135,8 +139,19 @@ const sexLabel = (sex?: PacienteRow['sexo']) =>
 
 const isEditing = computed(() => editingId.value !== null);
 
+const birthDateMinYear = new Date().getFullYear() - 120;
+const birthDateMaxYear = new Date().getFullYear();
+
 const normalizePhone = (field: 'telefono' | 'contacto_emergencia_telefono') => {
     form[field] = onlyDigits(form[field] ?? '');
+};
+
+const whatsappUrl = (phone?: string | null) => {
+    const digits = onlyDigits(phone ?? '');
+
+    if (digits.length !== 10) return null;
+
+    return `https://wa.me/52${digits}`;
 };
 
 const inputBase =
@@ -185,7 +200,7 @@ const setPrimaryNormal = (event: MouseEvent) => {
 
             <template v-else>
                 <div
-                    class="relative overflow-hidden rounded-[2rem] border border-zinc-200 bg-white p-5 shadow-sm"
+                    class="relative overflow-hidden rounded-[2rem] border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/40"
                 >
                     <div
                         class="pointer-events-none absolute -top-20 -right-20 h-52 w-52 rounded-full blur-3xl"
@@ -212,6 +227,7 @@ const setPrimaryNormal = (event: MouseEvent) => {
                                 >
                                     Pacientes
                                 </h1>
+
                                 <p
                                     class="mt-1 max-w-2xl text-sm leading-6 text-zinc-600 dark:text-zinc-400"
                                 >
@@ -407,45 +423,89 @@ const setPrimaryNormal = (event: MouseEvent) => {
                             </p>
                         </div>
 
-                        <div class="mt-4 flex flex-wrap gap-2">
-                            <Button
-                                as-child
-                                variant="outline"
-                                class="h-10 rounded-xl border-zinc-200 bg-white transition-all duration-200 hover:-translate-y-0.5 hover:border-[color:var(--primary)] hover:text-[color:var(--primary)]"
-                            >
-                                <Link :href="`/pacientes/${row.id}`">
-                                    Ver expediente
-                                </Link>
-                            </Button>
+                        <div
+                            class="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
+                        >
+                            <div class="flex flex-wrap gap-2">
+                                <Button
+                                    as-child
+                                    variant="outline"
+                                    class="h-10 rounded-xl border-zinc-200 bg-white transition-all duration-200 hover:-translate-y-0.5 hover:border-[color:var(--primary)] hover:text-[color:var(--primary)]"
+                                >
+                                    <Link :href="`/pacientes/${row.id}`">
+                                        Ver expediente
+                                    </Link>
+                                </Button>
 
-                            <Button
-                                v-if="can('patients.update')"
-                                variant="outline"
-                                class="h-10 rounded-xl border-zinc-200 bg-white transition-all duration-200 hover:-translate-y-0.5 hover:border-[color:var(--primary)] hover:text-[color:var(--primary)]"
-                                @click="openEdit(row)"
-                            >
-                                <Pencil class="mr-2 h-4 w-4" />
-                                Editar
-                            </Button>
+                                <Button
+                                    v-if="can('patients.update')"
+                                    variant="outline"
+                                    class="h-10 rounded-xl border-zinc-200 bg-white transition-all duration-200 hover:-translate-y-0.5 hover:border-[color:var(--primary)] hover:text-[color:var(--primary)]"
+                                    @click="openEdit(row)"
+                                >
+                                    <Pencil class="mr-2 h-4 w-4" />
+                                    Editar
+                                </Button>
 
-                            <Button
-                                v-if="can('patients.delete')"
-                                variant="destructive"
-                                class="h-10 rounded-xl transition-all duration-200 hover:-translate-y-0.5"
-                                :disabled="deletingId === row.id"
-                                @click="destroyPaciente(row)"
+                                <Button
+                                    v-if="row.status === 'active' && can('patients.delete')"
+                                    variant="destructive"
+                                    class="h-10 rounded-xl transition-all duration-200 hover:-translate-y-0.5"
+                                    :disabled="deletingId === row.id"
+                                    @click="destroyPaciente(row)"
+                                >
+                                    <Loader2
+                                        v-if="deletingId === row.id"
+                                        class="mr-2 h-4 w-4 animate-spin"
+                                    />
+                                    <Trash2 v-else class="mr-2 h-4 w-4" />
+                                    {{
+                                        deletingId === row.id
+                                            ? 'Desactivando...'
+                                            : 'Desactivar'
+                                    }}
+                                </Button>
+
+                                <Button
+                                    v-if="row.status === 'inactive' && can('patients.update')"
+                                    variant="outline"
+                                    class="h-10 rounded-xl border-emerald-200 bg-emerald-50 text-emerald-700 transition-all duration-200 hover:-translate-y-0.5 hover:border-emerald-300 hover:bg-emerald-100 dark:border-emerald-900/50 dark:bg-emerald-950/40 dark:text-emerald-300 dark:hover:bg-emerald-950"
+                                    :disabled="activatingId === row.id"
+                                    @click="activatePaciente(row)"
+                                >
+                                    <Loader2
+                                        v-if="activatingId === row.id"
+                                        class="mr-2 h-4 w-4 animate-spin"
+                                    />
+                                    <CheckCircle2 v-else class="mr-2 h-4 w-4" />
+                                    {{
+                                        activatingId === row.id
+                                            ? 'Activando...'
+                                            : 'Activar'
+                                    }}
+                                </Button>
+                            </div>
+
+                            <a
+                                v-if="whatsappUrl(row.telefono)"
+                                :href="whatsappUrl(row.telefono)!"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                class="group/wa relative ml-auto flex h-11 w-11 min-w-11 items-center justify-start overflow-hidden rounded-full bg-[#25D366] shadow-sm transition-all duration-300 hover:w-[225px] hover:shadow-md focus:w-[225px] focus:outline-none focus:ring-2 focus:ring-[#25D366]/30 sm:ml-0"
+                                aria-label="Contactar por WhatsApp"
+                                title="Contactar por WhatsApp"
                             >
-                                <Loader2
-                                    v-if="deletingId === row.id"
-                                    class="mr-2 h-4 w-4 animate-spin"
+                                <span
+                                    aria-hidden="true"
+                                    class="absolute top-0 left-0 z-10 block h-11 w-11 min-w-11 bg-[url('/icons/whatsapp.svg')] bg-center bg-no-repeat [background-size:26px_26px]"
                                 />
-                                <Trash2 v-else class="mr-2 h-4 w-4" />
-                                {{
-                                    deletingId === row.id
-                                        ? 'Eliminando...'
-                                        : 'Eliminar'
-                                }}
-                            </Button>
+
+                                <span
+                                    class="ml-11 max-w-0 overflow-hidden whitespace-nowrap pr-3 text-sm font-medium text-white opacity-0 transition-all duration-300 group-hover/wa:max-w-[170px] group-hover/wa:opacity-100 group-focus/wa:max-w-[170px] group-focus/wa:opacity-100"
+                                >
+                                    Contactar por WhatsApp
+                                </span>
+                            </a>
                         </div>
                     </article>
                 </div>
@@ -509,6 +569,14 @@ const setPrimaryNormal = (event: MouseEvent) => {
                                         }}
                                     </span>
                                 </DialogTitle>
+
+                                <DialogDescription
+                                    class="mt-2 max-w-3xl text-sm leading-6 text-zinc-500 dark:text-zinc-400"
+                                >
+                                    Registra los datos de identificación y
+                                    contacto del paciente. Los campos marcados
+                                    con * son obligatorios.
+                                </DialogDescription>
                             </div>
                         </div>
                     </DialogHeader>
@@ -573,11 +641,9 @@ const setPrimaryNormal = (event: MouseEvent) => {
                                         <div class="space-y-2">
                                             <Label :class="labelBase">
                                                 Apellido paterno
-                                                <span
-                                                    class="text-xs font-normal text-zinc-400"
+                                                <span class="text-red-500"
+                                                    >*</span
                                                 >
-                                                    opcional
-                                                </span>
                                             </Label>
 
                                             <Input
@@ -602,11 +668,9 @@ const setPrimaryNormal = (event: MouseEvent) => {
                                         <div class="space-y-2">
                                             <Label :class="labelBase">
                                                 Apellido materno
-                                                <span
-                                                    class="text-xs font-normal text-zinc-400"
+                                                <span class="text-red-500"
+                                                    >*</span
                                                 >
-                                                    opcional
-                                                </span>
                                             </Label>
 
                                             <Input
@@ -629,9 +693,37 @@ const setPrimaryNormal = (event: MouseEvent) => {
                                         </div>
 
                                         <div class="space-y-2">
-                                            <Label :class="labelBase"
-                                                >Estado</Label
-                                            >
+                                            <div class="flex items-center gap-2">
+                                                <Label :class="labelBase">
+                                                    Estado del expediente
+                                                </Label>
+
+                                                <div
+                                                    class="group relative inline-flex"
+                                                >
+                                                    <button
+                                                        type="button"
+                                                        class="grid h-5 w-5 place-items-center rounded-full text-zinc-400 transition hover:bg-zinc-100 hover:text-zinc-700 focus:bg-zinc-100 focus:text-zinc-700 focus:outline-none dark:hover:bg-zinc-800 dark:hover:text-zinc-200 dark:focus:bg-zinc-800 dark:focus:text-zinc-200"
+                                                        aria-label="Información sobre el estado del expediente"
+                                                    >
+                                                        <HelpCircle
+                                                            class="h-4 w-4"
+                                                        />
+                                                    </button>
+
+                                                    <div
+                                                        class="pointer-events-none absolute top-7 left-0 z-50 hidden w-72 rounded-2xl border border-zinc-200 bg-white p-3 text-xs leading-5 text-zinc-600 shadow-xl group-hover:block group-focus-within:block dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300"
+                                                    >
+                                                        Indica si el expediente
+                                                        del paciente está activo
+                                                        para atención y
+                                                        seguimiento, o inactivo
+                                                        cuando ya no se
+                                                        encuentra en tratamiento.
+                                                        No elimina su historial.
+                                                    </div>
+                                                </div>
+                                            </div>
 
                                             <SearchableSelect
                                                 v-model="form.status"
@@ -650,6 +742,13 @@ const setPrimaryNormal = (event: MouseEvent) => {
                                                     },
                                                 ]"
                                             />
+
+                                            <p
+                                                v-if="form.errors.status"
+                                                class="text-xs text-red-500"
+                                            >
+                                                {{ form.errors.status }}
+                                            </p>
                                         </div>
 
                                         <div class="space-y-2">
@@ -664,6 +763,8 @@ const setPrimaryNormal = (event: MouseEvent) => {
 
                                             <DatePicker
                                                 v-model="form.fecha_nacimiento"
+                                                :min-year="birthDateMinYear"
+                                                :max-year="birthDateMaxYear"
                                             />
 
                                             <p
@@ -750,6 +851,9 @@ const setPrimaryNormal = (event: MouseEvent) => {
                                         <div class="space-y-2">
                                             <Label :class="labelBase">
                                                 Teléfono
+                                                <span class="text-red-500"
+                                                    >*</span
+                                                >
                                                 <span
                                                     class="text-xs font-normal text-zinc-400"
                                                 >
@@ -969,31 +1073,31 @@ const setPrimaryNormal = (event: MouseEvent) => {
                         >
                             <Button
                                 variant="outline"
-                                class="h-11 w-full rounded-2xl px-5 transition-all duration-200 hover:-translate-y-0.5 hover:border-[color:var(--primary)] hover:text-[color:var(--primary)] sm:w-auto sm:min-w-36"
-                                :disabled="form.processing || isSubmitting"
+                                class="h-11 rounded-2xl"
+                                :disabled="isSubmitting"
                                 @click="closeModal(false)"
                             >
                                 Cancelar
                             </Button>
 
                             <Button
-                                class="h-11 w-full rounded-2xl px-5 shadow-lg transition-all duration-300 hover:-translate-y-0.5 sm:w-auto sm:min-w-40"
+                                class="h-11 rounded-2xl px-6 shadow-lg transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl"
                                 :style="primaryButtonStyle"
-                                :disabled="form.processing || isSubmitting"
+                                :disabled="isSubmitting"
                                 @mouseenter="setPrimaryHover"
                                 @mouseleave="setPrimaryNormal"
                                 @click="submit"
                             >
                                 <Loader2
-                                    v-if="form.processing || isSubmitting"
+                                    v-if="isSubmitting"
                                     class="mr-2 h-4 w-4 animate-spin"
                                 />
 
                                 {{
-                                    form.processing || isSubmitting
+                                    isSubmitting
                                         ? 'Guardando...'
                                         : isEditing
-                                          ? 'Actualizar'
+                                          ? 'Guardar cambios'
                                           : 'Crear paciente'
                                 }}
                             </Button>

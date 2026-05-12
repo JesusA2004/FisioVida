@@ -124,19 +124,74 @@ class PacientesController extends Controller {
 
     public function destroy(Request $request, string $paciente)
     {
-        $id = $paciente;
-        $old = (array) DB::table('personas')->where('id', $id)->first();
-        DB::table('personas')->where('id', $id)->update(['deleted_at' => now(), 'updated_at' => now()]);
-        app(AuditLogService::class)->deleted(
+        $id = (int) $paciente;
+
+        $old = (array) DB::table('personas')
+            ->where('id', $id)
+            ->whereIn('tipo', ['paciente', 'ambos'])
+            ->whereNull('deleted_at')
+            ->first();
+
+        abort_if(empty($old), 404);
+
+        DB::table('personas')
+            ->where('id', $id)
+            ->update([
+                'status' => 'inactive',
+                'updated_at' => now(),
+            ]);
+
+        app(AuditLogService::class)->updated(
             $request,
             'Pacientes',
             'persona',
-            (int) $id,
+            $id,
             'El usuario '.$request->user()?->name.' desactivó al paciente '.trim(($old['nombres'] ?? '').' '.($old['apellido_paterno'] ?? '').' '.($old['apellido_materno'] ?? '')).'.',
             $old,
+            [
+                ...$old,
+                'status' => 'inactive',
+                'updated_at' => now()->toDateTimeString(),
+            ],
         );
 
-        return back()->with('success', 'Paciente eliminado.');
+        return back()->with('success', 'Paciente desactivado.');
+    }
+    
+        public function activate(Request $request, string $paciente)
+    {
+        $id = (int) $paciente;
+
+        $old = (array) DB::table('personas')
+            ->where('id', $id)
+            ->whereIn('tipo', ['paciente', 'ambos'])
+            ->whereNull('deleted_at')
+            ->first();
+
+        abort_if(empty($old), 404);
+
+        DB::table('personas')
+            ->where('id', $id)
+            ->update([
+                'status' => 'active',
+                'updated_at' => now(),
+            ]);
+
+        app(AuditLogService::class)->updated(
+            $request,
+            'Pacientes',
+            'persona',
+            $id,
+            'El usuario '.$request->user()?->name.' activó al paciente '.trim(($old['nombres'] ?? '').' '.($old['apellido_paterno'] ?? '').' '.($old['apellido_materno'] ?? '')).'.',
+            $old,
+            [
+                ...$old,
+                'status' => 'active',
+                'updated_at' => now()->toDateTimeString(),
+            ],
+        );
+
+        return back()->with('success', 'Paciente activado.');
     }
 
     public function show(string $paciente) {

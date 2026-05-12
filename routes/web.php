@@ -53,6 +53,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::delete('pacientes/{paciente}', [PacientesController::class, 'destroy'])
         ->name('pacientes.destroy')
         ->middleware('permission:patients.delete');
+    
+    Route::patch('pacientes/{paciente}/activar', [PacientesController::class, 'activate'])
+    ->name('pacientes.activate')
+    ->middleware('permission:patients.update');
 
     Route::resource('usuarios', UsuariosController::class)->only(['index', 'store', 'update', 'destroy'])->middleware('permission:users.view');
 

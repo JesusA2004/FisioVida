@@ -49,6 +49,7 @@ export const usePacienteCrud = (filters: { q?: string; status?: string }) => {
     const editingId = ref<number | null>(null);
     const isSubmitting = ref(false);
     const deletingId = ref<number | null>(null);
+    const activatingId = ref<number | null>(null);
 
     const form = useForm<PacienteFormData>({
         status: 'active',
@@ -125,6 +126,27 @@ export const usePacienteCrud = (filters: { q?: string; status?: string }) => {
 
         if (!form.nombres.trim()) {
             form.setError('nombres', 'El nombre del paciente es obligatorio.');
+            hasError = true;
+        }
+
+        if (!form.apellido_paterno.trim()) {
+            form.setError(
+                'apellido_paterno',
+                'El apellido paterno del paciente es obligatorio.',
+            );
+            hasError = true;
+        }
+
+        if (!form.apellido_materno.trim()) {
+            form.setError(
+                'apellido_materno',
+                'El apellido materno del paciente es obligatorio.',
+            );
+            hasError = true;
+        }
+
+        if (!form.telefono.trim()) {
+            form.setError('telefono', 'El teléfono del paciente es obligatorio.');
             hasError = true;
         }
 
@@ -236,12 +258,12 @@ export const usePacienteCrud = (filters: { q?: string; status?: string }) => {
     };
 
     const destroyPaciente = async (row: PacienteRow) => {
-        if (deletingId.value) return;
+        if (deletingId.value || activatingId.value) return;
 
         const ok = await swalConfirm(
-            '¿Eliminar paciente?',
-            `Se desactivará el expediente de ${row.full_name}.`,
-            'Sí, eliminar',
+            '¿Desactivar paciente?',
+            `El expediente de ${row.full_name} quedará inactivo, pero conservará su historial clínico.`,
+            'Sí, desactivar',
         );
 
         if (!ok) return;
@@ -251,21 +273,58 @@ export const usePacienteCrud = (filters: { q?: string; status?: string }) => {
         router.delete(`/pacientes/${row.id}`, {
             preserveScroll: true,
             onStart: () => {
-                swalToast('Eliminando paciente...', 'info');
+                swalToast('Desactivando paciente...', 'info');
             },
             onSuccess: () => {
-                swalToast('Paciente eliminado correctamente', 'success');
+                swalToast('Paciente desactivado correctamente', 'success');
             },
             onError: () => {
                 swalErr(
-                    'No se pudo eliminar',
-                    'El paciente puede tener información relacionada o no tienes permiso para esta acción.',
+                    'No se pudo desactivar',
+                    'El paciente no existe, ya fue eliminado o no tienes permiso para esta acción.',
                 );
             },
             onFinish: () => {
                 deletingId.value = null;
             },
         });
+    };
+
+    const activatePaciente = async (row: PacienteRow) => {
+        if (activatingId.value || deletingId.value) return;
+
+        const ok = await swalConfirm(
+            '¿Activar paciente?',
+            `El expediente de ${row.full_name} volverá a estar activo para atención y seguimiento.`,
+            'Sí, activar',
+        );
+
+        if (!ok) return;
+
+        activatingId.value = row.id;
+
+        router.patch(
+            `/pacientes/${row.id}/activar`,
+            {},
+            {
+                preserveScroll: true,
+                onStart: () => {
+                    swalToast('Activando paciente...', 'info');
+                },
+                onSuccess: () => {
+                    swalToast('Paciente activado correctamente', 'success');
+                },
+                onError: () => {
+                    swalErr(
+                        'No se pudo activar',
+                        'El paciente no existe, ya fue eliminado o no tienes permiso para esta acción.',
+                    );
+                },
+                onFinish: () => {
+                    activatingId.value = null;
+                },
+            },
+        );
     };
 
     return {
@@ -275,6 +334,7 @@ export const usePacienteCrud = (filters: { q?: string; status?: string }) => {
         isSubmitting,
         can,
         deletingId,
+        activatingId,
         moduleEnabled,
         applyFilters,
         openCreate,
@@ -282,6 +342,7 @@ export const usePacienteCrud = (filters: { q?: string; status?: string }) => {
         closeModal,
         submit,
         destroyPaciente,
+        activatePaciente,
         onlyDigits,
     };
 };
