@@ -318,11 +318,11 @@ const tabs = [
 ] as const;
 
 const goToSessions = () => {
-    router.visit('/sesiones');
+    router.visit(`/sesiones?new=1&patient_persona_id=${props.patient.id}`);
 };
 
 const goToAppointments = () => {
-    router.visit('/citas');
+    router.visit(`/citas?new=1&patient_persona_id=${props.patient.id}`);
 };
 
 const goToFiles = () => {
@@ -330,7 +330,11 @@ const goToFiles = () => {
 };
 
 const goToPayments = () => {
-    router.visit('/pagos');
+    router.visit(`/pagos?new=1&patient_persona_id=${props.patient.id}`);
+};
+
+const goToActivities = () => {
+    router.visit(`/actividades?new=1&patient_persona_id=${props.patient.id}`);
 };
 </script>
 
@@ -433,7 +437,7 @@ const goToPayments = () => {
                         </div>
                     </div>
 
-                    <div class="grid gap-2 sm:grid-cols-2 xl:w-[420px]">
+                    <div class="grid gap-2 grid-cols-2 xl:w-[420px]">
                         <Button
                             class="h-11 rounded-2xl shadow-lg transition-all duration-300 hover:-translate-y-0.5"
                             :style="primaryButtonStyle"
@@ -452,6 +456,24 @@ const goToPayments = () => {
                         >
                             <CalendarClock class="mr-2 h-4 w-4" />
                             Agendar cita
+                        </Button>
+
+                        <Button
+                            variant="outline"
+                            class="h-11 rounded-2xl border-zinc-200 bg-white transition-all duration-200 hover:-translate-y-0.5 hover:border-[color:var(--primary)] hover:text-[color:var(--primary)]"
+                            @click="goToActivities"
+                        >
+                            <ClipboardList class="mr-2 h-4 w-4" />
+                            Nueva actividad
+                        </Button>
+
+                        <Button
+                            variant="outline"
+                            class="h-11 rounded-2xl border-zinc-200 bg-white transition-all duration-200 hover:-translate-y-0.5 hover:border-[color:var(--primary)] hover:text-[color:var(--primary)]"
+                            @click="goToPayments"
+                        >
+                            <CreditCard class="mr-2 h-4 w-4" />
+                            Nuevo pago
                         </Button>
                     </div>
                 </div>

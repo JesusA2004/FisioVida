@@ -7,6 +7,24 @@ use Illuminate\Support\Facades\DB;
 
 class AuditLogService
 {
+    private static array $sensitiveFields = [
+        'subjective', 'objective', 'assessment', 'plan',
+        'direccion', 'telefono', 'contacto_emergencia',
+        'password', 'token', 'two_factor_secret',
+        'two_factor_recovery_codes', 'remember_token',
+        'notes', 'email',
+    ];
+
+    private function maskSensitive(array $data): array
+    {
+        foreach (self::$sensitiveFields as $field) {
+            if (array_key_exists($field, $data) && $data[$field] !== null) {
+                $data[$field] = '[REDACTADO]';
+            }
+        }
+        return $data;
+    }
+
     public function record(array $payload): void
     {
         DB::table('logs')->insert([
@@ -39,7 +57,7 @@ class AuditLogService
             'auditable_type' => $auditableType,
             'auditable_id' => $auditableId,
             'human_message' => $humanMessage,
-            'new_values' => $newValues,
+            'new_values' => $this->maskSensitive($newValues),
             'ip_address' => $request->ip(),
             'user_agent' => $request->userAgent(),
         ]);
@@ -54,8 +72,8 @@ class AuditLogService
             'auditable_type' => $auditableType,
             'auditable_id' => $auditableId,
             'human_message' => $humanMessage,
-            'old_values' => $oldValues,
-            'new_values' => $newValues,
+            'old_values' => $this->maskSensitive($oldValues),
+            'new_values' => $this->maskSensitive($newValues),
             'ip_address' => $request->ip(),
             'user_agent' => $request->userAgent(),
         ]);
@@ -70,7 +88,7 @@ class AuditLogService
             'auditable_type' => $auditableType,
             'auditable_id' => $auditableId,
             'human_message' => $humanMessage,
-            'old_values' => $oldValues,
+            'old_values' => $this->maskSensitive($oldValues),
             'ip_address' => $request->ip(),
             'user_agent' => $request->userAgent(),
         ]);
@@ -104,6 +122,34 @@ class AuditLogService
             'auditable_type' => $auditableType,
             'auditable_id' => $auditableId,
             'human_message' => $humanMessage,
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+        ]);
+    }
+
+    public function fileViewed(Request $request, int $fileId, string $fileName): void
+    {
+        $this->record([
+            'user_id' => $request->user()?->id,
+            'action' => 'Visualización',
+            'module' => 'Archivos',
+            'auditable_type' => 'file',
+            'auditable_id' => $fileId,
+            'human_message' => 'El usuario ' . ($request->user()?->name ?? 'Desconocido') . ' visualizó el archivo "' . $fileName . '".',
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+        ]);
+    }
+
+    public function fileDownloaded(Request $request, int $fileId, string $fileName): void
+    {
+        $this->record([
+            'user_id' => $request->user()?->id,
+            'action' => 'Descarga',
+            'module' => 'Archivos',
+            'auditable_type' => 'file',
+            'auditable_id' => $fileId,
+            'human_message' => 'El usuario ' . ($request->user()?->name ?? 'Desconocido') . ' descargó el archivo "' . $fileName . '".',
             'ip_address' => $request->ip(),
             'user_agent' => $request->userAgent(),
         ]);

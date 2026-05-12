@@ -155,7 +155,15 @@ class ReportesService
                 ->where('status', 'paid')
                 ->sum('amount');
 
-            $paymentsSummary = ['income' => $income, 'by_status' => $paymentsByStatus];
+            $totalPayments = array_sum(array_column($paymentsByStatus, 'total'));
+            $pendingAmount = 0.0;
+            foreach ($paymentsByStatus as $row) {
+                if ($row['status'] === 'pending') {
+                    $pendingAmount = (float) $row['amount'];
+                }
+            }
+
+            $paymentsSummary = ['income' => $income, 'by_status' => $paymentsByStatus, 'total' => $totalPayments, 'pending' => $pendingAmount];
         }
 
         $activitiesByStatus = [];
@@ -223,6 +231,8 @@ class ReportesService
                 'active_patients' => $activePatients,
                 'new_patients_period' => $newPatients,
                 'income_period' => $income,
+                'total_payments' => $totalPayments ?? 0,
+                'pending_amount' => $pendingAmount ?? 0.0,
                 'activities_overdue' => $overdueActivities,
             ],
             'appointmentsByStatus' => $appointmentsByStatus,

@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Tus accesos a FisioVida</title>
+    <title>Activa tu cuenta en FisioVida</title>
 </head>
 <body style="margin:0;padding:0;background:#f4f7f8;font-family:Arial,Helvetica,sans-serif;color:#1f2937;">
     <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f7f8;padding:32px 16px;">
@@ -27,36 +27,29 @@
                             </p>
 
                             <p style="margin:0 0 22px;font-size:15px;line-height:1.7;color:#4b5563;">
-                                Estas son tus credenciales para ingresar al sistema. Te recomendamos cambiar tu contraseña después de iniciar sesión por primera vez.
+                                Tu cuenta fue creada exitosamente. Usa el botón de abajo para establecer tu contraseña e iniciar sesión.
                             </p>
 
                             <table width="100%" cellpadding="0" cellspacing="0" style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:18px;padding:0;margin:0 0 24px;">
                                 <tr>
-                                    <td style="padding:18px 20px;border-bottom:1px solid #e5e7eb;">
+                                    <td style="padding:18px 20px;">
                                         <p style="margin:0 0 6px;font-size:12px;color:#6b7280;text-transform:uppercase;letter-spacing:.04em;">
-                                            Correo
+                                            Correo de acceso
                                         </p>
                                         <p style="margin:0;font-size:16px;font-weight:700;color:#111827;">
                                             {{ $user->email }}
                                         </p>
                                     </td>
                                 </tr>
-
-                                <tr>
-                                    <td style="padding:18px 20px;">
-                                        <p style="margin:0 0 6px;font-size:12px;color:#6b7280;text-transform:uppercase;letter-spacing:.04em;">
-                                            Contraseña temporal
-                                        </p>
-                                        <p style="margin:0;font-size:18px;font-weight:700;color:#111827;letter-spacing:.02em;">
-                                            {{ $plainPassword }}
-                                        </p>
-                                    </td>
-                                </tr>
                             </table>
 
+                            <p style="margin:0 0 16px;font-size:14px;line-height:1.6;color:#4b5563;">
+                                Haz clic en el botón para establecer tu contraseña. Este enlace es válido por 60 minutos.
+                            </p>
+
                             <div style="text-align:center;margin:28px 0;">
-                                <a href="{{ $loginUrl }}" style="display:inline-block;background:#0EA5A4;color:#ffffff;text-decoration:none;padding:14px 26px;border-radius:16px;font-weight:700;font-size:15px;">
-                                    Iniciar sesión
+                                <a href="{{ $resetUrl }}" style="display:inline-block;background:#0EA5A4;color:#ffffff;text-decoration:none;padding:14px 26px;border-radius:16px;font-weight:700;font-size:15px;">
+                                    Establecer contraseña e ingresar
                                 </a>
                             </div>
 
@@ -64,8 +57,13 @@
                                 Si el botón no funciona, copia y pega este enlace en tu navegador:
                             </p>
 
-                            <p style="margin:0;font-size:13px;line-height:1.6;word-break:break-all;color:#0EA5A4;">
-                                {{ $loginUrl }}
+                            <p style="margin:0 0 20px;font-size:13px;line-height:1.6;word-break:break-all;color:#0EA5A4;">
+                                {{ $resetUrl }}
+                            </p>
+
+                            <p style="margin:0;font-size:13px;line-height:1.6;color:#6b7280;">
+                                Una vez que establezcas tu contraseña, podrás iniciar sesión en:
+                                <a href="{{ $loginUrl }}" style="color:#0EA5A4;">{{ $loginUrl }}</a>
                             </p>
                         </td>
                     </tr>
@@ -73,7 +71,7 @@
                     <tr>
                         <td style="padding:18px 30px;background:#f8fafc;border-top:1px solid #e5e7eb;">
                             <p style="margin:0;font-size:12px;line-height:1.6;color:#6b7280;text-align:center;">
-                                Este correo fue enviado automáticamente por FisioVida.
+                                Este correo fue enviado automáticamente por FisioVida. Si no solicitaste este acceso, ignora este mensaje.
                             </p>
                         </td>
                     </tr>

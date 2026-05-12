@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(php artisan *)",
+      "Bash(php -l app/Http/Controllers/FisioVida/CitasController.php)",
+      "Bash(php -l app/Http/Controllers/FisioVida/SesionesController.php)",
+      "Bash(php *)",
+      "Bash(npm run *)"
+    ]
+  }
+}

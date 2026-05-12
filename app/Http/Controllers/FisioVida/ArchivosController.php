@@ -132,7 +132,7 @@ class ArchivosController extends Controller
         ]);
     }
 
-    public function show(string $archivo)
+    public function show(Request $request, string $archivo)
     {
         $row = DB::table('files')->where('id', $archivo)->first();
 
@@ -141,6 +141,8 @@ class ArchivosController extends Controller
         $disk = $row->disk ?? 'public';
 
         abort_if(! Storage::disk($disk)->exists($row->path), 404);
+
+        app(AuditLogService::class)->fileViewed($request, (int) $archivo, (string) ($row->original_name ?? 'archivo'));
 
         return response()->file(
             Storage::disk($disk)->path($row->path),
@@ -151,7 +153,7 @@ class ArchivosController extends Controller
         );
     }
 
-    public function download(string $archivo): StreamedResponse
+    public function download(Request $request, string $archivo): StreamedResponse
     {
         $row = DB::table('files')->where('id', $archivo)->first();
 
@@ -160,6 +162,8 @@ class ArchivosController extends Controller
         $disk = $row->disk ?? 'public';
 
         abort_if(! Storage::disk($disk)->exists($row->path), 404);
+
+        app(AuditLogService::class)->fileDownloaded($request, (int) $archivo, (string) ($row->original_name ?? 'archivo'));
 
         return Storage::disk($disk)->download(
             $row->path,
@@ -182,7 +186,7 @@ class ArchivosController extends Controller
             ],
         ], $this->validationMessages());
 
-        $disk = 'public';
+        $disk = 'private';
         $storedIds = [];
         $storedNames = [];
         $storedPaths = [];
@@ -203,6 +207,7 @@ class ArchivosController extends Controller
                 $storedPaths[] = compact('disk', 'path');
 
                 $id = DB::table('files')->insertGetId([
+                    'uuid' => (string) Str::uuid(),
                     'patient_persona_id' => $data['patient_persona_id'] ?? null,
                     'session_id' => $data['session_id'] ?? null,
                     'uploaded_by' => $request->user()?->id,
@@ -213,6 +218,7 @@ class ArchivosController extends Controller
                     'mime' => $uploadedFile->getClientMimeType(),
                     'size_bytes' => $uploadedFile->getSize(),
                     'created_at' => now(),
+                    'updated_at' => now(),
                 ]);
 
                 $storedIds[] = $id;
@@ -289,7 +295,7 @@ class ArchivosController extends Controller
         $newPath = null;
         $oldPath = $row->path;
         $oldDisk = $row->disk ?? 'public';
-        $disk = 'public';
+        $disk = 'private';
 
         DB::beginTransaction();
 

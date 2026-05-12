@@ -305,22 +305,29 @@ class SesionesController extends Controller {
 
             DB::table('session_exercises')
                 ->where('session_id', (int) $id)
-                ->whereNotIn('exercise_id', $exerciseIds)
+                ->whereNotIn('exercise_id', $exerciseIds->toArray())
                 ->delete();
 
+            // Solo insertar ejercicios nuevos; preservar datos existentes (sets/reps/seconds/notes)
+            $existingExerciseIds = DB::table('session_exercises')
+                ->where('session_id', (int) $id)
+                ->whereIn('exercise_id', $exerciseIds->toArray())
+                ->pluck('exercise_id')
+                ->map(fn ($eid) => (int) $eid)
+                ->all();
+
             foreach ($exerciseIds as $exerciseId) {
-                DB::table('session_exercises')->updateOrInsert(
-                    [
-                        'session_id' => (int) $id,
-                        'exercise_id' => (int) $exerciseId,
-                    ],
-                    [
-                        'sets' => null,
-                        'reps' => null,
-                        'seconds' => null,
-                        'notes' => null,
-                    ],
-                );
+                if (in_array((int) $exerciseId, $existingExerciseIds, true)) {
+                    continue;
+                }
+                DB::table('session_exercises')->insert([
+                    'session_id' => (int) $id,
+                    'exercise_id' => (int) $exerciseId,
+                    'sets' => null,
+                    'reps' => null,
+                    'seconds' => null,
+                    'notes' => null,
+                ]);
             }
 
             app(AuditLogService::class)->updated(

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { Head } from '@inertiajs/vue3';
 import AppLayout from '@/layouts/AppLayout.vue';
 import type { BreadcrumbItem } from '@/types';
@@ -71,6 +71,7 @@ const {
     isEditing,
     can,
     moduleEnabled,
+    isTherapistRole,
     applyFilters,
     openCreate,
     openEdit,
@@ -80,6 +81,14 @@ const {
     markNoShow,
     advanceStatus,
 } = useCitaCrud(props.filters);
+
+onMounted(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('new') === '1') {
+        const patientId = params.get('patient_persona_id');
+        openCreate(patientId ? { patient_persona_id: Number(patientId) } : undefined);
+    }
+});
 
 const search = ref(props.filters.q ?? '');
 const selectedStatus = ref<string | null>(props.filters.status ?? null);
@@ -263,7 +272,7 @@ const setPrimaryNormal = (event: MouseEvent) => {
                             :style="primaryButtonStyle"
                             @mouseenter="setPrimaryHover"
                             @mouseleave="setPrimaryNormal"
-                            @click="openCreate"
+                            @click="() => openCreate()"
                         >
                             <CalendarPlus class="mr-2 h-4 w-4" />
                             Nueva cita
@@ -620,6 +629,12 @@ const setPrimaryNormal = (event: MouseEvent) => {
                                                 <span class="text-red-500"
                                                     >*</span
                                                 >
+                                                <span
+                                                    v-if="isTherapistRole && !isEditing"
+                                                    class="ml-1 text-xs font-normal text-zinc-400"
+                                                >
+                                                    (auto-asignado)
+                                                </span>
                                             </Label>
 
                                             <SearchableSelect

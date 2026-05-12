@@ -112,14 +112,14 @@ export const useSesionCrud = (filters: {
         return true;
     };
 
-    const openCreate = () => {
+    const openCreate = (prefill?: { patient_persona_id?: number }) => {
         editingId.value = null;
 
         form.reset();
         form.clearErrors();
 
         form.appointment_id = '';
-        form.patient_persona_id = '';
+        form.patient_persona_id = prefill?.patient_persona_id ?? '';
         form.therapist_user_id = '';
         form.session_date = '';
         form.subjective = '';

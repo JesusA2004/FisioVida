@@ -144,7 +144,7 @@ return [
     */
 
     'features' => [
-        Features::registration(),
+        // Features::registration() — deshabilitado: sistema solo para personal autorizado
         Features::resetPasswords(),
         Features::emailVerification(),
         Features::twoFactorAuthentication([

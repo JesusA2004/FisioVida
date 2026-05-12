@@ -58,13 +58,29 @@ Route::middleware(['auth', 'verified'])->group(function () {
     ->name('pacientes.activate')
     ->middleware('permission:patients.update');
 
-    Route::resource('usuarios', UsuariosController::class)->only(['index', 'store', 'update', 'destroy'])->middleware('permission:users.view');
+    Route::get('usuarios', [UsuariosController::class, 'index'])->name('usuarios.index')->middleware('permission:users.view');
+    Route::post('usuarios', [UsuariosController::class, 'store'])->name('usuarios.store')->middleware('permission:users.create');
+    Route::put('usuarios/{usuario}', [UsuariosController::class, 'update'])->name('usuarios.update')->middleware('permission:users.update');
+    Route::delete('usuarios/{usuario}', [UsuariosController::class, 'destroy'])->name('usuarios.destroy')->middleware('permission:users.update');
+    Route::patch('usuarios/{usuario}/toggle-status', [UsuariosController::class, 'toggleStatus'])->name('usuarios.toggle-status')->middleware('permission:users.update');
 
-    Route::resource('citas', CitasController::class)->only(['index', 'store', 'update', 'destroy'])->middleware('permission:appointments.view');
+    Route::get('citas', [CitasController::class, 'index'])->name('citas.index')->middleware('permission:appointments.view');
+    Route::post('citas', [CitasController::class, 'store'])->name('citas.store')->middleware('permission:appointments.create');
+    Route::put('citas/{cita}', [CitasController::class, 'update'])->name('citas.update')->middleware('permission:appointments.update');
+    Route::delete('citas/{cita}', [CitasController::class, 'destroy'])->name('citas.destroy')->middleware('permission:appointments.update');
+    Route::patch('citas/{cita}/cancelar', [CitasController::class, 'cancelar'])->name('citas.cancelar')->middleware('permission:appointments.update');
+    Route::patch('citas/{cita}/no-show', [CitasController::class, 'noShow'])->name('citas.no-show')->middleware('permission:appointments.update');
+    Route::patch('citas/{cita}/avanzar', [CitasController::class, 'avanzar'])->name('citas.avanzar')->middleware('permission:appointments.update');
 
-    Route::resource('sesiones', SesionesController::class)->only(['index', 'store', 'update', 'destroy'])->middleware('permission:sessions.view');
+    Route::get('sesiones', [SesionesController::class, 'index'])->name('sesiones.index')->middleware('permission:sessions.view');
+    Route::post('sesiones', [SesionesController::class, 'store'])->name('sesiones.store')->middleware('permission:sessions.create');
+    Route::put('sesiones/{sesion}', [SesionesController::class, 'update'])->name('sesiones.update')->middleware('permission:sessions.update');
+    Route::delete('sesiones/{sesion}', [SesionesController::class, 'destroy'])->name('sesiones.destroy')->middleware('permission:sessions.update');
 
-    Route::resource('ejercicios', EjerciciosController::class)->only(['index', 'store', 'update', 'destroy'])->middleware('permission:exercises.view');
+    Route::get('ejercicios', [EjerciciosController::class, 'index'])->name('ejercicios.index')->middleware('permission:exercises.view');
+    Route::post('ejercicios', [EjerciciosController::class, 'store'])->name('ejercicios.store')->middleware('permission:exercises.create');
+    Route::put('ejercicios/{ejercicio}', [EjerciciosController::class, 'update'])->name('ejercicios.update')->middleware('permission:exercises.update');
+    Route::delete('ejercicios/{ejercicio}', [EjerciciosController::class, 'destroy'])->name('ejercicios.destroy')->middleware('permission:exercises.update');
 
     Route::get('/archivos/{archivo}/descargar', [ArchivosController::class, 'download'])
     ->name('archivos.download');
@@ -72,19 +88,29 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::resource('archivos', ArchivosController::class)
         ->except(['create', 'edit']);
 
-    Route::resource('pagos', PagosController::class)->only(['index', 'store', 'update', 'destroy'])->middleware('permission:payments.view');
+    Route::get('pagos', [PagosController::class, 'index'])->name('pagos.index')->middleware('permission:payments.view');
+    Route::post('pagos', [PagosController::class, 'store'])->name('pagos.store')->middleware('permission:payments.create');
+    Route::put('pagos/{pago}', [PagosController::class, 'update'])->name('pagos.update')->middleware('permission:payments.update');
+    Route::delete('pagos/{pago}', [PagosController::class, 'destroy'])->name('pagos.destroy')->middleware('permission:payments.update');
+    Route::patch('pagos/{pago}/cancelar', [PagosController::class, 'cancel'])->name('pagos.cancelar')->middleware('permission:payments.update');
 
     Route::get('reportes', [ReportesController::class, 'index'])->name('reportes.index')->middleware('permission:reports.view');
 
-    Route::resource('logs', LogsController::class)->only(['index', 'store', 'destroy'])->middleware('permission:logs.view');
+    Route::get('logs', [LogsController::class, 'index'])->name('logs.index')->middleware('permission:logs.view');
+    Route::post('logs', [LogsController::class, 'store'])->name('logs.store')->middleware('permission:logs.view');
+    Route::delete('logs/{log}', [LogsController::class, 'destroy'])->name('logs.destroy')->middleware('permission:logs.view');
 
     Route::get('bitacora', [LogsController::class, 'index'])->name('bitacora.index')->middleware('permission:logs.view');
 
-    Route::resource('roles', RolesController::class)->only(['index', 'store', 'update', 'destroy'])->middleware('permission:roles.view');
+    Route::get('roles', [RolesController::class, 'index'])->name('roles.index')->middleware('permission:roles.view');
+    Route::post('roles', [RolesController::class, 'store'])->name('roles.store')->middleware('permission:roles.create');
+    Route::put('roles/{role}', [RolesController::class, 'update'])->name('roles.update')->middleware('permission:roles.update');
+    Route::delete('roles/{role}', [RolesController::class, 'destroy'])->name('roles.destroy')->middleware('permission:roles.delete');
 
-    Route::resource('actividades', ActividadesController::class)->only(['index', 'store', 'update', 'destroy'])->middleware('permission:activities.view');
-
-    Route::patch('usuarios/{usuario}/toggle-status', [UsuariosController::class, 'toggleStatus'])->name('usuarios.toggle-status')->middleware('permission:users.update');
+    Route::get('actividades', [ActividadesController::class, 'index'])->name('actividades.index')->middleware('permission:activities.view');
+    Route::post('actividades', [ActividadesController::class, 'store'])->name('actividades.store')->middleware('permission:activities.create');
+    Route::put('actividades/{actividade}', [ActividadesController::class, 'update'])->name('actividades.update')->middleware('permission:activities.update');
+    Route::delete('actividades/{actividade}', [ActividadesController::class, 'destroy'])->name('actividades.destroy')->middleware('permission:activities.update');
 
     Route::patch('actividades/{actividade}/complete', [ActividadesController::class, 'complete'])->name('actividades.complete')->middleware('permission:activities.complete');
     Route::patch('actividades/{actividade}/cancel', [ActividadesController::class, 'cancel'])->name('actividades.cancel')->middleware('permission:activities.update');

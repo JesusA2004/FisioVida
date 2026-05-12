@@ -155,8 +155,6 @@ class UsuariosController extends Controller {
                 ->withInput();
         }
 
-        $plainPassword = $data['password'];
-
         /** @var User $user */
         $user = DB::transaction(function () use ($data) {
             $roleIds = $data['role_ids'] ?? [];
@@ -217,11 +215,14 @@ class UsuariosController extends Controller {
         });
 
         try {
+            $token = app('auth.password.broker')->createToken($user);
+            $resetUrl = url('/reset-password/' . $token . '?email=' . urlencode($user->email));
+
             Mail::to($user->email)->send(
                 new UserCredentialsMail(
                     user: $user,
-                    plainPassword: $plainPassword,
-                    loginUrl: url('/login')
+                    loginUrl: url('/login'),
+                    resetUrl: $resetUrl,
                 )
             );
         } catch (Throwable $exception) {

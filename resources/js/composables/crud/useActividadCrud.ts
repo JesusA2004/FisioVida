@@ -31,21 +31,23 @@ export const useActividadCrud = () => {
     const form = useForm({
         title: '',
         description: '',
-        responsible_user_id: '' as number | '' | null,
-        patient_persona_id: '' as number | '' | null,
+        responsible_user_id: null as number | null,
+        patient_persona_id: null as number | null,
         priority: 'medium' as ActivityRow['priority'],
         status: 'pending' as ActivityRow['status'],
-        due_date: '',
+        due_date: null as string | null,
     });
 
     const isEditing = computed(() => editingId.value !== null);
 
-    const openCreate = () => {
+    const openCreate = (prefill?: { patient_persona_id?: number }) => {
         editingId.value = null;
         form.reset();
         form.priority = 'medium';
         form.status = 'pending';
-        form.responsible_user_id = '';
+        form.responsible_user_id = null;
+        form.patient_persona_id = prefill?.patient_persona_id ?? null;
+        form.due_date = null;
         isOpen.value = true;
     };
 
@@ -55,9 +57,9 @@ export const useActividadCrud = () => {
         form.description = row.description ?? '';
         form.priority = row.priority;
         form.status = row.status;
-        form.responsible_user_id = row.responsible_user_id ?? '';
-        form.patient_persona_id = row.patient_persona_id ?? '';
-        form.due_date = row.due_date?.slice(0, 16) ?? '';
+        form.responsible_user_id = row.responsible_user_id ?? null;
+        form.patient_persona_id = row.patient_persona_id ?? null;
+        form.due_date = row.due_date?.slice(0, 16) ?? null;
         isOpen.value = true;
     };
 

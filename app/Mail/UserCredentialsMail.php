@@ -9,26 +9,27 @@ use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 
-class UserCredentialsMail extends Mailable {
-
+class UserCredentialsMail extends Mailable
+{
     use Queueable, SerializesModels;
 
     public function __construct(
         public User $user,
-        public string $plainPassword,
         public string $loginUrl,
+        public string $resetUrl,
     ) {}
 
-    public function envelope(): Envelope {
+    public function envelope(): Envelope
+    {
         return new Envelope(
-            subject: 'Tus accesos a FisioVida',
+            subject: 'Activa tu cuenta en FisioVida',
         );
     }
 
-    public function content(): Content {
+    public function content(): Content
+    {
         return new Content(
             view: 'emails.users.credentials',
         );
     }
-
 }

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { Head, router } from '@inertiajs/vue3';
 import AppLayout from '@/layouts/AppLayout.vue';
 import type { BreadcrumbItem } from '@/types';
@@ -34,8 +34,6 @@ import {
     Pencil,
     Search,
     Trash2,
-    UserCog,
-    UserPlus,
     UsersRound,
     X,
 } from 'lucide-vue-next';
@@ -144,9 +142,15 @@ const {
     submit,
     destroySesion,
     toggleExercise,
-    goToPatients,
-    goToTherapists,
 } = useSesionCrud(props.filters);
+
+onMounted(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('new') === '1') {
+        const patientId = params.get('patient_persona_id');
+        openCreate(patientId ? { patient_persona_id: Number(patientId) } : undefined);
+    }
+});
 
 const search = ref(props.filters.q ?? '');
 const exerciseSearch = ref('');
@@ -980,29 +984,6 @@ const setPrimaryNormal = (event: MouseEvent) => {
                                         </div>
                                     </div>
 
-                                    <div class="mt-4 flex flex-wrap gap-2">
-                                        <Button
-                                            v-if="can('patients.create')"
-                                            type="button"
-                                            variant="outline"
-                                            class="h-10 rounded-xl border-zinc-200 bg-white transition-all duration-200 hover:-translate-y-0.5 hover:border-[color:var(--primary)] hover:text-[color:var(--primary)]"
-                                            @click="goToPatients"
-                                        >
-                                            <UserPlus class="mr-2 h-4 w-4" />
-                                            Agregar paciente
-                                        </Button>
-
-                                        <Button
-                                            v-if="can('users.create')"
-                                            type="button"
-                                            variant="outline"
-                                            class="h-10 rounded-xl border-zinc-200 bg-white transition-all duration-200 hover:-translate-y-0.5 hover:border-[color:var(--primary)] hover:text-[color:var(--primary)]"
-                                            @click="goToTherapists"
-                                        >
-                                            <UserCog class="mr-2 h-4 w-4" />
-                                            Agregar terapeuta
-                                        </Button>
-                                    </div>
                                 </section>
 
                                 <section

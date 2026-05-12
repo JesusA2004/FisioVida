@@ -76,6 +76,7 @@ const getSeed = () => parseDateTime(props.modelValue) ?? new Date();
 
 const seed = getSeed();
 
+const open = ref(false);
 const viewYear = ref(seed.getFullYear());
 const viewMonth = ref(seed.getMonth());
 const selectedDay = ref(
@@ -146,6 +147,7 @@ const syncFromModel = () => {
     meridiem.value = parsed.getHours() >= 12 ? 'PM' : 'AM';
 };
 
+// Sincronizar cuando el modelo cambia externamente
 watch(
     () => props.modelValue,
     () => {
@@ -153,20 +155,26 @@ watch(
     },
 );
 
+// Sincronizar estado interno cuando se abre el picker
+watch(open, (isOpen) => {
+    if (isOpen) syncFromModel();
+});
+
 const publish = () => {
     emit('update:modelValue', toIsoDateTimeLocal(currentAsDate()));
+    open.value = false;
 };
 
 const clear = () => {
     emit('update:modelValue', null);
+    open.value = false;
 };
 
+// Solo actualiza el día seleccionado visualmente, sin publicar ni cerrar
 const pickDay = (d: Date) => {
     selectedDay.value = new Date(d.getFullYear(), d.getMonth(), d.getDate());
     viewMonth.value = d.getMonth();
     viewYear.value = d.getFullYear();
-
-    publish();
 };
 
 const goPrevMonth = () => {
@@ -238,6 +246,7 @@ const calendarDays = computed(() => {
 const isSelected = (d: Date) =>
     d.toDateString() === selectedDay.value.toDateString();
 
+// "Hoy" actualiza los refs pero no cierra — el usuario confirma con Aplicar
 const selectToday = () => {
     const now = new Date();
 
@@ -251,13 +260,11 @@ const selectToday = () => {
     meridiem.value = now.getHours() >= 12 ? 'PM' : 'AM';
     viewMonth.value = now.getMonth();
     viewYear.value = now.getFullYear();
-
-    publish();
 };
 </script>
 
 <template>
-    <Popover>
+    <Popover v-model:open="open">
         <PopoverTrigger as-child>
             <Button
                 variant="outline"
@@ -277,9 +284,10 @@ const selectToday = () => {
         <PopoverContent
             align="start"
             side="bottom"
-            class="z-[80] w-[min(calc(100vw-2rem),19.5rem)] rounded-[1.35rem] border border-zinc-200 bg-white p-3 shadow-2xl dark:border-zinc-800 dark:bg-zinc-950"
+            class="z-[80] w-[min(calc(100vw-2rem),21rem)] rounded-[1.35rem] border border-zinc-200 bg-white p-3 shadow-2xl dark:border-zinc-800 dark:bg-zinc-950"
         >
             <div class="space-y-3">
+                <!-- Navegación de mes -->
                 <div class="flex items-center justify-between gap-2">
                     <Button
                         type="button"
@@ -308,6 +316,7 @@ const selectToday = () => {
                     </Button>
                 </div>
 
+                <!-- Días de la semana -->
                 <div
                     class="grid grid-cols-7 gap-1 text-center text-[11px] font-medium text-zinc-500 dark:text-zinc-400"
                 >
@@ -316,6 +325,7 @@ const selectToday = () => {
                     </span>
                 </div>
 
+                <!-- Celdas del calendario -->
                 <div class="grid grid-cols-7 gap-1">
                     <button
                         v-for="cell in calendarDays"
@@ -336,26 +346,33 @@ const selectToday = () => {
                     </button>
                 </div>
 
-                <div class="grid grid-cols-[1fr_1fr_82px] gap-2">
-                    <SearchableSelect
-                        v-model="hour12"
-                        :options="hourOptions"
-                        placeholder="Hr"
-                    />
+                <!-- Selector de hora -->
+                <div class="rounded-xl bg-zinc-50 p-2 dark:bg-zinc-900/50">
+                    <p class="mb-2 text-[11px] font-medium text-zinc-500 dark:text-zinc-400">
+                        Hora
+                    </p>
+                    <div class="grid grid-cols-[1fr_1fr_90px] gap-2">
+                        <SearchableSelect
+                            v-model="hour12"
+                            :options="hourOptions"
+                            placeholder="Hr"
+                        />
 
-                    <SearchableSelect
-                        v-model="minute"
-                        :options="minuteOptions"
-                        placeholder="Min"
-                    />
+                        <SearchableSelect
+                            v-model="minute"
+                            :options="minuteOptions"
+                            placeholder="Min"
+                        />
 
-                    <SearchableSelect
-                        v-model="meridiem"
-                        :options="meridiemOptions"
-                        placeholder="AM/PM"
-                    />
+                        <SearchableSelect
+                            v-model="meridiem"
+                            :options="meridiemOptions"
+                            placeholder="AM/PM"
+                        />
+                    </div>
                 </div>
 
+                <!-- Acciones -->
                 <div class="flex items-center justify-between gap-2 pt-1">
                     <Button
                         type="button"

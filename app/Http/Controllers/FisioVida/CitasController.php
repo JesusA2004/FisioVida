@@ -10,6 +10,7 @@ use App\Http\Resources\CitaResource;
 use App\Mail\AppointmentScheduledMail;
 use App\Services\Audit\AuditLogService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -111,6 +112,19 @@ class CitasController extends Controller
     {
         $payload = $request->validated();
 
+        // Si el usuario tiene rol terapeuta y no es superadmin, forzar su propio ID.
+        $user = $request->user();
+        if ($user && ! $user->isSuperAdmin()) {
+            $isTherapist = $user->roles()->whereIn('slug', ['terapeuta', 'therapist'])->exists();
+            if ($isTherapist) {
+                $payload['therapist_user_id'] = $user->id;
+            }
+        }
+
+        if ($this->hasOverlap((int) $payload['therapist_user_id'], $payload['start_at'], $payload['end_at'])) {
+            return back()->withErrors(['start_at' => 'El terapeuta ya tiene una cita en ese horario.']);
+        }
+
         // Toda cita nueva inicia como Programada.
         $payload['status'] = 'scheduled';
         $payload['created_by'] = $request->user()?->id;
@@ -170,6 +184,11 @@ class CitasController extends Controller
         abort_if(empty($old), 404);
 
         $payload = $request->validated();
+
+        if ($this->hasOverlap((int) $payload['therapist_user_id'], $payload['start_at'], $payload['end_at'], (int) $id)) {
+            return back()->withErrors(['start_at' => 'El terapeuta ya tiene una cita en ese horario.']);
+        }
+
         $payload['updated_at'] = now();
 
         DB::table('appointments')
@@ -228,6 +247,114 @@ class CitasController extends Controller
         );
 
         return back()->with('success', 'Cita cancelada correctamente.');
+    }
+
+    public function cancelar(Request $request, string $id)
+    {
+        $old = (array) DB::table('appointments')->where('id', $id)->first();
+
+        abort_if(empty($old), 404);
+
+        if (in_array($old['status'], ['cancelled', 'done', 'no_show'], true)) {
+            return back()->with('warning', 'Esta cita ya está en un estado final y no puede cancelarse.');
+        }
+
+        DB::table('appointments')
+            ->where('id', $id)
+            ->update(['status' => 'cancelled', 'updated_at' => now()]);
+
+        app(AuditLogService::class)->statusChanged(
+            $request,
+            'Agenda',
+            'appointment',
+            (int) $id,
+            'El usuario '.$request->user()?->name.' canceló una cita.',
+            (string) ($old['status'] ?? ''),
+            'cancelled',
+        );
+
+        return back()->with('success', 'Cita cancelada.');
+    }
+
+    public function noShow(Request $request, string $id)
+    {
+        $old = (array) DB::table('appointments')->where('id', $id)->first();
+
+        abort_if(empty($old), 404);
+
+        if (in_array($old['status'], ['cancelled', 'done', 'no_show'], true)) {
+            return back()->with('warning', 'Esta cita ya está en un estado final.');
+        }
+
+        DB::table('appointments')
+            ->where('id', $id)
+            ->update(['status' => 'no_show', 'updated_at' => now()]);
+
+        app(AuditLogService::class)->statusChanged(
+            $request,
+            'Agenda',
+            'appointment',
+            (int) $id,
+            'El usuario '.$request->user()?->name.' marcó una cita como no asistida.',
+            (string) ($old['status'] ?? ''),
+            'no_show',
+        );
+
+        return back()->with('success', 'Cita marcada como no asistida.');
+    }
+
+    public function avanzar(Request $request, string $id)
+    {
+        $old = (array) DB::table('appointments')->where('id', $id)->first();
+
+        abort_if(empty($old), 404);
+
+        $transitions = [
+            'scheduled' => 'confirmed',
+            'confirmed' => 'arrived',
+            'arrived' => 'done',
+        ];
+
+        $nextStatus = $transitions[$old['status'] ?? ''] ?? null;
+
+        if (! $nextStatus) {
+            return back()->with('warning', 'Esta cita no puede avanzar de estado.');
+        }
+
+        DB::table('appointments')
+            ->where('id', $id)
+            ->update(['status' => $nextStatus, 'updated_at' => now()]);
+
+        app(AuditLogService::class)->statusChanged(
+            $request,
+            'Agenda',
+            'appointment',
+            (int) $id,
+            'El usuario '.$request->user()?->name.' avanzó el estado de una cita a '.$nextStatus.'.',
+            (string) ($old['status'] ?? ''),
+            $nextStatus,
+        );
+
+        return back()->with('success', 'Estado de cita actualizado.');
+    }
+
+    private function hasOverlap(int $therapistId, string $startAt, string $endAt, ?int $excludeId = null): bool
+    {
+        $start = Carbon::parse($startAt)->toDateTimeString();
+        $end = Carbon::parse($endAt)->toDateTimeString();
+
+        $query = DB::table('appointments')
+            ->where('therapist_user_id', $therapistId)
+            ->whereNotIn('status', ['cancelled', 'no_show'])
+            ->whereNotNull('end_at')
+            ->where('start_at', '<', $end)
+            ->where('end_at', '>', $start);
+
+        if ($excludeId !== null) {
+            $query->where('id', '!=', $excludeId);
+        }
+
+        return $query->exists();
     }
 
     private function getAppointmentNotificationData(int $appointmentId): ?array

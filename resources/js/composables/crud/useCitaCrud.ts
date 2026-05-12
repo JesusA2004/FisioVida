@@ -1,4 +1,4 @@
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { router, useForm, usePage } from '@inertiajs/vue3';
 import {
     swalClose,
@@ -27,6 +27,10 @@ export type CitaRow = {
     patient_name: string;
     therapist_name: string;
 };
+
+const pad = (n: number) => String(n).padStart(2, '0');
+const toIsoLocal = (d: Date) =>
+    `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 
 export const useCitaCrud = (filters: {
     q?: string;
@@ -63,12 +67,50 @@ export const useCitaCrud = (filters: {
             >,
     );
 
+    const appSettings = computed<Record<string, any>>(
+        () => ((page.props as any).appSettings ?? {}) as Record<string, any>,
+    );
+
+    const defaultDuration = computed(() =>
+        Math.max(5, Number(appSettings.value.appointment_default_duration ?? 60)),
+    );
+
+    const authRoles = computed<{ id: number; name: string; slug: string }[]>(
+        () => ((page.props as any).auth?.roles ?? []) as { id: number; name: string; slug: string }[],
+    );
+
+    const currentUserId = computed<number | null>(
+        () => ((page.props as any).auth?.user?.id ?? null) as number | null,
+    );
+
+    const isTherapistRole = computed(() =>
+        !isSuperAdmin.value &&
+        authRoles.value.some((r) =>
+            ['terapeuta', 'therapist', 'fisioterapeuta'].includes(
+                (r.slug ?? '').toLowerCase(),
+            ),
+        ),
+    );
+
     const can = (permission: string) =>
         isSuperAdmin.value || permissions.value.includes(permission);
 
     const moduleEnabled = computed(() => enabledModules.value.agenda !== false);
 
     const isEditing = computed(() => editingId.value !== null);
+
+    // Auto-calcular end_at cuando start_at cambia y end_at está vacío
+    watch(
+        () => form.start_at,
+        (newStart) => {
+            if (!newStart || form.end_at) return;
+            const start = new Date(newStart);
+            if (Number.isNaN(start.getTime())) return;
+            form.end_at = toIsoLocal(
+                new Date(start.getTime() + defaultDuration.value * 60 * 1000),
+            );
+        },
+    );
 
     const applyFilters = (
         extra: Record<string, string | number | null | undefined>,
@@ -123,19 +165,24 @@ export const useCitaCrud = (filters: {
         return true;
     };
 
-    const openCreate = () => {
+    const openCreate = (prefill?: { patient_persona_id?: number | '' }) => {
         editingId.value = null;
         editingStatus.value = 'scheduled';
 
         form.reset();
         form.clearErrors();
 
-        form.patient_persona_id = '';
+        form.patient_persona_id = prefill?.patient_persona_id ?? '';
         form.therapist_user_id = '';
         form.start_at = '';
         form.end_at = '';
         form.status = 'scheduled';
         form.notes = '';
+
+        // Pre-llenar terapeuta si el usuario tiene rol terapeuta
+        if (isTherapistRole.value && currentUserId.value) {
+            form.therapist_user_id = currentUserId.value;
+        }
 
         isOpen.value = true;
     };
@@ -244,21 +291,11 @@ export const useCitaCrud = (filters: {
 
         if (!ok) return;
 
-        swalProgress(
-            'Cancelando cita...',
-            'Estamos actualizando el estado de la cita.',
-        );
+        swalProgress('Cancelando cita...', 'Actualizando el estado de la cita.');
 
-        router.put(
-            `/citas/${row.id}`,
-            {
-                patient_persona_id: row.patient_persona_id,
-                therapist_user_id: row.therapist_user_id,
-                start_at: row.start_at,
-                end_at: row.end_at,
-                status: 'cancelled',
-                notes: row.notes ?? '',
-            },
+        router.patch(
+            `/citas/${row.id}/cancelar`,
+            {},
             {
                 preserveScroll: true,
                 onSuccess: () => {
@@ -284,21 +321,11 @@ export const useCitaCrud = (filters: {
 
         if (!ok) return;
 
-        swalProgress(
-            'Actualizando cita...',
-            'Estamos marcando la cita como no asistida.',
-        );
+        swalProgress('Actualizando cita...', 'Marcando la cita como no asistida.');
 
-        router.put(
-            `/citas/${row.id}`,
-            {
-                patient_persona_id: row.patient_persona_id,
-                therapist_user_id: row.therapist_user_id,
-                start_at: row.start_at,
-                end_at: row.end_at,
-                status: 'no_show',
-                notes: row.notes ?? '',
-            },
+        router.patch(
+            `/citas/${row.id}/no-show`,
+            {},
             {
                 preserveScroll: true,
                 onSuccess: () => {
@@ -342,21 +369,11 @@ export const useCitaCrud = (filters: {
 
         if (!ok) return;
 
-        swalProgress(
-            'Actualizando estado...',
-            'Estamos avanzando el estado de la cita.',
-        );
+        swalProgress('Actualizando estado...', 'Avanzando el estado de la cita.');
 
-        router.put(
-            `/citas/${row.id}`,
-            {
-                patient_persona_id: row.patient_persona_id,
-                therapist_user_id: row.therapist_user_id,
-                start_at: row.start_at,
-                end_at: row.end_at,
-                status: next,
-                notes: row.notes ?? '',
-            },
+        router.patch(
+            `/citas/${row.id}/avanzar`,
+            {},
             {
                 preserveScroll: true,
                 onSuccess: () => {
@@ -382,22 +399,23 @@ export const useCitaCrud = (filters: {
 
         if (!ok) return;
 
-        swalProgress(
-            'Cancelando cita...',
-            'Estamos actualizando el estado de la cita.',
-        );
+        swalProgress('Cancelando cita...', 'Actualizando el estado de la cita.');
 
-        router.delete(`/citas/${row.id}`, {
-            preserveScroll: true,
-            onSuccess: () => {
-                swalClose();
-                swalToast('Cita cancelada correctamente', 'success');
+        router.patch(
+            `/citas/${row.id}/cancelar`,
+            {},
+            {
+                preserveScroll: true,
+                onSuccess: () => {
+                    swalClose();
+                    swalToast('Cita cancelada correctamente', 'success');
+                },
+                onError: () => {
+                    swalClose();
+                    swalErr('No se pudo cancelar la cita');
+                },
             },
-            onError: () => {
-                swalClose();
-                swalErr('No se pudo cancelar la cita');
-            },
-        });
+        );
     };
 
     return {
@@ -408,6 +426,7 @@ export const useCitaCrud = (filters: {
         isEditing,
         can,
         moduleEnabled,
+        isTherapistRole,
         applyFilters,
         openCreate,
         openEdit,

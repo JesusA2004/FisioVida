@@ -117,7 +117,7 @@ const uploadProgress = ref(0);
 let searchTimer: ReturnType<typeof setTimeout> | null = null;
 
 const uploadForm = useForm({
-    patient_persona_id: '' as number | '',
+    patient_persona_id: (props.filters.patient_persona_id ? Number(props.filters.patient_persona_id) : '') as number | '',
     session_id: '' as number | '',
     file_type: '',
     files: [] as File[],
@@ -141,6 +141,25 @@ const hasUploadPatient = computed(() => Boolean(uploadForm.patient_persona_id));
 const hasUploadSession = computed(() => Boolean(uploadForm.session_id));
 const hasEditPatient = computed(() => Boolean(editForm.patient_persona_id));
 const hasEditSession = computed(() => Boolean(editForm.session_id));
+
+const fromExpediente = computed(() => Boolean(props.filters.patient_persona_id));
+const expedientePatientName = computed(() => {
+    if (!fromExpediente.value) return null;
+    return props.lookups.patients.find(
+        (p) => p.id === Number(props.filters.patient_persona_id),
+    )?.label ?? null;
+});
+
+const sessionPatientName = computed(() => {
+    if (!uploadForm.session_id) return null;
+    const session = props.lookups.sessions.find(
+        (s) => s.id === Number(uploadForm.session_id),
+    );
+    if (!session?.patient_persona_id) return null;
+    return props.lookups.patients.find(
+        (p) => p.id === session.patient_persona_id,
+    )?.label ?? null;
+});
 
 const selectedFilesTotalSize = computed(() =>
     selectedFiles.value.reduce((sum, file) => sum + file.size, 0),
@@ -612,15 +631,24 @@ const destroyArchivo = async (row: ArchivoRow) => {
                     class="mb-5 flex flex-col gap-3 border-b border-zinc-100 pb-5 md:flex-row md:items-center md:justify-between"
                 >
                     <div>
-                        <h2 class="text-lg font-semibold text-zinc-950">
-                            Subir nuevos archivos
-                        </h2>
+                        <div>
+                            <h2 class="text-lg font-semibold text-zinc-950">
+                                Subir nuevos archivos
+                            </h2>
 
-                        <p class="mt-1 text-sm text-zinc-500">
-                            Relaciona los archivos con un paciente, sesión o
-                            tipo de documento para mantener el expediente
-                            organizado.
-                        </p>
+                            <p
+                                v-if="expedientePatientName"
+                                class="mt-1 text-sm font-medium text-sky-700 dark:text-sky-300"
+                            >
+                                Archivo para: {{ expedientePatientName }}
+                            </p>
+
+                            <p v-else class="mt-1 text-sm text-zinc-500">
+                                Relaciona los archivos con un paciente, sesión o
+                                tipo de documento para mantener el expediente
+                                organizado.
+                            </p>
+                        </div>
                     </div>
 
                     <div
@@ -735,6 +763,15 @@ const destroyArchivo = async (row: ArchivoRow) => {
                                     <Label>Paciente relacionado</Label>
 
                                     <div
+                                        v-if="fromExpediente"
+                                        class="flex items-center gap-2 rounded-2xl border border-sky-200 bg-sky-50 px-3 py-2 text-sm text-sky-800 dark:border-sky-800/50 dark:bg-sky-950/40 dark:text-sky-200"
+                                    >
+                                        <UserRound class="h-4 w-4 shrink-0" />
+                                        Archivo para: <strong>{{ expedientePatientName }}</strong>
+                                    </div>
+
+                                    <div
+                                        v-else
                                         :class="{
                                             'pointer-events-none opacity-50':
                                                 hasUploadSession,
@@ -763,14 +800,17 @@ const destroyArchivo = async (row: ArchivoRow) => {
                                     </div>
 
                                     <p
-                                        v-if="hasUploadSession"
+                                        v-if="!fromExpediente && hasUploadSession"
                                         class="text-xs text-amber-600"
                                     >
                                         Desactiva la sesión para elegir paciente
                                         manual.
                                     </p>
 
-                                    <p v-else class="text-xs text-zinc-500">
+                                    <p
+                                        v-else-if="!fromExpediente && !hasUploadSession"
+                                        class="text-xs text-zinc-500"
+                                    >
                                         Opcional, pero recomendado.
                                     </p>
                                 </div>
@@ -781,7 +821,7 @@ const destroyArchivo = async (row: ArchivoRow) => {
                                     <div
                                         :class="{
                                             'pointer-events-none opacity-50':
-                                                hasUploadPatient,
+                                                hasUploadPatient && !fromExpediente,
                                         }"
                                     >
                                         <SearchableSelect
@@ -805,7 +845,14 @@ const destroyArchivo = async (row: ArchivoRow) => {
                                     </div>
 
                                     <p
-                                        v-if="hasUploadPatient"
+                                        v-if="sessionPatientName"
+                                        class="text-xs text-sky-600"
+                                    >
+                                        Paciente de esta sesión: {{ sessionPatientName }}
+                                    </p>
+
+                                    <p
+                                        v-else-if="hasUploadPatient && !fromExpediente"
                                         class="text-xs text-amber-600"
                                     >
                                         Desactiva el paciente para elegir

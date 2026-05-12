@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { onMounted } from 'vue';
 import { Head, router } from '@inertiajs/vue3';
 import AppLayout from '@/layouts/AppLayout.vue';
 import type { BreadcrumbItem } from '@/types';
@@ -58,6 +59,14 @@ const {
     cancel,
     destroyActivity,
 } = useActividadCrud();
+
+onMounted(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('new') === '1') {
+        const patientId = params.get('patient_persona_id');
+        openCreate(patientId ? { patient_persona_id: Number(patientId) } : undefined);
+    }
+});
 
 const applyFilters = (extra: Record<string, string | number>) => {
     router.get(
@@ -130,7 +139,7 @@ const statusClass = (status: ActivityRow['status']) =>
                 </div>
                 <Button
                     class="rounded-2xl shadow-lg transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl"
-                    @click="openCreate"
+                    @click="() => openCreate()"
                 >
                     <PlusCircle class="mr-2 h-4 w-4" />
                     Nueva actividad
@@ -456,7 +465,7 @@ const statusClass = (status: ActivityRow['status']) =>
                             id="responsible"
                             v-model="form.responsible_user_id"
                             :options="[
-                                { value: '', label: 'Sin asignar' },
+                                { value: null, label: 'Sin asignar' },
                                 ...props.users.map((user) => ({
                                     value: user.id,
                                     label: user.name,
@@ -469,7 +478,7 @@ const statusClass = (status: ActivityRow['status']) =>
                         <SearchableSelect
                             v-model="form.patient_persona_id"
                             :options="[
-                                { value: '', label: 'Sin relación' },
+                                { value: null, label: 'Sin relación' },
                                 ...(props.patients ?? []).map((patient) => ({
                                     value: patient.id,
                                     label: patient.label,

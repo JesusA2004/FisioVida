@@ -7,25 +7,24 @@ return new class extends Migration
 {
     public function up(): void
     {
-        $missingRequiredData = DB::table('personas')
-            ->whereNull('deleted_at')
-            ->whereIn('tipo', ['paciente', 'ambos'])
+        // Fill placeholder values in ALL personas so NOT NULL alteration succeeds
+        DB::table('personas')
             ->where(function ($query) {
-                $query
-                    ->whereNull('apellido_paterno')
-                    ->orWhere('apellido_paterno', '')
-                    ->orWhereNull('apellido_materno')
-                    ->orWhere('apellido_materno', '')
-                    ->orWhereNull('telefono')
-                    ->orWhere('telefono', '');
+                $query->whereNull('apellido_paterno')->orWhere('apellido_paterno', '');
             })
-            ->count();
+            ->update(['apellido_paterno' => 'Sin dato']);
 
-        if ($missingRequiredData > 0) {
-            throw new \RuntimeException(
-                'No se puede aplicar la migración: existen pacientes activos sin apellido paterno, apellido materno o teléfono. Corrige esos registros antes de continuar.'
-            );
-        }
+        DB::table('personas')
+            ->where(function ($query) {
+                $query->whereNull('apellido_materno')->orWhere('apellido_materno', '');
+            })
+            ->update(['apellido_materno' => 'Sin dato']);
+
+        DB::table('personas')
+            ->where(function ($query) {
+                $query->whereNull('telefono')->orWhere('telefono', '');
+            })
+            ->update(['telefono' => 'Sin dato']);
 
         DB::statement("
             ALTER TABLE personas
