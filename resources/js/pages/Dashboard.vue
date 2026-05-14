@@ -296,7 +296,7 @@ const productivityOptions = computed(() => ({
         <section class="space-y-5 pb-8">
 
             <!-- ── Header ─────────────────────────────────────────────────── -->
-            <header class="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-zinc-200 dark:bg-zinc-900 dark:ring-zinc-800">
+            <header class="relative z-20 rounded-2xl bg-white shadow-sm ring-1 ring-zinc-200 dark:bg-zinc-900 dark:ring-zinc-800">
                 <div class="flex flex-col gap-5 p-6 md:flex-row md:items-start md:justify-between">
                     <div>
                         <div class="flex items-center gap-3">
@@ -321,7 +321,7 @@ const productivityOptions = computed(() => ({
                     </div>
 
                     <!-- Filters -->
-                    <div class="flex flex-wrap items-end gap-2">
+                    <div class="relative z-30 flex flex-wrap items-end gap-2">
                         <div class="flex flex-col gap-1">
                             <span class="text-[11px] font-medium text-zinc-500 dark:text-zinc-400">Desde</span>
                             <DatePicker v-model="filterForm.start_date" class="w-36" />
@@ -336,7 +336,7 @@ const productivityOptions = computed(() => ({
                                 v-model="filterForm.therapist_user_id"
                                 :options="[{ value: null, label: 'Todos' }, ...props.therapistLookup.map(t => ({ value: t.id, label: t.label }))]"
                                 clearable
-                                class="w-44"
+                                class="w-56 min-w-[200px]"
                             />
                         </div>
                         <Button variant="outline" size="sm" class="h-9 rounded-lg gap-1.5" @click="resetFilters">

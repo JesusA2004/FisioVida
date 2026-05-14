@@ -19,6 +19,7 @@ use App\Http\Controllers\FisioVida\ModulosSistemaController;
 use App\Http\Controllers\FisioVida\DashboardController;
 use App\Http\Controllers\FisioVida\ReportesController;
 use App\Http\Controllers\FisioVida\ConsentimientosController;
+use App\Http\Controllers\FisioVida\CumplimientoDocumentosController;
 
 Route::get('/', function () {
     if (auth()->check()) {
@@ -66,6 +67,26 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('pacientes/{paciente}/aviso-privacidad', [ConsentimientosController::class, 'storePrivacy'])
         ->name('pacientes.privacy.store')
         ->middleware('permission:patients.update');
+
+    Route::get('pacientes/{paciente}/cumplimiento/ficha-ingreso/imprimir', [CumplimientoDocumentosController::class, 'printIntakeForm'])
+        ->name('pacientes.cumplimiento.ficha-ingreso')
+        ->middleware('permission:patients.view');
+
+    Route::get('pacientes/{paciente}/cumplimiento/aviso-privacidad/imprimir', [CumplimientoDocumentosController::class, 'printPrivacyNotice'])
+        ->name('pacientes.cumplimiento.aviso-privacidad')
+        ->middleware('permission:patients.view');
+
+    Route::get('pacientes/{paciente}/cumplimiento/consentimiento-tratamiento/imprimir', [CumplimientoDocumentosController::class, 'printTreatmentConsent'])
+        ->name('pacientes.cumplimiento.tratamiento')
+        ->middleware('permission:patients.view');
+
+    Route::get('pacientes/{paciente}/cumplimiento/consentimiento-imagenes/imprimir', [CumplimientoDocumentosController::class, 'printImageConsent'])
+        ->name('pacientes.cumplimiento.imagenes')
+        ->middleware('permission:patients.view');
+
+    Route::get('pacientes/{paciente}/cumplimiento/consentimiento-datos-sensibles/imprimir', [CumplimientoDocumentosController::class, 'printSensitiveDataConsent'])
+        ->name('pacientes.cumplimiento.datos-sensibles')
+        ->middleware('permission:patients.view');
 
     Route::get('usuarios', [UsuariosController::class, 'index'])->name('usuarios.index')->middleware('permission:users.view');
     Route::post('usuarios', [UsuariosController::class, 'store'])->name('usuarios.store')->middleware('permission:users.create');

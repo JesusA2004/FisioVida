@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Controllers\FisioVida\Concerns\CrudHelpers;
 use App\Models\StoredFile;
 use App\Services\Audit\AuditLogService;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -16,7 +17,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ArchivosController extends Controller
 {
-    use CrudHelpers;
+    use AuthorizesRequests, CrudHelpers;
 
     private array $fileTypes = [
         'estudio_clinico' => 'Estudio clínico',
@@ -138,11 +139,10 @@ class ArchivosController extends Controller
 
     public function show(Request $request, string $archivo)
     {
-        $this->authorize('view', StoredFile::class);
+        $file = StoredFile::whereKey($archivo)->whereNull('deleted_at')->firstOrFail();
+        $this->authorize('view', $file);
 
-        $row = DB::table('files')->where('id', $archivo)->first();
-
-        abort_if(! $row || $row->deleted_at !== null, 404);
+        $row = $file;
 
         $disk = $row->disk ?? 'public';
 
@@ -161,21 +161,18 @@ class ArchivosController extends Controller
 
     public function download(Request $request, string $archivo): StreamedResponse
     {
-        $this->authorize('download', StoredFile::class);
+        $file = StoredFile::whereKey($archivo)->whereNull('deleted_at')->firstOrFail();
+        $this->authorize('download', $file);
 
-        $row = DB::table('files')->where('id', $archivo)->first();
+        $disk = $file->disk ?? 'public';
 
-        abort_if(! $row || $row->deleted_at !== null, 404);
+        abort_if(! Storage::disk($disk)->exists($file->path), 404);
 
-        $disk = $row->disk ?? 'public';
-
-        abort_if(! Storage::disk($disk)->exists($row->path), 404);
-
-        app(AuditLogService::class)->fileDownloaded($request, (int) $archivo, (string) ($row->original_name ?? 'archivo'));
+        app(AuditLogService::class)->fileDownloaded($request, (int) $archivo, (string) ($file->original_name ?? 'archivo'));
 
         return Storage::disk($disk)->download(
-            $row->path,
-            $row->original_name ?: basename($row->path),
+            $file->path,
+            $file->original_name ?: basename($file->path),
         );
     }
 
@@ -279,7 +276,8 @@ class ArchivosController extends Controller
 
     public function update(Request $request, string $id)
     {
-        $this->authorize('update', StoredFile::class);
+        $file = StoredFile::whereKey($id)->whereNull('deleted_at')->firstOrFail();
+        $this->authorize('update', $file);
 
         $row = DB::table('files')->where('id', $id)->first();
 
@@ -377,7 +375,8 @@ class ArchivosController extends Controller
 
     public function destroy(Request $request, string $id)
     {
-        $this->authorize('delete', StoredFile::class);
+        $file = StoredFile::whereKey($id)->firstOrFail();
+        $this->authorize('delete', $file);
 
         $row = DB::table('files')->where('id', $id)->first();
 

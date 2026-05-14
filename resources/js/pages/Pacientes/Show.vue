@@ -380,6 +380,13 @@ const consentTypeLabel = (type: string) =>
 const lastConsent = (type: string) =>
     props.consents.find(c => c.consent_type === type) ?? null;
 
+const consentPrintSlugs: Record<string, string> = {
+    tratamiento: 'consentimiento-tratamiento',
+    imagenes: 'consentimiento-imagenes',
+    datos_sensibles: 'consentimiento-datos-sensibles',
+};
+const consentPrintSlug = (key: string) => consentPrintSlugs[key] ?? key;
+
 const registerConsent = async () => {
     if (!consentForm.consent_type) return;
     const label = consentTypeLabel(consentForm.consent_type);
@@ -1436,8 +1443,8 @@ const registerPrivacyNotice = async () => {
                             </div>
                         </div>
 
-                        <!-- Register button -->
-                        <div class="flex items-center gap-2">
+                        <!-- Register + print buttons -->
+                        <div class="flex flex-wrap items-end gap-2">
                             <div class="flex flex-col gap-1">
                                 <label class="text-xs text-zinc-500 dark:text-zinc-400">Versión</label>
                                 <input
@@ -1456,6 +1463,16 @@ const registerPrivacyNotice = async () => {
                                 >
                                     {{ latestPrivacyNotice ? 'Actualizar aceptación' : 'Registrar aceptación' }}
                                 </Button>
+                            </div>
+                            <div class="flex items-end">
+                                <a
+                                    :href="`/pacientes/${props.patient.id}/cumplimiento/aviso-privacidad/imprimir`"
+                                    target="_blank"
+                                    class="inline-flex h-9 items-center gap-1.5 rounded-xl border border-zinc-200 bg-white px-3 text-xs font-medium text-zinc-600 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                                >
+                                    <FileText class="h-3.5 w-3.5" />
+                                    Imprimir aviso
+                                </a>
                             </div>
                         </div>
                     </div>
@@ -1534,31 +1551,98 @@ const registerPrivacyNotice = async () => {
                         <div
                             v-for="ct in CONSENT_TYPES"
                             :key="ct.key"
-                            class="flex items-start gap-3 rounded-2xl border p-4 transition-colors"
+                            class="flex flex-col gap-2 rounded-2xl border p-4 transition-colors"
                             :class="acceptedConsentTypes.has(ct.key)
                                 ? 'border-emerald-200 bg-emerald-50/60 dark:border-emerald-900/40 dark:bg-emerald-950/20'
                                 : 'border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900/40'"
                         >
-                            <component
-                                :is="acceptedConsentTypes.has(ct.key) ? ShieldCheck : ShieldX"
-                                class="mt-0.5 h-5 w-5 shrink-0"
-                                :class="acceptedConsentTypes.has(ct.key)
-                                    ? 'text-emerald-600 dark:text-emerald-400'
-                                    : 'text-zinc-400 dark:text-zinc-600'"
-                            />
-                            <div class="min-w-0 flex-1">
-                                <p class="text-sm font-medium text-zinc-900 dark:text-zinc-100">{{ ct.label }}</p>
-                                <p v-if="lastConsent(ct.key)" class="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">
-                                    Aceptado {{ formatDateTimeMx(lastConsent(ct.key)!.accepted_at) }}
-                                    <template v-if="lastConsent(ct.key)!.accepted_by_name">
-                                        · por {{ lastConsent(ct.key)!.accepted_by_name }}
-                                    </template>
-                                </p>
-                                <p v-else class="mt-0.5 text-xs text-zinc-400 dark:text-zinc-500">
-                                    Pendiente de registro
-                                </p>
+                            <div class="flex items-start gap-3">
+                                <component
+                                    :is="acceptedConsentTypes.has(ct.key) ? ShieldCheck : ShieldX"
+                                    class="mt-0.5 h-5 w-5 shrink-0"
+                                    :class="acceptedConsentTypes.has(ct.key)
+                                        ? 'text-emerald-600 dark:text-emerald-400'
+                                        : 'text-zinc-400 dark:text-zinc-600'"
+                                />
+                                <div class="min-w-0 flex-1">
+                                    <p class="text-sm font-medium text-zinc-900 dark:text-zinc-100">{{ ct.label }}</p>
+                                    <p v-if="lastConsent(ct.key)" class="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">
+                                        Aceptado {{ formatDateTimeMx(lastConsent(ct.key)!.accepted_at) }}
+                                        <template v-if="lastConsent(ct.key)!.accepted_by_name">
+                                            · por {{ lastConsent(ct.key)!.accepted_by_name }}
+                                        </template>
+                                    </p>
+                                    <p v-else class="mt-0.5 text-xs text-zinc-400 dark:text-zinc-500">
+                                        Pendiente de registro
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="flex justify-end">
+                                <a
+                                    :href="`/pacientes/${props.patient.id}/cumplimiento/${consentPrintSlug(ct.key)}/imprimir`"
+                                    target="_blank"
+                                    class="inline-flex items-center gap-1 rounded-lg border border-zinc-200 bg-white px-2.5 py-1 text-[11px] font-medium text-zinc-500 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800"
+                                >
+                                    <FileText class="h-3 w-3" />
+                                    Imprimir formato
+                                </a>
                             </div>
                         </div>
+                    </div>
+                </section>
+
+                <!-- Documentos imprimibles -->
+                <section class="rounded-[2rem] border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/50">
+                    <div class="mb-4 border-b border-zinc-100 pb-3 dark:border-zinc-800">
+                        <h2 class="flex items-center gap-2 text-base font-semibold text-zinc-950 dark:text-zinc-50">
+                            <FileText class="h-4 w-4" :style="{ color: 'var(--primary)' }" />
+                            Documentos imprimibles
+                        </h2>
+                        <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+                            Abre el formato para que el paciente lo firme físicamente.
+                        </p>
+                    </div>
+                    <div class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                        <a
+                            :href="`/pacientes/${props.patient.id}/cumplimiento/ficha-ingreso/imprimir`"
+                            target="_blank"
+                            class="flex items-center gap-2 rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-3 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900/40 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                        >
+                            <FileText class="h-4 w-4 shrink-0 text-zinc-400" />
+                            Ficha de ingreso
+                        </a>
+                        <a
+                            :href="`/pacientes/${props.patient.id}/cumplimiento/aviso-privacidad/imprimir`"
+                            target="_blank"
+                            class="flex items-center gap-2 rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-3 text-sm font-medium text-indigo-700 transition-colors hover:bg-indigo-100 dark:border-indigo-900/40 dark:bg-indigo-950/20 dark:text-indigo-300 dark:hover:bg-indigo-900/40"
+                        >
+                            <ShieldCheck class="h-4 w-4 shrink-0 text-indigo-400" />
+                            Aviso de privacidad
+                        </a>
+                        <a
+                            :href="`/pacientes/${props.patient.id}/cumplimiento/consentimiento-tratamiento/imprimir`"
+                            target="_blank"
+                            class="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-3 text-sm font-medium text-emerald-700 transition-colors hover:bg-emerald-100 dark:border-emerald-900/40 dark:bg-emerald-950/20 dark:text-emerald-300 dark:hover:bg-emerald-900/40"
+                        >
+                            <ShieldCheck class="h-4 w-4 shrink-0 text-emerald-400" />
+                            Consentimiento de tratamiento
+                        </a>
+                        <a
+                            :href="`/pacientes/${props.patient.id}/cumplimiento/consentimiento-imagenes/imprimir`"
+                            target="_blank"
+                            class="flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-3 text-sm font-medium text-amber-700 transition-colors hover:bg-amber-100 dark:border-amber-900/40 dark:bg-amber-950/20 dark:text-amber-300 dark:hover:bg-amber-900/40"
+                        >
+                            <FileText class="h-4 w-4 shrink-0 text-amber-400" />
+                            Consentimiento de imágenes
+                        </a>
+                        <a
+                            :href="`/pacientes/${props.patient.id}/cumplimiento/consentimiento-datos-sensibles/imprimir`"
+                            target="_blank"
+                            class="flex items-center gap-2 rounded-xl border border-purple-200 bg-purple-50 px-3 py-3 text-sm font-medium text-purple-700 transition-colors hover:bg-purple-100 dark:border-purple-900/40 dark:bg-purple-950/20 dark:text-purple-300 dark:hover:bg-purple-900/40"
+                        >
+                            <ShieldCheck class="h-4 w-4 shrink-0 text-purple-400" />
+                            Consentimiento datos sensibles
+                        </a>
                     </div>
                 </section>
 
