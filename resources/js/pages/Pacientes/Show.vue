@@ -23,9 +23,13 @@ import {
     NotebookText,
     Phone,
     ShieldAlert,
+    ShieldCheck,
+    ShieldX,
     Stethoscope,
     UserRound,
 } from 'lucide-vue-next';
+import { useForm } from '@inertiajs/vue3';
+import { swalConfirm, swalToast } from '@/lib/swal';
 import {
     tActivityStatus,
     tAppointmentStatus,
@@ -102,6 +106,28 @@ type ActivityItem = {
     responsible_name?: string | null;
 };
 
+type ConsentItem = {
+    id: number;
+    consent_type: string;
+    accepted_at: string;
+    notes?: string | null;
+    accepted_by_name?: string | null;
+};
+
+// 'privacidad' se gestiona en privacy_notice_acceptances (tabla separada por normativa)
+const CONSENT_TYPES = [
+    { key: 'tratamiento', label: 'Consentimiento de tratamiento' },
+    { key: 'imagenes', label: 'Uso de imágenes / fotografías' },
+    { key: 'datos_sensibles', label: 'Datos sensibles de salud' },
+] as const;
+
+type PrivacyNotice = {
+    id: number;
+    version: string;
+    accepted_at?: string | null;
+    accepted_by_name?: string | null;
+};
+
 const props = defineProps<{
     patient: Patient;
     appointments: Appointment[];
@@ -109,6 +135,8 @@ const props = defineProps<{
     files: PatientFile[];
     payments: Payment[];
     activities: ActivityItem[];
+    consents: ConsentItem[];
+    privacyNotices: PrivacyNotice[];
 }>();
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -117,7 +145,7 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 const activeTab = ref<
-    'resumen' | 'clinico' | 'citas' | 'archivos' | 'pagos' | 'seguimiento'
+    'resumen' | 'clinico' | 'citas' | 'archivos' | 'pagos' | 'seguimiento' | 'cumplimiento'
 >('resumen');
 
 const primaryButtonStyle = {
@@ -315,6 +343,7 @@ const tabs = [
     { key: 'archivos', label: 'Archivos' },
     { key: 'pagos', label: 'Pagos' },
     { key: 'seguimiento', label: 'Seguimiento' },
+    { key: 'cumplimiento', label: 'Cumplimiento' },
 ] as const;
 
 const goToSessions = () => {
@@ -335,6 +364,60 @@ const goToPayments = () => {
 
 const goToActivities = () => {
     router.visit(`/actividades?new=1&patient_persona_id=${props.patient.id}`);
+};
+
+// ── Compliance / Consentimientos ─────────────────────────────────────────────
+const acceptedConsentTypes = computed(() =>
+    new Set(props.consents.map(c => c.consent_type))
+);
+
+const consentForm = useForm({ consent_type: '', notes: '' });
+const showConsentForm = ref(false);
+
+const consentTypeLabel = (type: string) =>
+    CONSENT_TYPES.find(t => t.key === type)?.label ?? type;
+
+const lastConsent = (type: string) =>
+    props.consents.find(c => c.consent_type === type) ?? null;
+
+const registerConsent = async () => {
+    if (!consentForm.consent_type) return;
+    const label = consentTypeLabel(consentForm.consent_type);
+    const ok = await swalConfirm(
+        `¿Registrar "${label}"?`,
+        'Se quedará registrado en el expediente con fecha y usuario.',
+        'Sí, registrar'
+    );
+    if (!ok) return;
+
+    consentForm.post(`/pacientes/${props.patient.id}/consentimientos`, {
+        preserveScroll: true,
+        onSuccess: () => {
+            swalToast('Consentimiento registrado', 'success');
+            consentForm.reset();
+            showConsentForm.value = false;
+        },
+        onError: () => swalToast('Revisa el formulario', 'warning'),
+    });
+};
+
+// ── Aviso de Privacidad ──────────────────────────────────────────────────────
+const privacyForm = useForm({ version: '1.0' });
+const latestPrivacyNotice = computed(() => props.privacyNotices[0] ?? null);
+
+const registerPrivacyNotice = async () => {
+    const ok = await swalConfirm(
+        '¿Registrar aceptación del aviso de privacidad?',
+        `Versión ${privacyForm.version}. Se guardará con fecha, IP y usuario.`,
+        'Sí, registrar'
+    );
+    if (!ok) return;
+
+    privacyForm.post(`/pacientes/${props.patient.id}/aviso-privacidad`, {
+        preserveScroll: true,
+        onSuccess: () => swalToast('Aviso de privacidad registrado', 'success'),
+        onError: () => swalToast('No se pudo registrar', 'error'),
+    });
 };
 </script>
 
@@ -1312,6 +1395,205 @@ const goToActivities = () => {
                     </div>
                 </section>
             </div>
+
+            <!-- ── Cumplimiento ─────────────────────────────────────────── -->
+            <div v-if="activeTab === 'cumplimiento'" class="space-y-5">
+
+                <!-- Aviso de Privacidad -->
+                <section class="rounded-[2rem] border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/50">
+                    <div class="mb-4 border-b border-zinc-100 pb-3 dark:border-zinc-800">
+                        <h2 class="flex items-center gap-2 text-base font-semibold text-zinc-950 dark:text-zinc-50">
+                            <ShieldCheck class="h-4 w-4" :style="{ color: 'var(--primary)' }" />
+                            Aviso de privacidad (LFPDPPP)
+                        </h2>
+                        <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+                            Registro independiente del aviso de privacidad conforme a la Ley Federal de Protección de Datos Personales en Posesión de los Particulares.
+                        </p>
+                    </div>
+
+                    <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                        <!-- Status -->
+                        <div class="flex items-center gap-3">
+                            <div
+                                class="flex h-10 w-10 items-center justify-center rounded-full"
+                                :class="latestPrivacyNotice ? 'bg-emerald-100 dark:bg-emerald-900/30' : 'bg-zinc-100 dark:bg-zinc-800'"
+                            >
+                                <component
+                                    :is="latestPrivacyNotice ? ShieldCheck : ShieldX"
+                                    class="h-5 w-5"
+                                    :class="latestPrivacyNotice ? 'text-emerald-600 dark:text-emerald-400' : 'text-zinc-400'"
+                                />
+                            </div>
+                            <div>
+                                <p class="text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                                    {{ latestPrivacyNotice ? 'Aviso de privacidad aceptado' : 'Aviso de privacidad pendiente' }}
+                                </p>
+                                <p v-if="latestPrivacyNotice" class="text-xs text-zinc-500 dark:text-zinc-400">
+                                    v{{ latestPrivacyNotice.version }} · {{ formatDateTimeMx(latestPrivacyNotice.accepted_at!) }}
+                                    <template v-if="latestPrivacyNotice.accepted_by_name"> · {{ latestPrivacyNotice.accepted_by_name }}</template>
+                                </p>
+                                <p v-else class="text-xs text-zinc-400">Sin registro aún</p>
+                            </div>
+                        </div>
+
+                        <!-- Register button -->
+                        <div class="flex items-center gap-2">
+                            <div class="flex flex-col gap-1">
+                                <label class="text-xs text-zinc-500 dark:text-zinc-400">Versión</label>
+                                <input
+                                    v-model="privacyForm.version"
+                                    type="text"
+                                    class="w-20 rounded-lg border border-zinc-200 bg-white px-2 py-1.5 text-xs dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+                                    placeholder="1.0"
+                                />
+                            </div>
+                            <div class="flex items-end">
+                                <Button
+                                    class="h-9 rounded-xl text-xs"
+                                    :style="primaryButtonStyle"
+                                    :disabled="privacyForm.processing"
+                                    @click="registerPrivacyNotice"
+                                >
+                                    {{ latestPrivacyNotice ? 'Actualizar aceptación' : 'Registrar aceptación' }}
+                                </Button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- History -->
+                    <div v-if="props.privacyNotices.length > 1" class="mt-4 border-t border-zinc-100 pt-3 dark:border-zinc-800">
+                        <p class="mb-2 text-xs font-medium text-zinc-500 uppercase tracking-wide dark:text-zinc-400">Historial</p>
+                        <ul class="space-y-1">
+                            <li v-for="pn in props.privacyNotices" :key="pn.id" class="text-xs text-zinc-500 dark:text-zinc-400">
+                                v{{ pn.version }} — {{ pn.accepted_at ? formatDateTimeMx(pn.accepted_at) : '—' }}
+                                <template v-if="pn.accepted_by_name"> — {{ pn.accepted_by_name }}</template>
+                            </li>
+                        </ul>
+                    </div>
+                </section>
+
+                <!-- Estado de consentimientos -->
+                <section class="rounded-[2rem] border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/50">
+                    <div class="mb-4 flex items-center justify-between border-b border-zinc-100 pb-3 dark:border-zinc-800">
+                        <h2 class="flex items-center gap-2 text-base font-semibold text-zinc-950 dark:text-zinc-50">
+                            <ShieldCheck class="h-4 w-4" :style="{ color: 'var(--primary)' }" />
+                            Estado de consentimientos
+                        </h2>
+                        <Button
+                            variant="outline"
+                            class="h-8 rounded-xl text-xs"
+                            @click="showConsentForm = !showConsentForm"
+                        >
+                            {{ showConsentForm ? 'Cancelar' : '+ Registrar consentimiento' }}
+                        </Button>
+                    </div>
+
+                    <!-- Consent form -->
+                    <div v-if="showConsentForm" class="mb-5 rounded-2xl border border-dashed border-zinc-300 bg-zinc-50 p-4 dark:border-zinc-700 dark:bg-zinc-950/40">
+                        <p class="mb-3 text-sm font-medium text-zinc-700 dark:text-zinc-300">Registrar nuevo consentimiento</p>
+                        <div class="grid gap-3 sm:grid-cols-2">
+                            <div>
+                                <label class="mb-1 block text-xs font-medium text-zinc-600 dark:text-zinc-400">Tipo de consentimiento *</label>
+                                <select
+                                    v-model="consentForm.consent_type"
+                                    class="w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+                                >
+                                    <option value="">Selecciona...</option>
+                                    <option v-for="ct in CONSENT_TYPES" :key="ct.key" :value="ct.key">
+                                        {{ ct.label }}
+                                    </option>
+                                </select>
+                                <p v-if="consentForm.errors.consent_type" class="mt-1 text-xs text-rose-600">
+                                    {{ consentForm.errors.consent_type }}
+                                </p>
+                            </div>
+                            <div>
+                                <label class="mb-1 block text-xs font-medium text-zinc-600 dark:text-zinc-400">Notas (opcional)</label>
+                                <input
+                                    v-model="consentForm.notes"
+                                    type="text"
+                                    placeholder="Ej. Firmado en papel, copia adjunta"
+                                    class="w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+                                />
+                            </div>
+                        </div>
+                        <div class="mt-3 flex justify-end">
+                            <Button
+                                class="h-8 rounded-xl text-xs"
+                                :style="primaryButtonStyle"
+                                :disabled="!consentForm.consent_type || consentForm.processing"
+                                @click="registerConsent"
+                            >
+                                Registrar
+                            </Button>
+                        </div>
+                    </div>
+
+                    <!-- Status grid -->
+                    <div class="grid gap-3 sm:grid-cols-2">
+                        <div
+                            v-for="ct in CONSENT_TYPES"
+                            :key="ct.key"
+                            class="flex items-start gap-3 rounded-2xl border p-4 transition-colors"
+                            :class="acceptedConsentTypes.has(ct.key)
+                                ? 'border-emerald-200 bg-emerald-50/60 dark:border-emerald-900/40 dark:bg-emerald-950/20'
+                                : 'border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900/40'"
+                        >
+                            <component
+                                :is="acceptedConsentTypes.has(ct.key) ? ShieldCheck : ShieldX"
+                                class="mt-0.5 h-5 w-5 shrink-0"
+                                :class="acceptedConsentTypes.has(ct.key)
+                                    ? 'text-emerald-600 dark:text-emerald-400'
+                                    : 'text-zinc-400 dark:text-zinc-600'"
+                            />
+                            <div class="min-w-0 flex-1">
+                                <p class="text-sm font-medium text-zinc-900 dark:text-zinc-100">{{ ct.label }}</p>
+                                <p v-if="lastConsent(ct.key)" class="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">
+                                    Aceptado {{ formatDateTimeMx(lastConsent(ct.key)!.accepted_at) }}
+                                    <template v-if="lastConsent(ct.key)!.accepted_by_name">
+                                        · por {{ lastConsent(ct.key)!.accepted_by_name }}
+                                    </template>
+                                </p>
+                                <p v-else class="mt-0.5 text-xs text-zinc-400 dark:text-zinc-500">
+                                    Pendiente de registro
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Historial de consentimientos -->
+                <section class="rounded-[2rem] border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/50">
+                    <h2 class="mb-4 flex items-center gap-2 border-b border-zinc-100 pb-3 text-base font-semibold text-zinc-950 dark:border-zinc-800 dark:text-zinc-50">
+                        <ShieldAlert class="h-4 w-4" :style="{ color: 'var(--primary)' }" />
+                        Historial de consentimientos
+                    </h2>
+
+                    <div v-if="!props.consents.length" class="rounded-2xl border border-dashed border-zinc-300 bg-zinc-50 p-6 text-center text-sm text-zinc-500 dark:border-zinc-700 dark:bg-zinc-950/40">
+                        No hay consentimientos registrados aún.
+                    </div>
+                    <ul v-else class="space-y-2">
+                        <li
+                            v-for="c in props.consents"
+                            :key="c.id"
+                            class="flex items-center gap-3 rounded-2xl border border-zinc-100 bg-zinc-50/50 px-4 py-3 dark:border-zinc-800 dark:bg-zinc-900/40"
+                        >
+                            <ShieldCheck class="h-4 w-4 shrink-0 text-emerald-500" />
+                            <div class="min-w-0 flex-1">
+                                <p class="text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                                    {{ consentTypeLabel(c.consent_type) }}
+                                </p>
+                                <p class="text-xs text-zinc-500 dark:text-zinc-400">
+                                    {{ formatDateTimeMx(c.accepted_at) }}
+                                    <template v-if="c.accepted_by_name"> · {{ c.accepted_by_name }}</template>
+                                    <template v-if="c.notes"> · {{ c.notes }}</template>
+                                </p>
+                            </div>
+                        </li>
+                    </ul>
+                </section>
+            </div>
+
         </section>
     </AppLayout>
 </template>

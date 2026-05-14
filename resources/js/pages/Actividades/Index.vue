@@ -28,12 +28,14 @@ import {
     Ban,
     Trash2,
     Clock3,
+    Play,
 } from 'lucide-vue-next';
 import SearchableSelect from '@/components/ui/SearchableSelect.vue';
 import DateTimePicker from '@/components/ui/DateTimePicker.vue';
 import StatusFlow from '@/components/ui/StatusFlow.vue';
 import { formatDateTimeMx } from '@/lib/dates';
 import { tActivityStatus, tPriority } from '@/lib/labels';
+import { swalConfirm, swalToast } from '@/lib/swal';
 
 const props = defineProps<{
     rows: ActivityRow[];
@@ -70,19 +72,26 @@ onMounted(() => {
 
 const applyFilters = (extra: Record<string, string | number>) => {
     router.get(
-        route('actividades.index'),
+        '/actividades',
         { ...props.filters, ...extra },
-        { preserveState: true, replace: true },
+        { preserveState: true, replace: true, preserveScroll: true },
     );
 };
 
 const goPage = (page: number) => applyFilters({ page });
 
+const startActivity = async (row: ActivityRow) => {
+    const ok = await swalConfirm('¿Iniciar actividad?', row.title, 'Sí, iniciar');
+    if (!ok) return;
+    router.patch(`/actividades/${row.id}/start`, {}, {
+        preserveScroll: true,
+        onSuccess: () => swalToast('Actividad iniciada', 'success'),
+    });
+};
+
 const advanceActivity = (row: ActivityRow) => {
     if (row.status === 'pending') {
-        openEdit(row);
-        form.status = 'in_progress';
-        submit();
+        startActivity(row);
         return;
     }
     if (row.status === 'in_progress') {

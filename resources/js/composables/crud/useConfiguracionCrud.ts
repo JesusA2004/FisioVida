@@ -34,7 +34,7 @@ export const useConfiguracionCrud = (settingsMap: Record<string, string | null>,
     const ok = await swalConfirm('¿Guardar cambios de configuración?', 'Se actualizarán los datos generales de la clínica.', 'Sí, guardar')
     if (!ok) return
 
-    form.put(route('configuracion.update'), {
+    form.put('/configuracion', {
       preserveScroll: true,
       onSuccess: () => swalToast('Configuración guardada correctamente', 'success'),
       onError: () => swalToast('Revisa los campos del formulario', 'warning'),
@@ -45,7 +45,7 @@ export const useConfiguracionCrud = (settingsMap: Record<string, string | null>,
     const ok = await swalConfirm('¿Guardar módulos habilitados?', 'Esto afectará la visibilidad global del sistema.', 'Sí, guardar')
     if (!ok) return
 
-    modulesForm.patch(route('configuracion.modulos.update'), {
+    modulesForm.patch('/configuracion/modulos', {
       preserveScroll: true,
       onSuccess: () => swalToast('Módulos actualizados correctamente', 'success'),
       onError: () => swalToast('No se pudieron actualizar los módulos', 'error'),

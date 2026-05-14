@@ -74,12 +74,26 @@ watch(
     () => [
         form.value.start_date,
         form.value.end_date,
-        form.value.status,
+        form.value.appointment_status,
+        form.value.payment_status,
+        form.value.activity_status,
         form.value.therapist_user_id,
         form.value.patient_persona_id,
     ],
     () => debounced(applyFilters, 400),
 );
+
+const buildExportQuery = () => {
+    const params = new URLSearchParams();
+    params.set('start_date', form.value.start_date);
+    params.set('end_date', form.value.end_date);
+    if (form.value.appointment_status) params.set('appointment_status', form.value.appointment_status);
+    if (form.value.payment_status) params.set('payment_status', form.value.payment_status);
+    if (form.value.activity_status) params.set('activity_status', form.value.activity_status);
+    if (form.value.therapist_user_id) params.set('therapist_user_id', String(form.value.therapist_user_id));
+    if (form.value.patient_persona_id) params.set('patient_persona_id', String(form.value.patient_persona_id));
+    return params.toString();
+};
 
 const money = (value: number) =>
     Number(value ?? 0).toLocaleString('es-MX', {
@@ -122,21 +136,25 @@ const barWidth = (total: number, rows: Array<{ total: number }>) =>
                             seleccionado.
                         </p>
                     </div>
-                    <div class="flex items-center gap-2">
+                    <div class="flex flex-wrap items-center gap-2">
                         <Badge
                             class="rounded-full bg-sky-100 px-3 py-1 text-sky-700 dark:bg-sky-900/30 dark:text-sky-300"
                         >
                             <ChartNoAxesCombined class="mr-1 h-3.5 w-3.5" />
                             Base operativa
                         </Badge>
-                        <Button
-                            variant="outline"
-                            class="rounded-xl opacity-50"
-                            disabled
-                            title="Exportación próximamente disponible"
+                        <a
+                            :href="`/reportes/export/excel?${buildExportQuery()}`"
+                            class="inline-flex items-center rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm font-medium text-zinc-700 shadow-sm hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800"
                         >
-                            <DownloadCloud class="mr-2 h-4 w-4" />Exportar
-                        </Button>
+                            <DownloadCloud class="mr-2 h-4 w-4 text-emerald-600" />Excel
+                        </a>
+                        <a
+                            :href="`/reportes/export/pdf?${buildExportQuery()}`"
+                            class="inline-flex items-center rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm font-medium text-zinc-700 shadow-sm hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800"
+                        >
+                            <DownloadCloud class="mr-2 h-4 w-4 text-rose-600" />PDF
+                        </a>
                     </div>
                 </div>
 
@@ -144,7 +162,7 @@ const barWidth = (total: number, rows: Array<{ total: number }>) =>
                 <div
                     class="rounded-2xl border border-zinc-200 bg-zinc-50/60 p-4 dark:border-zinc-800 dark:bg-zinc-900/40"
                 >
-                    <div class="grid gap-3 md:grid-cols-5">
+                    <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
                         <div class="space-y-1">
                             <p class="text-xs text-zinc-500">Desde</p>
                             <DatePicker v-model="form.start_date" />
@@ -153,32 +171,6 @@ const barWidth = (total: number, rows: Array<{ total: number }>) =>
                             <p class="text-xs text-zinc-500">Hasta</p>
                             <DatePicker v-model="form.end_date" />
                         </div>
-                        <SearchableSelect
-                            v-model="form.status"
-                            :options="[
-                                { value: '', label: 'Todos los estados' },
-                                {
-                                    value: 'scheduled',
-                                    label: tAppointmentStatus('scheduled'),
-                                },
-                                {
-                                    value: 'confirmed',
-                                    label: tAppointmentStatus('confirmed'),
-                                },
-                                {
-                                    value: 'done',
-                                    label: tAppointmentStatus('done'),
-                                },
-                                {
-                                    value: 'pending',
-                                    label: tPaymentStatus('pending'),
-                                },
-                                {
-                                    value: 'paid',
-                                    label: tPaymentStatus('paid'),
-                                },
-                            ]"
-                        />
                         <SearchableSelect
                             v-model="form.therapist_user_id"
                             :options="[
@@ -201,6 +193,51 @@ const barWidth = (total: number, rows: Array<{ total: number }>) =>
                             ]"
                             clearable
                         />
+                    </div>
+                    <div class="mt-3 grid gap-3 md:grid-cols-3">
+                        <div class="space-y-1">
+                            <p class="text-xs text-zinc-500">Estado de cita</p>
+                            <SearchableSelect
+                                v-model="form.appointment_status"
+                                :options="[
+                                    { value: '', label: 'Todos los estados' },
+                                    { value: 'scheduled', label: tAppointmentStatus('scheduled') },
+                                    { value: 'confirmed', label: tAppointmentStatus('confirmed') },
+                                    { value: 'done', label: tAppointmentStatus('done') },
+                                    { value: 'cancelled', label: tAppointmentStatus('cancelled') },
+                                    { value: 'no_show', label: tAppointmentStatus('no_show') },
+                                ]"
+                                clearable
+                            />
+                        </div>
+                        <div class="space-y-1">
+                            <p class="text-xs text-zinc-500">Estado de pago</p>
+                            <SearchableSelect
+                                v-model="form.payment_status"
+                                :options="[
+                                    { value: '', label: 'Todos los estados' },
+                                    { value: 'pending', label: tPaymentStatus('pending') },
+                                    { value: 'paid', label: tPaymentStatus('paid') },
+                                    { value: 'cancelled', label: tPaymentStatus('cancelled') },
+                                ]"
+                                clearable
+                            />
+                        </div>
+                        <div class="space-y-1">
+                            <p class="text-xs text-zinc-500">Estado de actividad</p>
+                            <SearchableSelect
+                                v-model="form.activity_status"
+                                :options="[
+                                    { value: '', label: 'Todos los estados' },
+                                    { value: 'pending', label: tActivityStatus('pending') },
+                                    { value: 'in_progress', label: tActivityStatus('in_progress') },
+                                    { value: 'completed', label: tActivityStatus('completed') },
+                                    { value: 'cancelled', label: tActivityStatus('cancelled') },
+                                    { value: 'overdue', label: tActivityStatus('overdue') },
+                                ]"
+                                clearable
+                            />
+                        </div>
                     </div>
 
                     <!-- Error de fechas -->

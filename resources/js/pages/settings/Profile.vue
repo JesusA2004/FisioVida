@@ -2,6 +2,7 @@
 import { Form, Head, Link, usePage } from '@inertiajs/vue3';
 import DeleteUser from '@/components/DeleteUser.vue';
 import Heading from '@/components/Heading.vue';
+import AppearanceTabs from '@/components/AppearanceTabs.vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -122,6 +123,15 @@ const user = page.props.auth.user;
                         </Transition>
                     </div>
                 </Form>
+            </div>
+
+            <div class="flex flex-col space-y-6">
+                <Heading
+                    variant="small"
+                    title="Apariencia"
+                    description="Elige cómo quieres ver el sistema."
+                />
+                <AppearanceTabs />
             </div>
 
             <!--<DeleteUser />-->

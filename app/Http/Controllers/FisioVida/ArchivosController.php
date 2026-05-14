@@ -4,6 +4,7 @@ namespace App\Http\Controllers\FisioVida;
 
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\FisioVida\Concerns\CrudHelpers;
+use App\Models\StoredFile;
 use App\Services\Audit\AuditLogService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -30,6 +31,8 @@ class ArchivosController extends Controller
 
     public function index(Request $request)
     {
+        $this->authorize('viewAny', StoredFile::class);
+
         $q = trim((string) $request->input('q', ''));
         $perPageInput = $request->input('per_page', 10);
 
@@ -38,6 +41,7 @@ class ArchivosController extends Controller
             ->leftJoin('therapy_sessions as s', 's.id', '=', 'f.session_id')
             ->leftJoin('personas as sp', 'sp.id', '=', 's.patient_persona_id')
             ->leftJoin('users as u', 'u.id', '=', 'f.uploaded_by')
+            ->whereNull('f.deleted_at')
             ->where(function ($where) {
                 $where->whereNull('p.id')->orWhereNull('p.deleted_at');
             })
@@ -134,9 +138,11 @@ class ArchivosController extends Controller
 
     public function show(Request $request, string $archivo)
     {
+        $this->authorize('view', StoredFile::class);
+
         $row = DB::table('files')->where('id', $archivo)->first();
 
-        abort_if(! $row, 404);
+        abort_if(! $row || $row->deleted_at !== null, 404);
 
         $disk = $row->disk ?? 'public';
 
@@ -155,9 +161,11 @@ class ArchivosController extends Controller
 
     public function download(Request $request, string $archivo): StreamedResponse
     {
+        $this->authorize('download', StoredFile::class);
+
         $row = DB::table('files')->where('id', $archivo)->first();
 
-        abort_if(! $row, 404);
+        abort_if(! $row || $row->deleted_at !== null, 404);
 
         $disk = $row->disk ?? 'public';
 
@@ -173,6 +181,8 @@ class ArchivosController extends Controller
 
     public function store(Request $request)
     {
+        $this->authorize('upload', StoredFile::class);
+
         $data = $request->validate([
             'patient_persona_id' => ['nullable', 'integer', 'exists:personas,id', 'prohibits:session_id'],
             'session_id' => ['nullable', 'integer', 'exists:therapy_sessions,id', 'prohibits:patient_persona_id'],
@@ -269,6 +279,8 @@ class ArchivosController extends Controller
 
     public function update(Request $request, string $id)
     {
+        $this->authorize('update', StoredFile::class);
+
         $row = DB::table('files')->where('id', $id)->first();
 
         abort_if(! $row, 404);
@@ -365,38 +377,31 @@ class ArchivosController extends Controller
 
     public function destroy(Request $request, string $id)
     {
+        $this->authorize('delete', StoredFile::class);
+
         $row = DB::table('files')->where('id', $id)->first();
 
-        if (! $row) {
+        if (! $row || $row->deleted_at !== null) {
             return back()->with('success', 'El archivo ya no existe.');
         }
 
-        DB::beginTransaction();
-
         try {
-            try {
-                Storage::disk($row->disk ?? 'public')->delete($row->path);
-            } catch (\Throwable) {
-                //
-            }
+            DB::table('files')->where('id', $id)->update([
+                'deleted_at' => now(),
+                'deleted_by' => $request->user()?->id,
+            ]);
 
-            DB::table('files')->where('id', $id)->delete();
-
-            app(AuditLogService::class)->deleted(
+            app(AuditLogService::class)->softDeleted(
                 $request,
                 'Archivos',
                 'file',
                 (int) $id,
-                'El usuario ' . $request->user()?->name . ' eliminó el archivo "' . ($row->original_name ?? 'Sin nombre') . '".',
-                (array) $row,
+                'El usuario ' . $request->user()?->name . ' eliminó (soft) el archivo "' . ($row->original_name ?? 'Sin nombre') . '".',
+                ['original_name' => $row->original_name, 'file_type' => $row->file_type, 'path' => $row->path],
             );
-
-            DB::commit();
 
             return back()->with('success', 'Archivo eliminado correctamente.');
         } catch (\Throwable $e) {
-            DB::rollBack();
-
             report($e);
 
             return back()->withErrors([

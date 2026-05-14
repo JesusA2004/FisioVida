@@ -15,82 +15,107 @@ class AuditLogService
         'notes', 'email',
     ];
 
-    private function maskSensitive(array $data): array
+    private function maskSensitive(array $data, int $depth = 0): array
     {
-        foreach (self::$sensitiveFields as $field) {
-            if (array_key_exists($field, $data) && $data[$field] !== null) {
-                $data[$field] = '[REDACTADO]';
+        if ($depth > 4) return $data;
+
+        foreach ($data as $key => $value) {
+            if (in_array($key, self::$sensitiveFields, true) && $value !== null) {
+                $data[$key] = '[REDACTADO]';
+            } elseif (is_array($value)) {
+                $data[$key] = $this->maskSensitive($value, $depth + 1);
             }
         }
+
         return $data;
     }
 
     public function record(array $payload): void
     {
-        DB::table('logs')->insert([
-            'level' => 'audit',
-            'actor_user_id' => $payload['user_id'] ?? null,
-            'user_id' => $payload['user_id'] ?? null,
-            'action' => (string) ($payload['action'] ?? 'acción'),
-            'module' => $payload['module'] ?? null,
-            'entity_type' => $payload['auditable_type'] ?? null,
-            'entity_id' => $payload['auditable_id'] ?? null,
-            'auditable_type' => $payload['auditable_type'] ?? null,
-            'auditable_id' => $payload['auditable_id'] ?? null,
-            'message' => (string) ($payload['human_message'] ?? 'Acción registrada'),
-            'human_message' => (string) ($payload['human_message'] ?? 'Acción registrada'),
-            'old_values' => isset($payload['old_values']) ? json_encode($payload['old_values']) : null,
-            'new_values' => isset($payload['new_values']) ? json_encode($payload['new_values']) : null,
-            'ip' => $payload['ip_address'] ?? null,
-            'ip_address' => $payload['ip_address'] ?? null,
-            'user_agent' => isset($payload['user_agent']) ? substr((string) $payload['user_agent'], 0, 255) : null,
-            'created_at' => now(),
-        ]);
+        try {
+            DB::table('logs')->insert([
+                'level'          => 'audit',
+                'actor_user_id'  => $payload['user_id'] ?? null,
+                'user_id'        => $payload['user_id'] ?? null,
+                'action'         => (string) ($payload['action'] ?? 'acción'),
+                'module'         => $payload['module'] ?? null,
+                'entity_type'    => $payload['auditable_type'] ?? null,
+                'entity_id'      => $payload['auditable_id'] ?? null,
+                'auditable_type' => $payload['auditable_type'] ?? null,
+                'auditable_id'   => $payload['auditable_id'] ?? null,
+                'message'        => (string) ($payload['human_message'] ?? 'Acción registrada'),
+                'human_message'  => (string) ($payload['human_message'] ?? 'Acción registrada'),
+                'old_values'     => isset($payload['old_values']) ? json_encode($payload['old_values']) : null,
+                'new_values'     => isset($payload['new_values']) ? json_encode($payload['new_values']) : null,
+                'ip'             => $payload['ip_address'] ?? null,
+                'ip_address'     => $payload['ip_address'] ?? null,
+                'user_agent'     => isset($payload['user_agent']) ? substr((string) $payload['user_agent'], 0, 255) : null,
+                'created_at'     => now(),
+            ]);
+        } catch (\Throwable $e) {
+            report($e);
+        }
     }
 
     public function created(Request $request, string $module, string $auditableType, int|string|null $auditableId, string $humanMessage, array $newValues = []): void
     {
         $this->record([
-            'user_id' => $request->user()?->id,
-            'action' => 'Creación',
-            'module' => $module,
+            'user_id'        => $request->user()?->id,
+            'action'         => 'Creación',
+            'module'         => $module,
             'auditable_type' => $auditableType,
-            'auditable_id' => $auditableId,
-            'human_message' => $humanMessage,
-            'new_values' => $this->maskSensitive($newValues),
-            'ip_address' => $request->ip(),
-            'user_agent' => $request->userAgent(),
+            'auditable_id'   => $auditableId,
+            'human_message'  => $humanMessage,
+            'new_values'     => $this->maskSensitive($newValues),
+            'ip_address'     => $request->ip(),
+            'user_agent'     => $request->userAgent(),
         ]);
     }
 
     public function updated(Request $request, string $module, string $auditableType, int|string|null $auditableId, string $humanMessage, array $oldValues = [], array $newValues = []): void
     {
         $this->record([
-            'user_id' => $request->user()?->id,
-            'action' => 'Actualización',
-            'module' => $module,
+            'user_id'        => $request->user()?->id,
+            'action'         => 'Actualización',
+            'module'         => $module,
             'auditable_type' => $auditableType,
-            'auditable_id' => $auditableId,
-            'human_message' => $humanMessage,
-            'old_values' => $this->maskSensitive($oldValues),
-            'new_values' => $this->maskSensitive($newValues),
-            'ip_address' => $request->ip(),
-            'user_agent' => $request->userAgent(),
+            'auditable_id'   => $auditableId,
+            'human_message'  => $humanMessage,
+            'old_values'     => $this->maskSensitive($oldValues),
+            'new_values'     => $this->maskSensitive($newValues),
+            'ip_address'     => $request->ip(),
+            'user_agent'     => $request->userAgent(),
         ]);
     }
 
     public function deleted(Request $request, string $module, string $auditableType, int|string|null $auditableId, string $humanMessage, array $oldValues = []): void
     {
         $this->record([
-            'user_id' => $request->user()?->id,
-            'action' => 'Eliminación',
-            'module' => $module,
+            'user_id'        => $request->user()?->id,
+            'action'         => 'Eliminación',
+            'module'         => $module,
             'auditable_type' => $auditableType,
-            'auditable_id' => $auditableId,
-            'human_message' => $humanMessage,
-            'old_values' => $this->maskSensitive($oldValues),
-            'ip_address' => $request->ip(),
-            'user_agent' => $request->userAgent(),
+            'auditable_id'   => $auditableId,
+            'human_message'  => $humanMessage,
+            'old_values'     => $this->maskSensitive($oldValues),
+            'ip_address'     => $request->ip(),
+            'user_agent'     => $request->userAgent(),
+        ]);
+    }
+
+    public function softDeleted(Request $request, string $module, string $auditableType, int|string|null $auditableId, string $humanMessage, array $oldValues = []): void
+    {
+        $this->record([
+            'user_id'        => $request->user()?->id,
+            'action'         => 'Eliminación (soft)',
+            'module'         => $module,
+            'auditable_type' => $auditableType,
+            'auditable_id'   => $auditableId,
+            'human_message'  => $humanMessage,
+            'old_values'     => $this->maskSensitive($oldValues),
+            'new_values'     => ['deleted_at' => now()->toIso8601String(), 'deleted_by' => $request->user()?->id],
+            'ip_address'     => $request->ip(),
+            'user_agent'     => $request->userAgent(),
         ]);
     }
 
@@ -102,56 +127,70 @@ class AuditLogService
     public function completed(Request $request, string $module, string $auditableType, int|string|null $auditableId, string $humanMessage): void
     {
         $this->record([
-            'user_id' => $request->user()?->id,
-            'action' => 'Completado',
-            'module' => $module,
+            'user_id'        => $request->user()?->id,
+            'action'         => 'Completado',
+            'module'         => $module,
             'auditable_type' => $auditableType,
-            'auditable_id' => $auditableId,
-            'human_message' => $humanMessage,
-            'ip_address' => $request->ip(),
-            'user_agent' => $request->userAgent(),
+            'auditable_id'   => $auditableId,
+            'human_message'  => $humanMessage,
+            'ip_address'     => $request->ip(),
+            'user_agent'     => $request->userAgent(),
         ]);
     }
 
     public function cancelled(Request $request, string $module, string $auditableType, int|string|null $auditableId, string $humanMessage): void
     {
         $this->record([
-            'user_id' => $request->user()?->id,
-            'action' => 'Cancelación',
-            'module' => $module,
+            'user_id'        => $request->user()?->id,
+            'action'         => 'Cancelación',
+            'module'         => $module,
             'auditable_type' => $auditableType,
-            'auditable_id' => $auditableId,
-            'human_message' => $humanMessage,
-            'ip_address' => $request->ip(),
-            'user_agent' => $request->userAgent(),
+            'auditable_id'   => $auditableId,
+            'human_message'  => $humanMessage,
+            'ip_address'     => $request->ip(),
+            'user_agent'     => $request->userAgent(),
         ]);
     }
 
     public function fileViewed(Request $request, int $fileId, string $fileName): void
     {
         $this->record([
-            'user_id' => $request->user()?->id,
-            'action' => 'Visualización',
-            'module' => 'Archivos',
+            'user_id'        => $request->user()?->id,
+            'action'         => 'Visualización',
+            'module'         => 'Archivos',
             'auditable_type' => 'file',
-            'auditable_id' => $fileId,
-            'human_message' => 'El usuario ' . ($request->user()?->name ?? 'Desconocido') . ' visualizó el archivo "' . $fileName . '".',
-            'ip_address' => $request->ip(),
-            'user_agent' => $request->userAgent(),
+            'auditable_id'   => $fileId,
+            'human_message'  => 'El usuario ' . ($request->user()?->name ?? 'Desconocido') . ' visualizó el archivo "' . $fileName . '".',
+            'ip_address'     => $request->ip(),
+            'user_agent'     => $request->userAgent(),
         ]);
     }
 
     public function fileDownloaded(Request $request, int $fileId, string $fileName): void
     {
         $this->record([
-            'user_id' => $request->user()?->id,
-            'action' => 'Descarga',
-            'module' => 'Archivos',
+            'user_id'        => $request->user()?->id,
+            'action'         => 'Descarga',
+            'module'         => 'Archivos',
             'auditable_type' => 'file',
-            'auditable_id' => $fileId,
-            'human_message' => 'El usuario ' . ($request->user()?->name ?? 'Desconocido') . ' descargó el archivo "' . $fileName . '".',
-            'ip_address' => $request->ip(),
-            'user_agent' => $request->userAgent(),
+            'auditable_id'   => $fileId,
+            'human_message'  => 'El usuario ' . ($request->user()?->name ?? 'Desconocido') . ' descargó el archivo "' . $fileName . '".',
+            'ip_address'     => $request->ip(),
+            'user_agent'     => $request->userAgent(),
+        ]);
+    }
+
+    public function patientViewed(Request $request, int|string $patientId, string $patientName): void
+    {
+        $this->record([
+            'user_id'        => $request->user()?->id,
+            'action'         => 'Visualización',
+            'module'         => 'Pacientes',
+            'auditable_type' => 'persona',
+            'auditable_id'   => $patientId,
+            'human_message'  => 'El usuario ' . ($request->user()?->name ?? 'Desconocido') . ' consultó el expediente de "' . $patientName . '".',
+            'ip_address'     => $request->ip(),
+            'user_agent'     => $request->userAgent(),
         ]);
     }
 }

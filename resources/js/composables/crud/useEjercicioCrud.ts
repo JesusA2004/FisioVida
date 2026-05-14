@@ -30,7 +30,7 @@ export const useEjercicioCrud = (filters: { q?: string; active?: string }) => {
   const moduleEnabled = computed(() => enabledModules.value.ejercicios !== false)
 
   const applyFilters = (extra: Record<string, string | number>) => {
-    router.get(route('ejercicios.index'), { ...filters, ...extra }, { preserveState: true, replace: true, preserveScroll: true })
+    router.get('/ejercicios', { ...filters, ...extra }, { preserveState: true, replace: true, preserveScroll: true })
   }
 
   const openCreate = () => {
@@ -69,26 +69,25 @@ export const useEjercicioCrud = (filters: { q?: string; active?: string }) => {
     }
 
     if (editingId.value) {
-      form.put(route('ejercicios.update', editingId.value), options)
+      form.put(`/ejercicios/${editingId.value}`, options)
       return
     }
 
-    form.post(route('ejercicios.store'), options)
+    form.post('/ejercicios', options)
   }
 
   const toggleActive = async (row: EjercicioRow) => {
     const activate = !row.is_active
-    const ok = await swalConfirm(activate ? '¿Activar ejercicio?' : '¿Desactivar ejercicio?', row.name, activate ? 'Sí, activar' : 'Sí, desactivar')
+    const ok = await swalConfirm(
+      activate ? '¿Marcar como disponible?' : '¿Ocultar del catálogo?',
+      row.name,
+      activate ? 'Sí, marcar disponible' : 'Sí, ocultar',
+    )
     if (!ok) return
 
-    router.put(route('ejercicios.update', row.id), {
-      name: row.name,
-      description: row.description ?? '',
-      video_url: row.video_url ?? '',
-      is_active: activate,
-    }, {
+    router.patch(`/ejercicios/${row.id}/toggle-active`, {}, {
       preserveScroll: true,
-      onSuccess: () => swalToast(activate ? 'Ejercicio activado' : 'Ejercicio desactivado', 'success'),
+      onSuccess: () => swalToast(activate ? 'Marcado como disponible' : 'Ocultado del catálogo', 'success'),
       onError: () => swalErr('No se pudo actualizar el estado'),
     })
   }
@@ -97,7 +96,7 @@ export const useEjercicioCrud = (filters: { q?: string; active?: string }) => {
     const ok = await swalConfirm('¿Eliminar ejercicio?', row.name, 'Sí, eliminar')
     if (!ok) return
 
-    router.delete(route('ejercicios.destroy', row.id), {
+    router.delete(`/ejercicios/${row.id}`, {
       preserveScroll: true,
       onSuccess: () => swalToast('Ejercicio eliminado', 'success'),
     })

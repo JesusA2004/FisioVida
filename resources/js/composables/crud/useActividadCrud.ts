@@ -79,7 +79,7 @@ export const useActividadCrud = () => {
         if (!ok) return;
 
         if (editingId.value) {
-            form.put(route('actividades.update', editingId.value), {
+            form.put(`/actividades/${editingId.value}`, {
                 preserveScroll: true,
                 onSuccess: () => {
                     swalToast('Actividad actualizada correctamente', 'success');
@@ -90,7 +90,7 @@ export const useActividadCrud = () => {
             return;
         }
 
-        form.post(route('actividades.store'), {
+        form.post('/actividades', {
             preserveScroll: true,
             onSuccess: () => {
                 swalToast('Actividad creada correctamente', 'success');
@@ -109,7 +109,7 @@ export const useActividadCrud = () => {
         if (!ok) return;
 
         router.patch(
-            route('actividades.complete', row.id),
+            `/actividades/${row.id}/complete`,
             {},
             {
                 preserveScroll: true,
@@ -127,7 +127,7 @@ export const useActividadCrud = () => {
         if (!ok) return;
 
         router.patch(
-            route('actividades.cancel', row.id),
+            `/actividades/${row.id}/cancel`,
             {},
             {
                 preserveScroll: true,
@@ -144,7 +144,7 @@ export const useActividadCrud = () => {
         );
         if (!ok) return;
 
-        router.delete(route('actividades.destroy', id), {
+        router.delete(`/actividades/${id}`, {
             preserveScroll: true,
             onSuccess: () => swalToast('Actividad eliminada', 'success'),
         });

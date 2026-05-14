@@ -18,6 +18,7 @@ use App\Http\Controllers\FisioVida\ConfiguracionController;
 use App\Http\Controllers\FisioVida\ModulosSistemaController;
 use App\Http\Controllers\FisioVida\DashboardController;
 use App\Http\Controllers\FisioVida\ReportesController;
+use App\Http\Controllers\FisioVida\ConsentimientosController;
 
 Route::get('/', function () {
     if (auth()->check()) {
@@ -58,6 +59,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
     ->name('pacientes.activate')
     ->middleware('permission:patients.update');
 
+    Route::post('pacientes/{paciente}/consentimientos', [ConsentimientosController::class, 'store'])
+        ->name('pacientes.consentimientos.store')
+        ->middleware('permission:patients.update');
+
+    Route::post('pacientes/{paciente}/aviso-privacidad', [ConsentimientosController::class, 'storePrivacy'])
+        ->name('pacientes.privacy.store')
+        ->middleware('permission:patients.update');
+
     Route::get('usuarios', [UsuariosController::class, 'index'])->name('usuarios.index')->middleware('permission:users.view');
     Route::post('usuarios', [UsuariosController::class, 'store'])->name('usuarios.store')->middleware('permission:users.create');
     Route::put('usuarios/{usuario}', [UsuariosController::class, 'update'])->name('usuarios.update')->middleware('permission:users.update');
@@ -80,6 +89,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('ejercicios', [EjerciciosController::class, 'index'])->name('ejercicios.index')->middleware('permission:exercises.view');
     Route::post('ejercicios', [EjerciciosController::class, 'store'])->name('ejercicios.store')->middleware('permission:exercises.create');
     Route::put('ejercicios/{ejercicio}', [EjerciciosController::class, 'update'])->name('ejercicios.update')->middleware('permission:exercises.update');
+    Route::patch('ejercicios/{ejercicio}/toggle-active', [EjerciciosController::class, 'toggleActive'])->name('ejercicios.toggle-active')->middleware('permission:exercises.update');
     Route::delete('ejercicios/{ejercicio}', [EjerciciosController::class, 'destroy'])->name('ejercicios.destroy')->middleware('permission:exercises.update');
 
     Route::get('/archivos/{archivo}/descargar', [ArchivosController::class, 'download'])
@@ -95,6 +105,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::patch('pagos/{pago}/cancelar', [PagosController::class, 'cancel'])->name('pagos.cancelar')->middleware('permission:payments.update');
 
     Route::get('reportes', [ReportesController::class, 'index'])->name('reportes.index')->middleware('permission:reports.view');
+    Route::get('reportes/export/excel', [ReportesController::class, 'exportExcel'])->name('reportes.export.excel')->middleware('permission:reports.view');
+    Route::get('reportes/export/pdf', [ReportesController::class, 'exportPdf'])->name('reportes.export.pdf')->middleware('permission:reports.view');
 
     Route::get('logs', [LogsController::class, 'index'])->name('logs.index')->middleware('permission:logs.view');
     Route::post('logs', [LogsController::class, 'store'])->name('logs.store')->middleware('permission:logs.view');
@@ -112,6 +124,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::put('actividades/{actividade}', [ActividadesController::class, 'update'])->name('actividades.update')->middleware('permission:activities.update');
     Route::delete('actividades/{actividade}', [ActividadesController::class, 'destroy'])->name('actividades.destroy')->middleware('permission:activities.update');
 
+    Route::patch('actividades/{actividade}/start', [ActividadesController::class, 'start'])->name('actividades.start')->middleware('permission:activities.update');
     Route::patch('actividades/{actividade}/complete', [ActividadesController::class, 'complete'])->name('actividades.complete')->middleware('permission:activities.complete');
     Route::patch('actividades/{actividade}/cancel', [ActividadesController::class, 'cancel'])->name('actividades.cancel')->middleware('permission:activities.update');
 

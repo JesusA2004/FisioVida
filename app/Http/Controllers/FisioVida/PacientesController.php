@@ -210,6 +210,9 @@ class PacientesController extends Controller {
 
         abort_if(! $patient, 404);
 
+        $patientName = trim(($patient->nombres ?? '') . ' ' . ($patient->apellido_paterno ?? '') . ' ' . ($patient->apellido_materno ?? ''));
+        app(AuditLogService::class)->patientViewed(request(), (int) $id, $patientName);
+
         $appointments = DB::table('appointments as a')
             ->leftJoin('users as u', 'u.id', '=', 'a.therapist_user_id')
             ->where('a.patient_persona_id', $id)
@@ -273,6 +276,26 @@ class PacientesController extends Controller {
             ->limit(20)
             ->get(['a.id', 'a.title', 'a.status', 'a.priority', 'a.due_date', 'u.name as responsible_name']);
 
+        $consents = Schema::hasTable('patient_consents')
+            ? DB::table('patient_consents as c')
+                ->leftJoin('users as u', 'u.id', '=', 'c.accepted_by_user_id')
+                ->where('c.patient_persona_id', $id)
+                ->orderByDesc('c.accepted_at')
+                ->get(['c.id', 'c.consent_type', 'c.accepted_at', 'c.notes', 'u.name as accepted_by_name'])
+                ->map(fn ($r) => (array) $r)
+                ->all()
+            : [];
+
+        $privacyNotices = Schema::hasTable('privacy_notice_acceptances')
+            ? DB::table('privacy_notice_acceptances as pn')
+                ->leftJoin('users as u', 'u.id', '=', 'pn.accepted_by')
+                ->where('pn.patient_persona_id', $id)
+                ->orderByDesc('pn.accepted_at')
+                ->get(['pn.id', 'pn.version', 'pn.accepted_at', 'u.name as accepted_by_name'])
+                ->map(fn ($r) => (array) $r)
+                ->all()
+            : [];
+
         return Inertia::render('Pacientes/Show', [
             'patient' => [
                 'id' => $patient->id,
@@ -294,6 +317,8 @@ class PacientesController extends Controller {
             'files' => $files,
             'payments' => $payments,
             'activities' => $activities,
+            'consents' => $consents,
+            'privacyNotices' => $privacyNotices,
         ]);
     }
 

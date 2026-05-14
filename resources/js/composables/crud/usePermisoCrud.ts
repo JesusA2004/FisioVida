@@ -57,7 +57,7 @@ export const usePermisoCrud = () => {
     if (!ok) return
 
     if (isEditing.value && editingId.value) {
-      form.put(route('permisos.update', editingId.value), {
+      form.put(`/permisos/${editingId.value}`, {
         preserveScroll: true,
         onSuccess: () => {
           swalToast('Permiso actualizado correctamente', 'success')
@@ -68,7 +68,7 @@ export const usePermisoCrud = () => {
       return
     }
 
-    form.post(route('permisos.store'), {
+    form.post('/permisos', {
       preserveScroll: true,
       onSuccess: () => {
         swalToast('Permiso creado correctamente', 'success')
@@ -88,7 +88,7 @@ export const usePermisoCrud = () => {
 
     if (!ok) return
 
-    router.patch(route('permisos.toggle-status', row.id), {}, {
+    router.patch(`/permisos/${row.id}/toggle-status`, {}, {
       preserveScroll: true,
       onSuccess: () => swalToast('Estado actualizado correctamente', 'success'),
     })
@@ -98,7 +98,7 @@ export const usePermisoCrud = () => {
     const ok = await swalConfirm('¿Deseas eliminar este permiso?', 'Esta acción se registra en el sistema.', 'Sí, eliminar')
     if (!ok) return
 
-    router.delete(route('permisos.destroy', id), {
+    router.delete(`/permisos/${id}`, {
       preserveScroll: true,
       onSuccess: () => swalToast('Permiso eliminado correctamente', 'success'),
     })

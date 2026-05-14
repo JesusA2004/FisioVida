@@ -27,7 +27,9 @@ class ReportesService
         $normalizedFilters = [
             'start_date' => $rangeStart->toDateString(),
             'end_date' => $rangeEnd->toDateString(),
-            'status' => trim((string) ($filters['status'] ?? '')),
+            'appointment_status' => trim((string) ($filters['appointment_status'] ?? $filters['status'] ?? '')),
+            'payment_status' => trim((string) ($filters['payment_status'] ?? '')),
+            'activity_status' => trim((string) ($filters['activity_status'] ?? '')),
             'therapist_user_id' => $this->toNullableInt($filters['therapist_user_id'] ?? null),
             'patient_persona_id' => $this->toNullableInt($filters['patient_persona_id'] ?? null),
         ];
@@ -53,8 +55,8 @@ class ReportesService
                 $query->where('patient_persona_id', $normalizedFilters['patient_persona_id']);
             }
 
-            if ($normalizedFilters['status'] !== '') {
-                $query->where('status', $normalizedFilters['status']);
+            if ($normalizedFilters['appointment_status'] !== '') {
+                $query->where('status', $normalizedFilters['appointment_status']);
             }
 
             $appointmentsByStatus = $query
@@ -133,8 +135,8 @@ class ReportesService
         if ($canPayments && Schema::hasTable('payments')) {
             $paymentRange = DB::table('payments')->whereBetween('created_at', [$rangeStart, $rangeEnd]);
 
-            if ($normalizedFilters['status'] !== '') {
-                $paymentRange->where('status', $normalizedFilters['status']);
+            if ($normalizedFilters['payment_status'] !== '') {
+                $paymentRange->where('status', $normalizedFilters['payment_status']);
             }
 
             $paymentsByStatus = (clone $paymentRange)
@@ -172,8 +174,8 @@ class ReportesService
         if ($canActivities && Schema::hasTable('activities')) {
             $activitiesQuery = DB::table('activities')->whereBetween('created_at', [$rangeStart, $rangeEnd]);
 
-            if ($normalizedFilters['status'] !== '') {
-                $activitiesQuery->where('status', $normalizedFilters['status']);
+            if ($normalizedFilters['activity_status'] !== '') {
+                $activitiesQuery->where('status', $normalizedFilters['activity_status']);
             }
 
             $activitiesByStatus = (clone $activitiesQuery)

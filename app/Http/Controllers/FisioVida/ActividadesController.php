@@ -95,6 +95,30 @@ class ActividadesController extends Controller
         return back()->with('success', 'Actividad actualizada correctamente.');
     }
 
+    public function start(Activity $actividade)
+    {
+        if ($actividade->status !== 'pending') {
+            return back()->withErrors(['error' => 'Solo se pueden iniciar actividades en estado pendiente.']);
+        }
+
+        $actividade->update([
+            'status' => 'in_progress',
+            'updated_by' => request()->user()?->id,
+        ]);
+
+        app(AuditLogService::class)->updated(
+            request(),
+            'Actividades',
+            'activity',
+            $actividade->id,
+            'El usuario '.request()->user()?->name.' inició la actividad "'.$actividade->title.'".',
+            ['status' => 'pending'],
+            ['status' => 'in_progress'],
+        );
+
+        return back()->with('success', 'Actividad iniciada correctamente.');
+    }
+
     public function complete(Activity $actividade)
     {
         $actividade->update([

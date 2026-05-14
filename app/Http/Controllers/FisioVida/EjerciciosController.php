@@ -67,6 +67,31 @@ class EjerciciosController extends Controller
         return back()->with('success', 'Ejercicio actualizado.');
     }
 
+    public function toggleActive(Request $request, string $id)
+    {
+        $exercise = DB::table('exercises')->where('id', $id)->first();
+        abort_if(! $exercise, 404);
+
+        $newState = ! $exercise->is_active;
+
+        DB::table('exercises')->where('id', $id)->update([
+            'is_active' => $newState,
+            'updated_at' => now(),
+        ]);
+
+        app(AuditLogService::class)->updated(
+            $request,
+            'Ejercicios',
+            'exercise',
+            (int) $id,
+            'El usuario '.$request->user()?->name.' '.($newState ? 'marcó disponible' : 'ocultó del catálogo').' el ejercicio "'.($exercise->name ?? 'Sin nombre').'".',
+            ['is_active' => $exercise->is_active],
+            ['is_active' => $newState],
+        );
+
+        return back()->with('success', $newState ? 'Ejercicio marcado como disponible.' : 'Ejercicio ocultado del catálogo.');
+    }
+
     public function destroy(Request $request, string $id)
     {
         $old = (array) DB::table('exercises')->where('id', $id)->first();

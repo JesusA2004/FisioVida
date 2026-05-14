@@ -5,7 +5,16 @@
       "Bash(php -l app/Http/Controllers/FisioVida/CitasController.php)",
       "Bash(php -l app/Http/Controllers/FisioVida/SesionesController.php)",
       "Bash(php *)",
-      "Bash(npm run *)"
+      "Bash(npm run *)",
+      "Bash(composer show *)",
+      "Bash(composer require *)",
+      "Bash(not exist *)",
+      "PowerShell(New-Item *)",
+      "Bash(npm list *)",
+      "Bash(npm install *)",
+      "Bash(node *)",
+      "Bash(python -c \"import json,sys; d=json.load\\(sys.stdin\\); [print\\(t['name']\\) for t in d.get\\('tables',[]\\)]\")",
+      "Bash(Remove-Item \"database/migrations/2026_05_14_043332_create_privacy_notice_acceptances_table.php\")"
     ]
   }
 }

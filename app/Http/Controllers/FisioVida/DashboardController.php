@@ -4,6 +4,7 @@ namespace App\Http\Controllers\FisioVida;
 
 use App\Http\Controllers\Controller;
 use App\Services\Dashboard\DashboardMetricsService;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 
 class DashboardController extends Controller
@@ -12,8 +13,10 @@ class DashboardController extends Controller
     {
     }
 
-    public function index()
+    public function index(Request $request)
     {
-        return Inertia::render('Dashboard', $this->metricsService->buildForUser(request()->user()));
+        $filters = $request->only(['start_date', 'end_date', 'therapist_user_id', 'appointment_status']);
+
+        return Inertia::render('Dashboard', $this->metricsService->buildForUser($request->user(), $filters));
     }
 }

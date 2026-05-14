@@ -4,7 +4,9 @@ import { router, usePage } from '@inertiajs/vue3'
 export type ReportFilters = {
     start_date: string
     end_date: string
-    status?: string
+    appointment_status?: string
+    payment_status?: string
+    activity_status?: string
     therapist_user_id?: number | null
     patient_persona_id?: number | null
 }
@@ -17,7 +19,9 @@ export const useReporteCrud = (filters: ReportFilters) => {
     const form = ref<ReportFilters>({
         start_date: filters.start_date,
         end_date: filters.end_date,
-        status: filters.status ?? '',
+        appointment_status: filters.appointment_status ?? '',
+        payment_status: filters.payment_status ?? '',
+        activity_status: filters.activity_status ?? '',
         therapist_user_id: filters.therapist_user_id ?? null,
         patient_persona_id: filters.patient_persona_id ?? null,
     })
@@ -37,7 +41,9 @@ export const useReporteCrud = (filters: ReportFilters) => {
             {
                 start_date: form.value.start_date,
                 end_date: form.value.end_date,
-                status: form.value.status || '',
+                appointment_status: form.value.appointment_status || '',
+                payment_status: form.value.payment_status || '',
+                activity_status: form.value.activity_status || '',
                 therapist_user_id: form.value.therapist_user_id || '',
                 patient_persona_id: form.value.patient_persona_id || '',
             },
@@ -51,7 +57,9 @@ export const useReporteCrud = (filters: ReportFilters) => {
     }
 
     const resetFilters = () => {
-        form.value.status = ''
+        form.value.appointment_status = ''
+        form.value.payment_status = ''
+        form.value.activity_status = ''
         form.value.therapist_user_id = null
         form.value.patient_persona_id = null
         dateError.value = null
