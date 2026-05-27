@@ -110,8 +110,8 @@ const visibleCards = computed(() =>
 );
 
 // ── Chart shared config ───────────────────────────────────────────────────────
-const chartFontColor = computed(() => isDark.value ? '#a1a1aa' : '#71717a');
-const gridColor      = computed(() => isDark.value ? '#27272a' : '#f4f4f5');
+const chartFontColor = computed(() => isDark.value ? 'hsl(215 20% 58%)' : '#71717a');
+const gridColor      = computed(() => isDark.value ? 'hsl(222 22% 18%)' : '#f4f4f5');
 const tooltipTheme   = computed(() => isDark.value ? 'dark' : 'light');
 const valueFontColor = computed(() => isDark.value ? '#f4f4f5' : '#18181b');
 const labelFontColor = computed(() => isDark.value ? '#a1a1aa' : '#52525b');
@@ -296,18 +296,18 @@ const productivityOptions = computed(() => ({
         <section class="space-y-5 pb-8">
 
             <!-- ── Header ─────────────────────────────────────────────────── -->
-            <header class="relative z-20 rounded-2xl bg-white shadow-sm ring-1 ring-zinc-200 dark:bg-zinc-900 dark:ring-zinc-800">
-                <div class="flex flex-col gap-5 p-6 md:flex-row md:items-start md:justify-between">
+            <header class="fv-panel relative z-20">
+                <div class="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
                     <div>
                         <div class="flex items-center gap-3">
                             <div class="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500 to-indigo-600 shadow-sm">
                                 <TrendingUp class="h-4 w-4 text-white" />
                             </div>
                             <div>
-                                <h1 class="text-lg font-semibold leading-tight text-zinc-900 dark:text-zinc-100">
+                                <h1 class="text-lg font-semibold leading-tight text-foreground">
                                     {{ props.appSettings.clinic_name ?? 'FisioVida' }}
                                 </h1>
-                                <p class="text-xs text-zinc-500 dark:text-zinc-400">
+                                <p class="text-xs text-muted-foreground">
                                     {{ props.filters.start_date }} — {{ props.filters.end_date }}
                                 </p>
                             </div>
@@ -323,15 +323,15 @@ const productivityOptions = computed(() => ({
                     <!-- Filters -->
                     <div class="relative z-30 flex flex-wrap items-end gap-2">
                         <div class="flex flex-col gap-1">
-                            <span class="text-[11px] font-medium text-zinc-500 dark:text-zinc-400">Desde</span>
+                            <span class="text-[11px] font-medium text-muted-foreground">Desde</span>
                             <DatePicker v-model="filterForm.start_date" class="w-36" />
                         </div>
                         <div class="flex flex-col gap-1">
-                            <span class="text-[11px] font-medium text-zinc-500 dark:text-zinc-400">Hasta</span>
+                            <span class="text-[11px] font-medium text-muted-foreground">Hasta</span>
                             <DatePicker v-model="filterForm.end_date" class="w-36" />
                         </div>
                         <div v-if="props.therapistLookup.length" class="flex flex-col gap-1">
-                            <span class="text-[11px] font-medium text-zinc-500 dark:text-zinc-400">Terapeuta</span>
+                            <span class="text-[11px] font-medium text-muted-foreground">Terapeuta</span>
                             <SearchableSelect
                                 v-model="filterForm.therapist_user_id"
                                 :options="[{ value: null, label: 'Todos' }, ...props.therapistLookup.map(t => ({ value: t.id, label: t.label }))]"
@@ -352,15 +352,15 @@ const productivityOptions = computed(() => ({
                 <article
                     v-for="card in visibleCards"
                     :key="card.key"
-                    class="group relative overflow-hidden rounded-2xl bg-white p-4 shadow-sm ring-1 ring-zinc-200/80 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md dark:bg-zinc-900 dark:ring-zinc-800"
+                    class="fv-kpi-card"
                 >
                     <div class="flex items-start justify-between gap-2">
-                        <p class="text-xs font-medium leading-snug text-zinc-500 dark:text-zinc-400">{{ card.label }}</p>
+                        <p class="text-xs font-medium leading-snug text-muted-foreground">{{ card.label }}</p>
                         <div :class="`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br ${card.gradient} shadow-sm`">
                             <component :is="card.icon" class="h-3.5 w-3.5 text-white" />
                         </div>
                     </div>
-                    <p class="mt-2 text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100">
+                    <p class="mt-2 text-2xl font-bold tracking-tight text-foreground">
                         {{ (card as any).currency
                             ? formatCurrency(props.stats[card.key] as number | null)
                             : (props.stats[card.key] ?? '—') }}
@@ -375,18 +375,18 @@ const productivityOptions = computed(() => ({
                 <!-- Donut — Citas por estado -->
                 <article
                     v-if="isModuleEnabled('agenda')"
-                    class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-zinc-200/80 dark:bg-zinc-900 dark:ring-zinc-800"
+                    class="fv-panel"
                 >
                     <div class="mb-3 flex items-center gap-2">
                         <div class="flex h-6 w-6 items-center justify-center rounded-md bg-sky-100 dark:bg-sky-900/30">
                             <CalendarDays class="h-3.5 w-3.5 text-sky-600 dark:text-sky-400" />
                         </div>
-                        <h3 class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Citas por estado</h3>
+                        <h3 class="text-sm font-semibold text-foreground">Citas por estado</h3>
                     </div>
                     <div v-if="props.appointmentsByStatus.length" class="-mx-1">
                         <VueApexCharts type="donut" height="240" :series="donutApptSeries" :options="donutApptOptions" />
                     </div>
-                    <div v-else class="flex h-48 flex-col items-center justify-center gap-2 text-zinc-400">
+                    <div v-else class="flex h-48 flex-col items-center justify-center gap-2 text-muted-foreground">
                         <CalendarDays class="h-8 w-8 opacity-30" />
                         <p class="text-sm">Sin citas en el periodo</p>
                     </div>
@@ -395,18 +395,18 @@ const productivityOptions = computed(() => ({
                 <!-- Bar — Sesiones por día -->
                 <article
                     v-if="isModuleEnabled('sesiones')"
-                    class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-zinc-200/80 dark:bg-zinc-900 dark:ring-zinc-800"
+                    class="fv-panel"
                 >
                     <div class="mb-3 flex items-center gap-2">
                         <div class="flex h-6 w-6 items-center justify-center rounded-md bg-emerald-100 dark:bg-emerald-900/30">
                             <ClipboardList class="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
                         </div>
-                        <h3 class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Sesiones por día</h3>
+                        <h3 class="text-sm font-semibold text-foreground">Sesiones por día</h3>
                     </div>
                     <div v-if="props.sessionsByDay.length" class="-mx-2">
                         <VueApexCharts type="bar" height="220" :series="sessionsSeries" :options="sessionsOptions" />
                     </div>
-                    <div v-else class="flex h-48 flex-col items-center justify-center gap-2 text-zinc-400">
+                    <div v-else class="flex h-48 flex-col items-center justify-center gap-2 text-muted-foreground">
                         <ClipboardList class="h-8 w-8 opacity-30" />
                         <p class="text-sm">Sin sesiones en el periodo</p>
                     </div>
@@ -415,18 +415,18 @@ const productivityOptions = computed(() => ({
                 <!-- Area — Ingresos por día -->
                 <article
                     v-if="isModuleEnabled('pagos')"
-                    class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-zinc-200/80 dark:bg-zinc-900 dark:ring-zinc-800"
+                    class="fv-panel"
                 >
                     <div class="mb-3 flex items-center gap-2">
                         <div class="flex h-6 w-6 items-center justify-center rounded-md bg-violet-100 dark:bg-violet-900/30">
                             <TrendingUp class="h-3.5 w-3.5 text-violet-600 dark:text-violet-400" />
                         </div>
-                        <h3 class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Ingresos por día</h3>
+                        <h3 class="text-sm font-semibold text-foreground">Ingresos por día</h3>
                     </div>
                     <div v-if="props.incomeByDay.length" class="-mx-2">
                         <VueApexCharts type="area" height="220" :series="incomeSeries" :options="incomeOptions" />
                     </div>
-                    <div v-else class="flex h-48 flex-col items-center justify-center gap-2 text-zinc-400">
+                    <div v-else class="flex h-48 flex-col items-center justify-center gap-2 text-muted-foreground">
                         <TrendingUp class="h-8 w-8 opacity-30" />
                         <p class="text-sm">Sin ingresos en el periodo</p>
                     </div>
@@ -439,23 +439,23 @@ const productivityOptions = computed(() => ({
                 <!-- Donut — Actividades por estado -->
                 <article
                     v-if="isModuleEnabled('actividades')"
-                    class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-zinc-200/80 dark:bg-zinc-900 dark:ring-zinc-800"
+                    class="fv-panel"
                 >
                     <div class="mb-3 flex items-center justify-between">
                         <div class="flex items-center gap-2">
                             <div class="flex h-6 w-6 items-center justify-center rounded-md bg-indigo-100 dark:bg-indigo-900/30">
                                 <Activity class="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" />
                             </div>
-                            <h3 class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Actividades por estado</h3>
+                            <h3 class="text-sm font-semibold text-foreground">Actividades por estado</h3>
                         </div>
-                        <a href="/actividades" class="inline-flex items-center gap-1 text-xs font-medium text-zinc-400 hover:text-indigo-600 dark:hover:text-indigo-400">
+                        <a href="/actividades" class="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-indigo-600 dark:hover:text-indigo-400">
                             Ver <ArrowRight class="h-3 w-3" />
                         </a>
                     </div>
                     <div v-if="props.activitiesByStatus.length" class="-mx-1">
                         <VueApexCharts type="donut" height="240" :series="donutActSeries" :options="donutActOptions" />
                     </div>
-                    <div v-else class="flex h-48 flex-col items-center justify-center gap-2 text-zinc-400">
+                    <div v-else class="flex h-48 flex-col items-center justify-center gap-2 text-muted-foreground">
                         <Activity class="h-8 w-8 opacity-30" />
                         <p class="text-sm">Sin actividades registradas</p>
                     </div>
@@ -464,23 +464,23 @@ const productivityOptions = computed(() => ({
                 <!-- Donut — Pagos por estado -->
                 <article
                     v-if="isModuleEnabled('pagos')"
-                    class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-zinc-200/80 dark:bg-zinc-900 dark:ring-zinc-800"
+                    class="fv-panel"
                 >
                     <div class="mb-3 flex items-center justify-between">
                         <div class="flex items-center gap-2">
                             <div class="flex h-6 w-6 items-center justify-center rounded-md bg-teal-100 dark:bg-teal-900/30">
                                 <Wallet class="h-3.5 w-3.5 text-teal-600 dark:text-teal-400" />
                             </div>
-                            <h3 class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Pagos por estado</h3>
+                            <h3 class="text-sm font-semibold text-foreground">Pagos por estado</h3>
                         </div>
-                        <a href="/pagos" class="inline-flex items-center gap-1 text-xs font-medium text-zinc-400 hover:text-teal-600 dark:hover:text-teal-400">
+                        <a href="/pagos" class="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-teal-600 dark:hover:text-teal-400">
                             Ver <ArrowRight class="h-3 w-3" />
                         </a>
                     </div>
                     <div v-if="props.paymentsByStatus.length" class="-mx-1">
                         <VueApexCharts type="donut" height="240" :series="donutPaySeries" :options="donutPayOptions" />
                     </div>
-                    <div v-else class="flex h-48 flex-col items-center justify-center gap-2 text-zinc-400">
+                    <div v-else class="flex h-48 flex-col items-center justify-center gap-2 text-muted-foreground">
                         <Wallet class="h-8 w-8 opacity-30" />
                         <p class="text-sm">Sin pagos en el periodo</p>
                     </div>
@@ -489,18 +489,18 @@ const productivityOptions = computed(() => ({
                 <!-- Horizontal Bar — Productividad por terapeuta -->
                 <article
                     v-if="isModuleEnabled('sesiones')"
-                    class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-zinc-200/80 dark:bg-zinc-900 dark:ring-zinc-800"
+                    class="fv-panel"
                 >
                     <div class="mb-3 flex items-center gap-2">
                         <div class="flex h-6 w-6 items-center justify-center rounded-md bg-purple-100 dark:bg-purple-900/30">
                             <Stethoscope class="h-3.5 w-3.5 text-purple-600 dark:text-purple-400" />
                         </div>
-                        <h3 class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Productividad por terapeuta</h3>
+                        <h3 class="text-sm font-semibold text-foreground">Productividad por terapeuta</h3>
                     </div>
                     <div v-if="props.therapistProductivity.length" class="-mx-2">
                         <VueApexCharts type="bar" height="240" :series="productivitySeries" :options="productivityOptions" />
                     </div>
-                    <div v-else class="flex h-48 flex-col items-center justify-center gap-2 text-zinc-400">
+                    <div v-else class="flex h-48 flex-col items-center justify-center gap-2 text-muted-foreground">
                         <Stethoscope class="h-8 w-8 opacity-30" />
                         <p class="text-sm">Sin datos de terapeutas en el periodo</p>
                     </div>
@@ -513,21 +513,21 @@ const productivityOptions = computed(() => ({
                 <!-- Compact upcoming (max 3 cards) -->
                 <article
                     v-if="isModuleEnabled('agenda')"
-                    class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-zinc-200/80 dark:bg-zinc-900 dark:ring-zinc-800"
+                    class="fv-panel"
                 >
                     <div class="mb-4 flex items-center justify-between">
                         <div class="flex items-center gap-2">
                             <div class="flex h-6 w-6 items-center justify-center rounded-md bg-amber-100 dark:bg-amber-900/30">
                                 <Clock3 class="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
                             </div>
-                            <h3 class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Próximas citas</h3>
+                            <h3 class="text-sm font-semibold text-foreground">Próximas citas</h3>
                         </div>
-                        <a href="/citas" class="inline-flex items-center gap-1 text-xs font-medium text-zinc-400 hover:text-amber-600 dark:hover:text-amber-400">
+                        <a href="/citas" class="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-amber-600 dark:hover:text-amber-400">
                             Ver agenda <ArrowRight class="h-3 w-3" />
                         </a>
                     </div>
 
-                    <div v-if="!props.upcomingAppointments.length" class="flex h-28 flex-col items-center justify-center gap-1 text-zinc-400">
+                    <div v-if="!props.upcomingAppointments.length" class="flex h-28 flex-col items-center justify-center gap-1 text-muted-foreground">
                         <Clock3 class="h-7 w-7 opacity-30" />
                         <p class="text-sm">No hay próximas citas</p>
                     </div>
@@ -535,18 +535,18 @@ const productivityOptions = computed(() => ({
                         <div
                             v-for="item in props.upcomingAppointments"
                             :key="item.id"
-                            class="flex flex-col gap-2 rounded-xl bg-zinc-50 p-3 ring-1 ring-zinc-200/60 dark:bg-zinc-800/60 dark:ring-zinc-700/60"
+                            class="flex flex-col gap-2 rounded-xl bg-muted p-3 ring-1 ring-border"
                         >
                             <div class="flex h-8 w-8 items-center justify-center rounded-full bg-amber-100 text-xs font-bold text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
                                 {{ (item.patient_name || '?').charAt(0).toUpperCase() }}
                             </div>
-                            <p class="truncate text-xs font-semibold text-zinc-900 dark:text-zinc-100">
+                            <p class="truncate text-xs font-semibold text-foreground">
                                 {{ item.patient_name || 'Paciente' }}
                             </p>
-                            <p class="text-[11px] leading-snug text-zinc-500 dark:text-zinc-400">
+                            <p class="text-[11px] leading-snug text-muted-foreground">
                                 {{ formatDateTimeMx(item.start_at) }}
                             </p>
-                            <p class="truncate text-[11px] text-zinc-400 dark:text-zinc-500">
+                            <p class="truncate text-[11px] text-muted-foreground">
                                 {{ item.therapist_name || 'Sin terapeuta' }}
                             </p>
                         </div>
@@ -554,12 +554,12 @@ const productivityOptions = computed(() => ({
                 </article>
 
                 <!-- Quick actions -->
-                <article class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-zinc-200/80 dark:bg-zinc-900 dark:ring-zinc-800">
+                <article class="fv-panel">
                     <div class="mb-4 flex items-center gap-2">
-                        <div class="flex h-6 w-6 items-center justify-center rounded-md bg-zinc-100 dark:bg-zinc-800">
-                            <ArrowRight class="h-3.5 w-3.5 text-zinc-600 dark:text-zinc-400" />
+                        <div class="flex h-6 w-6 items-center justify-center rounded-md bg-muted">
+                            <ArrowRight class="h-3.5 w-3.5 text-muted-foreground" />
                         </div>
-                        <h3 class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Acciones rápidas</h3>
+                        <h3 class="text-sm font-semibold text-foreground">Acciones rápidas</h3>
                     </div>
                     <div class="grid grid-cols-3 gap-2 sm:grid-cols-6">
                         <a
@@ -604,10 +604,10 @@ const productivityOptions = computed(() => ({
                         </a>
                         <a
                             href="/reportes"
-                            class="flex flex-col items-center gap-2 rounded-xl bg-zinc-50 px-2 py-4 text-center transition-colors hover:bg-zinc-100 dark:bg-zinc-800/50 dark:hover:bg-zinc-800"
+                            class="flex flex-col items-center gap-2 rounded-xl bg-muted px-2 py-4 text-center transition-colors hover:bg-muted/70"
                         >
-                            <FileText class="h-5 w-5 text-zinc-600 dark:text-zinc-400" />
-                            <span class="text-[11px] font-medium leading-tight text-zinc-700 dark:text-zinc-300">Reportes</span>
+                            <FileText class="h-5 w-5 text-muted-foreground" />
+                            <span class="text-[11px] font-medium leading-tight text-muted-foreground">Reportes</span>
                         </a>
                     </div>
                 </article>

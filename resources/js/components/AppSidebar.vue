@@ -14,6 +14,7 @@ import {
     ShieldCheck,
     ListTodo,
     KeyRound,
+    Zap,
 } from 'lucide-vue-next';
 
 import NavFooter from '@/components/NavFooter.vue';
@@ -44,6 +45,9 @@ const permissions = computed<string[]>(
 const enabledModules = computed<Record<string, boolean>>(
     () => ((page.props as any).enabledModules ?? {}) as Record<string, boolean>,
 );
+const authRoles = computed<{ id: number; name: string; slug: string }[]>(
+    () => ((page.props as any).auth?.roles ?? []) as { id: number; name: string; slug: string }[],
+);
 
 const moduleEnabled = (module: string) =>
     enabledModules.value[module] !== false;
@@ -61,6 +65,17 @@ const mainNavItems = computed<NavItem[]>(() => {
             href: '/dashboard',
             icon: LayoutGrid,
         });
+
+    // Mi Jornada: solo para terapeutas con permiso de citas (no superadmin)
+    if (can('appointments.view') && !isSuperAdmin.value) {
+        const isTherapistRole = authRoles.value?.some((r: any) =>
+            ['terapeuta', 'therapist', 'fisioterapeuta'].includes((r.slug ?? '').toLowerCase())
+        );
+        if (isTherapistRole) {
+            items.push({ title: 'Mi Jornada', href: '/mi-jornada', icon: Zap });
+        }
+    }
+
     if (canAccess('agenda', 'appointments.view'))
         items.push({ title: 'Agenda', href: '/citas', icon: CalendarDays });
     if (canAccess('pacientes', 'patients.view'))

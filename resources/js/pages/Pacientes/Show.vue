@@ -288,11 +288,11 @@ const timelineItems = computed(() => {
 const statusBadgeClass = (status: string) =>
     status === 'active'
         ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/40 dark:bg-emerald-950/40 dark:text-emerald-300'
-        : 'border-zinc-200 bg-zinc-100 text-zinc-700 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300';
+        : 'border-border bg-muted text-muted-foreground';
 
 const painBadgeClass = (value?: number | null) => {
     if (value === null || value === undefined) {
-        return 'border-zinc-200 bg-zinc-50 text-zinc-600 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300';
+        return 'border-border bg-muted/50 text-muted-foreground';
     }
 
     if (value <= 3) {
@@ -319,7 +319,7 @@ const appointmentBadgeClass = (status: string) => {
         return 'border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-900/40 dark:bg-sky-950/40 dark:text-sky-300';
     }
 
-    return 'border-zinc-200 bg-zinc-50 text-zinc-700 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300';
+    return 'border-border bg-muted/50 text-muted-foreground';
 };
 
 const paymentBadgeClass = (status: string) =>
@@ -433,9 +433,7 @@ const registerPrivacyNotice = async () => {
 
     <AppLayout :breadcrumbs="breadcrumbs">
         <section class="w-full space-y-5">
-            <div
-                class="relative overflow-hidden rounded-[2rem] border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/40"
-            >
+            <div class="fv-gradient-panel">
                 <div
                     class="pointer-events-none absolute -top-24 -right-24 h-64 w-64 rounded-full blur-3xl"
                     :style="{
@@ -458,7 +456,7 @@ const registerPrivacyNotice = async () => {
                         <div class="min-w-0">
                             <div class="flex flex-wrap items-center gap-2">
                                 <h1
-                                    class="text-2xl font-semibold tracking-tight text-zinc-950 dark:text-zinc-50"
+                                    class="text-2xl font-semibold tracking-tight text-foreground"
                                 >
                                     {{ props.patient.full_name }}
                                 </h1>
@@ -474,7 +472,7 @@ const registerPrivacyNotice = async () => {
                             </div>
 
                             <p
-                                class="mt-1 max-w-3xl text-sm leading-6 text-zinc-600 dark:text-zinc-400"
+                                class="mt-1 max-w-3xl text-sm leading-6 text-muted-foreground"
                             >
                                 Expediente clínico integral del paciente:
                                 evolución, citas, sesiones, archivos, pagos y
@@ -482,7 +480,7 @@ const registerPrivacyNotice = async () => {
                             </p>
 
                             <div
-                                class="mt-3 grid gap-2 text-xs text-zinc-500 sm:grid-cols-2 lg:grid-cols-4 dark:text-zinc-400"
+                                class="mt-3 grid gap-2 text-xs text-muted-foreground sm:grid-cols-2 lg:grid-cols-4"
                             >
                                 <div class="flex items-center gap-2">
                                     <Phone class="h-3.5 w-3.5 shrink-0" />
@@ -541,7 +539,7 @@ const registerPrivacyNotice = async () => {
 
                         <Button
                             variant="outline"
-                            class="h-11 rounded-2xl border-zinc-200 bg-white transition-all duration-200 hover:-translate-y-0.5 hover:border-[color:var(--primary)] hover:text-[color:var(--primary)]"
+                            class="h-11 rounded-2xl border-border transition-all duration-200 hover:-translate-y-0.5 hover:border-[color:var(--primary)] hover:text-[color:var(--primary)]"
                             @click="goToAppointments"
                         >
                             <CalendarClock class="mr-2 h-4 w-4" />
@@ -550,7 +548,7 @@ const registerPrivacyNotice = async () => {
 
                         <Button
                             variant="outline"
-                            class="h-11 rounded-2xl border-zinc-200 bg-white transition-all duration-200 hover:-translate-y-0.5 hover:border-[color:var(--primary)] hover:text-[color:var(--primary)]"
+                            class="h-11 rounded-2xl border-border transition-all duration-200 hover:-translate-y-0.5 hover:border-[color:var(--primary)] hover:text-[color:var(--primary)]"
                             @click="goToActivities"
                         >
                             <ClipboardList class="mr-2 h-4 w-4" />
@@ -559,7 +557,7 @@ const registerPrivacyNotice = async () => {
 
                         <Button
                             variant="outline"
-                            class="h-11 rounded-2xl border-zinc-200 bg-white transition-all duration-200 hover:-translate-y-0.5 hover:border-[color:var(--primary)] hover:text-[color:var(--primary)]"
+                            class="h-11 rounded-2xl border-border transition-all duration-200 hover:-translate-y-0.5 hover:border-[color:var(--primary)] hover:text-[color:var(--primary)]"
                             @click="goToPayments"
                         >
                             <CreditCard class="mr-2 h-4 w-4" />
@@ -571,13 +569,13 @@ const registerPrivacyNotice = async () => {
 
             <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
                 <article
-                    class="rounded-[1.5rem] border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/50"
+                    class="rounded-[1.5rem] border border-border bg-card p-4 shadow-sm"
                 >
                     <div class="flex items-center justify-between gap-3">
                         <div>
-                            <p class="text-xs text-zinc-500">Sesiones</p>
+                            <p class="text-xs text-muted-foreground">Sesiones</p>
                             <p
-                                class="mt-1 text-2xl font-semibold text-zinc-950 dark:text-zinc-50"
+                                class="mt-1 text-2xl font-semibold text-foreground"
                             >
                                 {{ props.sessions.length }}
                             </p>
@@ -594,7 +592,7 @@ const registerPrivacyNotice = async () => {
                         </div>
                     </div>
 
-                    <p class="mt-3 text-xs text-zinc-500">
+                    <p class="mt-3 text-xs text-muted-foreground">
                         Última:
                         {{
                             latestSession
@@ -605,13 +603,13 @@ const registerPrivacyNotice = async () => {
                 </article>
 
                 <article
-                    class="rounded-[1.5rem] border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/50"
+                    class="rounded-[1.5rem] border border-border bg-card p-4 shadow-sm"
                 >
                     <div class="flex items-center justify-between gap-3">
                         <div>
-                            <p class="text-xs text-zinc-500">Dolor promedio</p>
+                            <p class="text-xs text-muted-foreground">Dolor promedio</p>
                             <p
-                                class="mt-1 text-2xl font-semibold text-zinc-950 dark:text-zinc-50"
+                                class="mt-1 text-2xl font-semibold text-foreground"
                             >
                                 {{ averagePain ?? '—' }}/10
                             </p>
@@ -625,19 +623,19 @@ const registerPrivacyNotice = async () => {
                         </Badge>
                     </div>
 
-                    <p class="mt-3 text-xs text-zinc-500">
+                    <p class="mt-3 text-xs text-muted-foreground">
                         Basado en sesiones registradas con escala de dolor.
                     </p>
                 </article>
 
                 <article
-                    class="rounded-[1.5rem] border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/50"
+                    class="rounded-[1.5rem] border border-border bg-card p-4 shadow-sm"
                 >
                     <div class="flex items-center justify-between gap-3">
                         <div>
-                            <p class="text-xs text-zinc-500">Próxima cita</p>
+                            <p class="text-xs text-muted-foreground">Próxima cita</p>
                             <p
-                                class="mt-1 text-sm font-semibold text-zinc-950 dark:text-zinc-50"
+                                class="mt-1 text-sm font-semibold text-foreground"
                             >
                                 {{
                                     nextAppointment
@@ -660,19 +658,19 @@ const registerPrivacyNotice = async () => {
                         </div>
                     </div>
 
-                    <p class="mt-3 text-xs text-zinc-500">
+                    <p class="mt-3 text-xs text-muted-foreground">
                         Total de citas: {{ props.appointments.length }}
                     </p>
                 </article>
 
                 <article
-                    class="rounded-[1.5rem] border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/50"
+                    class="rounded-[1.5rem] border border-border bg-card p-4 shadow-sm"
                 >
                     <div class="flex items-center justify-between gap-3">
                         <div>
-                            <p class="text-xs text-zinc-500">Pagos</p>
+                            <p class="text-xs text-muted-foreground">Pagos</p>
                             <p
-                                class="mt-1 text-sm font-semibold text-zinc-950 dark:text-zinc-50"
+                                class="mt-1 text-sm font-semibold text-foreground"
                             >
                                 {{ formatMoney(paidTotal) }}
                             </p>
@@ -689,14 +687,14 @@ const registerPrivacyNotice = async () => {
                         </div>
                     </div>
 
-                    <p class="mt-3 text-xs text-zinc-500">
+                    <p class="mt-3 text-xs text-muted-foreground">
                         Pendientes: {{ pendingPayments.length }}
                     </p>
                 </article>
             </div>
 
             <div
-                class="flex gap-2 overflow-x-auto rounded-[1.5rem] border border-zinc-200 bg-white p-2 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/50"
+                class="flex gap-2 overflow-x-auto rounded-[1.5rem] border border-border bg-card p-2 shadow-sm"
             >
                 <button
                     v-for="tab in tabs"
@@ -706,7 +704,7 @@ const registerPrivacyNotice = async () => {
                     :class="
                         activeTab === tab.key
                             ? 'text-white shadow-sm'
-                            : 'text-zinc-600 hover:bg-zinc-100 hover:text-zinc-950 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-50'
+                            : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                     "
                     :style="
                         activeTab === tab.key ? primaryButtonStyle : undefined
@@ -722,13 +720,13 @@ const registerPrivacyNotice = async () => {
                 class="grid gap-5 xl:grid-cols-[1fr_420px]"
             >
                 <section
-                    class="rounded-[2rem] border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/50"
+                    class="rounded-[2rem] border border-border bg-card p-5 shadow-sm"
                 >
                     <div
-                        class="mb-4 flex items-center justify-between gap-3 border-b border-zinc-100 pb-3 dark:border-zinc-800"
+                        class="mb-4 flex items-center justify-between gap-3 border-b border-border pb-3"
                     >
                         <h2
-                            class="flex items-center gap-2 text-base font-semibold text-zinc-950 dark:text-zinc-50"
+                            class="flex items-center gap-2 text-base font-semibold text-foreground"
                         >
                             <NotebookText
                                 class="h-4 w-4"
@@ -742,7 +740,7 @@ const registerPrivacyNotice = async () => {
                         <div class="rounded-2xl p-4" :style="primarySoftStyle">
                             <div class="flex flex-wrap items-center gap-2">
                                 <p
-                                    class="text-sm font-semibold text-zinc-950 dark:text-zinc-50"
+                                    class="text-sm font-semibold text-foreground"
                                 >
                                     Última sesión:
                                     {{
@@ -762,7 +760,7 @@ const registerPrivacyNotice = async () => {
                             </div>
 
                             <p
-                                class="mt-2 text-xs text-zinc-500 dark:text-zinc-400"
+                                class="mt-2 text-xs text-muted-foreground"
                             >
                                 Terapeuta:
                                 {{
@@ -774,13 +772,13 @@ const registerPrivacyNotice = async () => {
 
                         <div class="grid gap-3 lg:grid-cols-2">
                             <div
-                                class="rounded-2xl border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-950/40"
+                                class="rounded-2xl border border-border bg-muted/50 p-4"
                             >
-                                <p class="text-xs font-semibold text-zinc-500">
+                                <p class="text-xs font-semibold text-muted-foreground">
                                     Evaluación
                                 </p>
                                 <p
-                                    class="mt-2 text-sm leading-6 whitespace-pre-line text-zinc-700 dark:text-zinc-300"
+                                    class="mt-2 text-sm leading-6 whitespace-pre-line text-foreground"
                                 >
                                     {{
                                         latestSession.assessment ||
@@ -790,13 +788,13 @@ const registerPrivacyNotice = async () => {
                             </div>
 
                             <div
-                                class="rounded-2xl border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-950/40"
+                                class="rounded-2xl border border-border bg-muted/50 p-4"
                             >
-                                <p class="text-xs font-semibold text-zinc-500">
+                                <p class="text-xs font-semibold text-muted-foreground">
                                     Plan
                                 </p>
                                 <p
-                                    class="mt-2 text-sm leading-6 whitespace-pre-line text-zinc-700 dark:text-zinc-300"
+                                    class="mt-2 text-sm leading-6 whitespace-pre-line text-foreground"
                                 >
                                     {{
                                         latestSession.plan ||
@@ -809,15 +807,15 @@ const registerPrivacyNotice = async () => {
 
                     <div
                         v-else
-                        class="rounded-2xl border border-dashed border-zinc-300 bg-zinc-50 p-6 text-center dark:border-zinc-700 dark:bg-zinc-950/40"
+                        class="rounded-2xl border border-dashed border-border bg-muted/30 p-6 text-center"
                     >
                         <AlertCircle class="mx-auto h-6 w-6 text-zinc-400" />
                         <p
-                            class="mt-3 text-sm font-medium text-zinc-700 dark:text-zinc-300"
+                            class="mt-3 text-sm font-medium text-foreground"
                         >
                             Aún no hay sesiones clínicas registradas.
                         </p>
-                        <p class="mt-1 text-xs text-zinc-500">
+                        <p class="mt-1 text-xs text-muted-foreground">
                             Registra una sesión para iniciar la evolución
                             clínica del paciente.
                         </p>
@@ -826,10 +824,10 @@ const registerPrivacyNotice = async () => {
 
                 <aside class="space-y-5">
                     <section
-                        class="rounded-[2rem] border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/50"
+                        class="rounded-[2rem] border border-border bg-card p-5 shadow-sm"
                     >
                         <h2
-                            class="flex items-center gap-2 text-base font-semibold text-zinc-950 dark:text-zinc-50"
+                            class="flex items-center gap-2 text-base font-semibold text-foreground"
                         >
                             <ShieldAlert
                                 class="h-4 w-4"
@@ -843,7 +841,7 @@ const registerPrivacyNotice = async () => {
                             :style="primarySoftStyle"
                         >
                             <p
-                                class="text-sm font-semibold text-zinc-950 dark:text-zinc-50"
+                                class="text-sm font-semibold text-foreground"
                             >
                                 {{
                                     props.patient.emergency_contact_name ||
@@ -851,7 +849,7 @@ const registerPrivacyNotice = async () => {
                                 }}
                             </p>
                             <p
-                                class="mt-1 text-sm text-zinc-600 dark:text-zinc-300"
+                                class="mt-1 text-sm text-muted-foreground"
                             >
                                 {{
                                     props.patient.emergency_contact_phone ||
@@ -862,10 +860,10 @@ const registerPrivacyNotice = async () => {
                     </section>
 
                     <section
-                        class="rounded-[2rem] border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/50"
+                        class="rounded-[2rem] border border-border bg-card p-5 shadow-sm"
                     >
                         <h2
-                            class="flex items-center gap-2 text-base font-semibold text-zinc-950 dark:text-zinc-50"
+                            class="flex items-center gap-2 text-base font-semibold text-foreground"
                         >
                             <ClipboardList
                                 class="h-4 w-4"
@@ -881,14 +879,14 @@ const registerPrivacyNotice = async () => {
                             <div
                                 v-for="item in pendingActivities.slice(0, 4)"
                                 :key="item.id"
-                                class="rounded-2xl border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-800 dark:bg-zinc-950/40"
+                                class="rounded-2xl border border-border bg-muted/50 p-3"
                             >
                                 <p
-                                    class="text-sm font-semibold text-zinc-900 dark:text-zinc-100"
+                                    class="text-sm font-semibold text-foreground"
                                 >
                                     {{ item.title }}
                                 </p>
-                                <p class="mt-1 text-xs text-zinc-500">
+                                <p class="mt-1 text-xs text-muted-foreground">
                                     {{
                                         item.due_date
                                             ? formatDateTimeMx(item.due_date)
@@ -901,7 +899,7 @@ const registerPrivacyNotice = async () => {
 
                         <div
                             v-else
-                            class="mt-4 rounded-2xl border border-dashed border-zinc-300 bg-zinc-50 p-4 text-sm text-zinc-500 dark:border-zinc-700 dark:bg-zinc-950/40"
+                            class="mt-4 rounded-2xl border border-dashed border-border bg-muted/30 p-4 text-sm text-muted-foreground"
                         >
                             No hay seguimientos pendientes.
                         </div>
@@ -911,10 +909,10 @@ const registerPrivacyNotice = async () => {
 
             <div v-if="activeTab === 'clinico'" class="space-y-4">
                 <section
-                    class="rounded-[2rem] border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/50"
+                    class="rounded-[2rem] border border-border bg-card p-5 shadow-sm"
                 >
                     <h2
-                        class="flex items-center gap-2 text-base font-semibold text-zinc-950 dark:text-zinc-50"
+                        class="flex items-center gap-2 text-base font-semibold text-foreground"
                     >
                         <Stethoscope
                             class="h-4 w-4"
@@ -927,7 +925,7 @@ const registerPrivacyNotice = async () => {
                         <article
                             v-for="item in sortedSessions"
                             :key="item.id"
-                            class="rounded-[1.5rem] border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950/40"
+                            class="rounded-[1.5rem] border border-border bg-card p-4 shadow-sm"
                         >
                             <div
                                 class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between"
@@ -937,7 +935,7 @@ const registerPrivacyNotice = async () => {
                                         class="flex flex-wrap items-center gap-2"
                                     >
                                         <p
-                                            class="font-semibold text-zinc-950 dark:text-zinc-50"
+                                            class="font-semibold text-foreground"
                                         >
                                             {{
                                                 formatDateMx(item.session_date)
@@ -955,7 +953,7 @@ const registerPrivacyNotice = async () => {
                                         </Badge>
                                     </div>
 
-                                    <p class="mt-1 text-xs text-zinc-500">
+                                    <p class="mt-1 text-xs text-muted-foreground">
                                         {{
                                             item.therapist_name ||
                                             'Sin terapeuta'
@@ -966,7 +964,7 @@ const registerPrivacyNotice = async () => {
 
                             <div class="mt-4 grid gap-3 lg:grid-cols-2">
                                 <div
-                                    class="rounded-2xl p-3 text-sm leading-6 text-zinc-700 dark:text-zinc-300"
+                                    class="rounded-2xl p-3 text-sm leading-6 text-foreground"
                                     :style="primarySoftStyle"
                                 >
                                     <strong>Subjetivo:</strong>
@@ -979,7 +977,7 @@ const registerPrivacyNotice = async () => {
                                 </div>
 
                                 <div
-                                    class="rounded-2xl p-3 text-sm leading-6 text-zinc-700 dark:text-zinc-300"
+                                    class="rounded-2xl p-3 text-sm leading-6 text-foreground"
                                     :style="primarySoftStyle"
                                 >
                                     <strong>Objetivo:</strong>
@@ -991,7 +989,7 @@ const registerPrivacyNotice = async () => {
                                 </div>
 
                                 <div
-                                    class="rounded-2xl p-3 text-sm leading-6 text-zinc-700 dark:text-zinc-300"
+                                    class="rounded-2xl p-3 text-sm leading-6 text-foreground"
                                     :style="primarySoftStyle"
                                 >
                                     <strong>Evaluación:</strong>
@@ -1003,7 +1001,7 @@ const registerPrivacyNotice = async () => {
                                 </div>
 
                                 <div
-                                    class="rounded-2xl p-3 text-sm leading-6 text-zinc-700 dark:text-zinc-300"
+                                    class="rounded-2xl p-3 text-sm leading-6 text-foreground"
                                     :style="primarySoftStyle"
                                 >
                                     <strong>Plan:</strong>
@@ -1017,7 +1015,7 @@ const registerPrivacyNotice = async () => {
 
                     <div
                         v-else
-                        class="mt-4 rounded-2xl border border-dashed border-zinc-300 bg-zinc-50 p-6 text-center text-sm text-zinc-500 dark:border-zinc-700 dark:bg-zinc-950/40"
+                        class="mt-4 rounded-2xl border border-dashed border-border bg-muted/30 p-6 text-center text-sm text-muted-foreground"
                     >
                         No hay sesiones clínicas registradas.
                     </div>
@@ -1026,13 +1024,13 @@ const registerPrivacyNotice = async () => {
 
             <div v-if="activeTab === 'citas'" class="space-y-4">
                 <section
-                    class="rounded-[2rem] border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/50"
+                    class="rounded-[2rem] border border-border bg-card p-5 shadow-sm"
                 >
                     <div
                         class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
                     >
                         <h2
-                            class="flex items-center gap-2 text-base font-semibold text-zinc-950 dark:text-zinc-50"
+                            class="flex items-center gap-2 text-base font-semibold text-foreground"
                         >
                             <CalendarClock
                                 class="h-4 w-4"
@@ -1057,13 +1055,13 @@ const registerPrivacyNotice = async () => {
                         <article
                             v-for="item in sortedAppointments"
                             :key="item.id"
-                            class="rounded-[1.5rem] border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-950/40"
+                            class="rounded-[1.5rem] border border-border bg-muted/50 p-4"
                         >
                             <div
                                 class="flex flex-wrap items-center justify-between gap-2"
                             >
                                 <p
-                                    class="text-sm font-semibold text-zinc-950 dark:text-zinc-50"
+                                    class="text-sm font-semibold text-foreground"
                                 >
                                     {{ formatDateTimeMx(item.start_at) }}
                                 </p>
@@ -1076,13 +1074,13 @@ const registerPrivacyNotice = async () => {
                                 </Badge>
                             </div>
 
-                            <p class="mt-2 text-xs text-zinc-500">
+                            <p class="mt-2 text-xs text-muted-foreground">
                                 Terapeuta:
                                 {{ item.therapist_name || 'Sin terapeuta' }}
                             </p>
 
                             <p
-                                class="mt-3 text-sm leading-6 text-zinc-600 dark:text-zinc-300"
+                                class="mt-3 text-sm leading-6 text-muted-foreground"
                             >
                                 {{ item.notes || 'Sin notas registradas.' }}
                             </p>
@@ -1091,7 +1089,7 @@ const registerPrivacyNotice = async () => {
 
                     <div
                         v-else
-                        class="mt-4 rounded-2xl border border-dashed border-zinc-300 bg-zinc-50 p-6 text-center text-sm text-zinc-500 dark:border-zinc-700 dark:bg-zinc-950/40"
+                        class="mt-4 rounded-2xl border border-dashed border-border bg-muted/30 p-6 text-center text-sm text-muted-foreground"
                     >
                         No hay citas registradas.
                     </div>
@@ -1100,13 +1098,13 @@ const registerPrivacyNotice = async () => {
 
             <div v-if="activeTab === 'archivos'" class="space-y-4">
                 <section
-                    class="rounded-[2rem] border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/50"
+                    class="rounded-[2rem] border border-border bg-card p-5 shadow-sm"
                 >
                     <div
                         class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
                     >
                         <h2
-                            class="flex items-center gap-2 text-base font-semibold text-zinc-950 dark:text-zinc-50"
+                            class="flex items-center gap-2 text-base font-semibold text-foreground"
                         >
                             <FolderOpen
                                 class="h-4 w-4"
@@ -1130,7 +1128,7 @@ const registerPrivacyNotice = async () => {
 
                             <button
                                 type="button"
-                                class="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-zinc-200 bg-white px-4 text-sm font-medium text-zinc-700 transition-all duration-200 hover:-translate-y-0.5 hover:border-[color:var(--primary)] hover:text-[color:var(--primary)] dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200"
+                                class="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-border bg-card px-4 text-sm font-medium text-foreground transition-all duration-200 hover:-translate-y-0.5 hover:border-[color:var(--primary)] hover:text-[color:var(--primary)]"
                                 @click="goToFiles"
                             >
                                 Ir a archivos
@@ -1145,7 +1143,7 @@ const registerPrivacyNotice = async () => {
                         <article
                             v-for="item in props.files"
                             :key="item.id"
-                            class="rounded-[1.5rem] border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-950/40"
+                            class="rounded-[1.5rem] border border-border bg-muted/50 p-4"
                         >
                             <div class="flex items-start gap-3">
                                 <div
@@ -1160,12 +1158,12 @@ const registerPrivacyNotice = async () => {
 
                                 <div class="min-w-0 flex-1">
                                     <p
-                                        class="truncate text-sm font-semibold text-zinc-950 dark:text-zinc-50"
+                                        class="truncate text-sm font-semibold text-foreground"
                                     >
                                         {{ item.original_name }}
                                     </p>
 
-                                    <p class="mt-1 text-xs text-zinc-500">
+                                    <p class="mt-1 text-xs text-muted-foreground">
                                         {{
                                             item.file_type ||
                                             item.mime ||
@@ -1180,7 +1178,7 @@ const registerPrivacyNotice = async () => {
 
                                     <p
                                         v-if="item.uploaded_by_name"
-                                        class="mt-1 text-xs text-zinc-500"
+                                        class="mt-1 text-xs text-muted-foreground"
                                     >
                                         Subido por {{ item.uploaded_by_name }}
                                     </p>
@@ -1188,14 +1186,14 @@ const registerPrivacyNotice = async () => {
                             </div>
 
                             <div
-                                class="mt-4 flex flex-wrap gap-2 border-t border-zinc-200 pt-4 dark:border-zinc-800"
+                                class="mt-4 flex flex-wrap gap-2 border-t border-border pt-4"
                             >
                                 <a
                                     v-if="item.preview_url"
                                     :href="item.preview_url"
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    class="inline-flex h-9 items-center justify-center gap-2 rounded-xl border border-zinc-200 bg-white px-3 text-sm font-medium text-zinc-700 transition-all duration-200 hover:-translate-y-0.5 hover:border-[color:var(--primary)] hover:text-[color:var(--primary)] dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200"
+                                    class="inline-flex h-9 items-center justify-center gap-2 rounded-xl border border-border bg-card px-3 text-sm font-medium text-foreground transition-all duration-200 hover:-translate-y-0.5 hover:border-[color:var(--primary)] hover:text-[color:var(--primary)]"
                                 >
                                     <Eye class="h-4 w-4" />
                                     Ver
@@ -1206,7 +1204,7 @@ const registerPrivacyNotice = async () => {
                                     :href="item.download_url"
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    class="inline-flex h-9 items-center justify-center gap-2 rounded-xl border border-zinc-200 bg-white px-3 text-sm font-medium text-zinc-700 transition-all duration-200 hover:-translate-y-0.5 hover:border-[color:var(--primary)] hover:text-[color:var(--primary)] dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200"
+                                    class="inline-flex h-9 items-center justify-center gap-2 rounded-xl border border-border bg-card px-3 text-sm font-medium text-foreground transition-all duration-200 hover:-translate-y-0.5 hover:border-[color:var(--primary)] hover:text-[color:var(--primary)]"
                                 >
                                     <Download class="h-4 w-4" />
                                     Descargar
@@ -1229,7 +1227,7 @@ const registerPrivacyNotice = async () => {
 
                     <div
                         v-else
-                        class="mt-4 rounded-2xl border border-dashed border-zinc-300 bg-zinc-50 p-6 text-center text-sm text-zinc-500 dark:border-zinc-700 dark:bg-zinc-950/40"
+                        class="mt-4 rounded-2xl border border-dashed border-border bg-muted/30 p-6 text-center text-sm text-muted-foreground"
                     >
                         No hay archivos cargados para este paciente.
                         <div class="mt-4">
@@ -1251,13 +1249,13 @@ const registerPrivacyNotice = async () => {
 
             <div v-if="activeTab === 'pagos'" class="space-y-4">
                 <section
-                    class="rounded-[2rem] border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/50"
+                    class="rounded-[2rem] border border-border bg-card p-5 shadow-sm"
                 >
                     <div
                         class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
                     >
                         <h2
-                            class="flex items-center gap-2 text-base font-semibold text-zinc-950 dark:text-zinc-50"
+                            class="flex items-center gap-2 text-base font-semibold text-foreground"
                         >
                             <CreditCard
                                 class="h-4 w-4"
@@ -1282,13 +1280,13 @@ const registerPrivacyNotice = async () => {
                         <article
                             v-for="item in props.payments"
                             :key="item.id"
-                            class="rounded-[1.5rem] border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-950/40"
+                            class="rounded-[1.5rem] border border-border bg-muted/50 p-4"
                         >
                             <div
                                 class="flex flex-wrap items-center justify-between gap-2"
                             >
                                 <p
-                                    class="text-sm font-semibold text-zinc-950 dark:text-zinc-50"
+                                    class="text-sm font-semibold text-foreground"
                                 >
                                     {{
                                         formatMoney(
@@ -1306,7 +1304,7 @@ const registerPrivacyNotice = async () => {
                                 </Badge>
                             </div>
 
-                            <p class="mt-2 text-xs text-zinc-500">
+                            <p class="mt-2 text-xs text-muted-foreground">
                                 {{
                                     item.paid_at
                                         ? formatDateTimeMx(item.paid_at)
@@ -1320,7 +1318,7 @@ const registerPrivacyNotice = async () => {
 
                     <div
                         v-else
-                        class="mt-4 rounded-2xl border border-dashed border-zinc-300 bg-zinc-50 p-6 text-center text-sm text-zinc-500 dark:border-zinc-700 dark:bg-zinc-950/40"
+                        class="mt-4 rounded-2xl border border-dashed border-border bg-muted/30 p-6 text-center text-sm text-muted-foreground"
                     >
                         No hay pagos relacionados.
                     </div>
@@ -1329,10 +1327,10 @@ const registerPrivacyNotice = async () => {
 
             <div v-if="activeTab === 'seguimiento'" class="space-y-4">
                 <section
-                    class="rounded-[2rem] border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/50"
+                    class="rounded-[2rem] border border-border bg-card p-5 shadow-sm"
                 >
                     <h2
-                        class="flex items-center gap-2 text-base font-semibold text-zinc-950 dark:text-zinc-50"
+                        class="flex items-center gap-2 text-base font-semibold text-foreground"
                     >
                         <Activity
                             class="h-4 w-4"
@@ -1345,7 +1343,7 @@ const registerPrivacyNotice = async () => {
                         <article
                             v-for="item in timelineItems"
                             :key="item.id"
-                            class="relative rounded-[1.5rem] border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-950/40"
+                            class="relative rounded-[1.5rem] border border-border bg-muted/50 p-4"
                         >
                             <div class="flex items-start gap-3">
                                 <div
@@ -1364,29 +1362,29 @@ const registerPrivacyNotice = async () => {
                                         class="flex flex-wrap items-center gap-2"
                                     >
                                         <Badge
-                                            class="rounded-full border border-zinc-200 bg-white px-3 py-1 text-xs text-zinc-600 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300"
+                                            class="rounded-full border border-border bg-card px-3 py-1 text-xs text-muted-foreground"
                                         >
                                             {{ item.type }}
                                         </Badge>
 
-                                        <p class="text-xs text-zinc-500">
+                                        <p class="text-xs text-muted-foreground">
                                             {{ formatDateTimeMx(item.date) }}
                                         </p>
                                     </div>
 
                                     <p
-                                        class="mt-2 text-sm font-semibold text-zinc-950 dark:text-zinc-50"
+                                        class="mt-2 text-sm font-semibold text-foreground"
                                     >
                                         {{ item.title }}
                                     </p>
 
                                     <p
-                                        class="mt-1 text-sm leading-6 text-zinc-600 dark:text-zinc-300"
+                                        class="mt-1 text-sm leading-6 text-muted-foreground"
                                     >
                                         {{ item.description }}
                                     </p>
 
-                                    <p class="mt-2 text-xs text-zinc-500">
+                                    <p class="mt-2 text-xs text-muted-foreground">
                                         {{ item.meta }}
                                     </p>
                                 </div>
@@ -1396,7 +1394,7 @@ const registerPrivacyNotice = async () => {
 
                     <div
                         v-else
-                        class="mt-4 rounded-2xl border border-dashed border-zinc-300 bg-zinc-50 p-6 text-center text-sm text-zinc-500 dark:border-zinc-700 dark:bg-zinc-950/40"
+                        class="mt-4 rounded-2xl border border-dashed border-border bg-muted/30 p-6 text-center text-sm text-muted-foreground"
                     >
                         No hay eventos de seguimiento registrados.
                     </div>
@@ -1407,13 +1405,13 @@ const registerPrivacyNotice = async () => {
             <div v-if="activeTab === 'cumplimiento'" class="space-y-5">
 
                 <!-- Aviso de Privacidad -->
-                <section class="rounded-[2rem] border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/50">
-                    <div class="mb-4 border-b border-zinc-100 pb-3 dark:border-zinc-800">
-                        <h2 class="flex items-center gap-2 text-base font-semibold text-zinc-950 dark:text-zinc-50">
+                <section class="rounded-[2rem] border border-border bg-card p-5 shadow-sm">
+                    <div class="mb-4 border-b border-border pb-3">
+                        <h2 class="flex items-center gap-2 text-base font-semibold text-foreground">
                             <ShieldCheck class="h-4 w-4" :style="{ color: 'var(--primary)' }" />
                             Aviso de privacidad (LFPDPPP)
                         </h2>
-                        <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+                        <p class="mt-1 text-xs text-muted-foreground">
                             Registro independiente del aviso de privacidad conforme a la Ley Federal de Protección de Datos Personales en Posesión de los Particulares.
                         </p>
                     </div>
@@ -1423,7 +1421,7 @@ const registerPrivacyNotice = async () => {
                         <div class="flex items-center gap-3">
                             <div
                                 class="flex h-10 w-10 items-center justify-center rounded-full"
-                                :class="latestPrivacyNotice ? 'bg-emerald-100 dark:bg-emerald-900/30' : 'bg-zinc-100 dark:bg-zinc-800'"
+                                :class="latestPrivacyNotice ? 'bg-emerald-100 dark:bg-emerald-900/30' : 'bg-muted'"
                             >
                                 <component
                                     :is="latestPrivacyNotice ? ShieldCheck : ShieldX"
@@ -1432,10 +1430,10 @@ const registerPrivacyNotice = async () => {
                                 />
                             </div>
                             <div>
-                                <p class="text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                                <p class="text-sm font-medium text-foreground">
                                     {{ latestPrivacyNotice ? 'Aviso de privacidad aceptado' : 'Aviso de privacidad pendiente' }}
                                 </p>
-                                <p v-if="latestPrivacyNotice" class="text-xs text-zinc-500 dark:text-zinc-400">
+                                <p v-if="latestPrivacyNotice" class="text-xs text-muted-foreground">
                                     v{{ latestPrivacyNotice.version }} · {{ formatDateTimeMx(latestPrivacyNotice.accepted_at!) }}
                                     <template v-if="latestPrivacyNotice.accepted_by_name"> · {{ latestPrivacyNotice.accepted_by_name }}</template>
                                 </p>
@@ -1446,11 +1444,11 @@ const registerPrivacyNotice = async () => {
                         <!-- Register + print buttons -->
                         <div class="flex flex-wrap items-end gap-2">
                             <div class="flex flex-col gap-1">
-                                <label class="text-xs text-zinc-500 dark:text-zinc-400">Versión</label>
+                                <label class="text-xs text-muted-foreground">Versión</label>
                                 <input
                                     v-model="privacyForm.version"
                                     type="text"
-                                    class="w-20 rounded-lg border border-zinc-200 bg-white px-2 py-1.5 text-xs dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+                                    class="w-20 rounded-lg border border-border bg-card px-2 py-1.5 text-xs text-foreground"
                                     placeholder="1.0"
                                 />
                             </div>
@@ -1468,7 +1466,7 @@ const registerPrivacyNotice = async () => {
                                 <a
                                     :href="`/pacientes/${props.patient.id}/cumplimiento/aviso-privacidad/imprimir`"
                                     target="_blank"
-                                    class="inline-flex h-9 items-center gap-1.5 rounded-xl border border-zinc-200 bg-white px-3 text-xs font-medium text-zinc-600 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                                    class="inline-flex h-9 items-center gap-1.5 rounded-xl border border-border bg-card px-3 text-xs font-medium text-muted-foreground hover:bg-muted"
                                 >
                                     <FileText class="h-3.5 w-3.5" />
                                     Imprimir aviso
@@ -1478,10 +1476,10 @@ const registerPrivacyNotice = async () => {
                     </div>
 
                     <!-- History -->
-                    <div v-if="props.privacyNotices.length > 1" class="mt-4 border-t border-zinc-100 pt-3 dark:border-zinc-800">
-                        <p class="mb-2 text-xs font-medium text-zinc-500 uppercase tracking-wide dark:text-zinc-400">Historial</p>
+                    <div v-if="props.privacyNotices.length > 1" class="mt-4 border-t border-border pt-3">
+                        <p class="mb-2 text-xs font-medium text-muted-foreground uppercase tracking-wide">Historial</p>
                         <ul class="space-y-1">
-                            <li v-for="pn in props.privacyNotices" :key="pn.id" class="text-xs text-zinc-500 dark:text-zinc-400">
+                            <li v-for="pn in props.privacyNotices" :key="pn.id" class="text-xs text-muted-foreground">
                                 v{{ pn.version }} — {{ pn.accepted_at ? formatDateTimeMx(pn.accepted_at) : '—' }}
                                 <template v-if="pn.accepted_by_name"> — {{ pn.accepted_by_name }}</template>
                             </li>
@@ -1490,9 +1488,9 @@ const registerPrivacyNotice = async () => {
                 </section>
 
                 <!-- Estado de consentimientos -->
-                <section class="rounded-[2rem] border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/50">
-                    <div class="mb-4 flex items-center justify-between border-b border-zinc-100 pb-3 dark:border-zinc-800">
-                        <h2 class="flex items-center gap-2 text-base font-semibold text-zinc-950 dark:text-zinc-50">
+                <section class="rounded-[2rem] border border-border bg-card p-5 shadow-sm">
+                    <div class="mb-4 flex items-center justify-between border-b border-border pb-3">
+                        <h2 class="flex items-center gap-2 text-base font-semibold text-foreground">
                             <ShieldCheck class="h-4 w-4" :style="{ color: 'var(--primary)' }" />
                             Estado de consentimientos
                         </h2>
@@ -1506,14 +1504,14 @@ const registerPrivacyNotice = async () => {
                     </div>
 
                     <!-- Consent form -->
-                    <div v-if="showConsentForm" class="mb-5 rounded-2xl border border-dashed border-zinc-300 bg-zinc-50 p-4 dark:border-zinc-700 dark:bg-zinc-950/40">
-                        <p class="mb-3 text-sm font-medium text-zinc-700 dark:text-zinc-300">Registrar nuevo consentimiento</p>
+                    <div v-if="showConsentForm" class="mb-5 rounded-2xl border border-dashed border-border bg-muted/30 p-4">
+                        <p class="mb-3 text-sm font-medium text-foreground">Registrar nuevo consentimiento</p>
                         <div class="grid gap-3 sm:grid-cols-2">
                             <div>
-                                <label class="mb-1 block text-xs font-medium text-zinc-600 dark:text-zinc-400">Tipo de consentimiento *</label>
+                                <label class="mb-1 block text-xs font-medium text-muted-foreground">Tipo de consentimiento *</label>
                                 <select
                                     v-model="consentForm.consent_type"
-                                    class="w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+                                    class="w-full rounded-xl border border-border bg-card px-3 py-2 text-sm text-foreground"
                                 >
                                     <option value="">Selecciona...</option>
                                     <option v-for="ct in CONSENT_TYPES" :key="ct.key" :value="ct.key">
@@ -1525,12 +1523,12 @@ const registerPrivacyNotice = async () => {
                                 </p>
                             </div>
                             <div>
-                                <label class="mb-1 block text-xs font-medium text-zinc-600 dark:text-zinc-400">Notas (opcional)</label>
+                                <label class="mb-1 block text-xs font-medium text-muted-foreground">Notas (opcional)</label>
                                 <input
                                     v-model="consentForm.notes"
                                     type="text"
                                     placeholder="Ej. Firmado en papel, copia adjunta"
-                                    class="w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+                                    class="w-full rounded-xl border border-border bg-card px-3 py-2 text-sm text-foreground"
                                 />
                             </div>
                         </div>
@@ -1554,7 +1552,7 @@ const registerPrivacyNotice = async () => {
                             class="flex flex-col gap-2 rounded-2xl border p-4 transition-colors"
                             :class="acceptedConsentTypes.has(ct.key)
                                 ? 'border-emerald-200 bg-emerald-50/60 dark:border-emerald-900/40 dark:bg-emerald-950/20'
-                                : 'border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900/40'"
+                                : 'border-border bg-muted/30'"
                         >
                             <div class="flex items-start gap-3">
                                 <component
@@ -1562,17 +1560,17 @@ const registerPrivacyNotice = async () => {
                                     class="mt-0.5 h-5 w-5 shrink-0"
                                     :class="acceptedConsentTypes.has(ct.key)
                                         ? 'text-emerald-600 dark:text-emerald-400'
-                                        : 'text-zinc-400 dark:text-zinc-600'"
+                                        : 'text-muted-foreground'"
                                 />
                                 <div class="min-w-0 flex-1">
-                                    <p class="text-sm font-medium text-zinc-900 dark:text-zinc-100">{{ ct.label }}</p>
-                                    <p v-if="lastConsent(ct.key)" class="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">
+                                    <p class="text-sm font-medium text-foreground">{{ ct.label }}</p>
+                                    <p v-if="lastConsent(ct.key)" class="mt-0.5 text-xs text-muted-foreground">
                                         Aceptado {{ formatDateTimeMx(lastConsent(ct.key)!.accepted_at) }}
                                         <template v-if="lastConsent(ct.key)!.accepted_by_name">
                                             · por {{ lastConsent(ct.key)!.accepted_by_name }}
                                         </template>
                                     </p>
-                                    <p v-else class="mt-0.5 text-xs text-zinc-400 dark:text-zinc-500">
+                                    <p v-else class="mt-0.5 text-xs text-muted-foreground">
                                         Pendiente de registro
                                     </p>
                                 </div>
@@ -1581,7 +1579,7 @@ const registerPrivacyNotice = async () => {
                                 <a
                                     :href="`/pacientes/${props.patient.id}/cumplimiento/${consentPrintSlug(ct.key)}/imprimir`"
                                     target="_blank"
-                                    class="inline-flex items-center gap-1 rounded-lg border border-zinc-200 bg-white px-2.5 py-1 text-[11px] font-medium text-zinc-500 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800"
+                                    class="inline-flex items-center gap-1 rounded-lg border border-border bg-card px-2.5 py-1 text-[11px] font-medium text-muted-foreground hover:bg-muted"
                                 >
                                     <FileText class="h-3 w-3" />
                                     Imprimir formato
@@ -1592,13 +1590,13 @@ const registerPrivacyNotice = async () => {
                 </section>
 
                 <!-- Documentos imprimibles -->
-                <section class="rounded-[2rem] border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/50">
-                    <div class="mb-4 border-b border-zinc-100 pb-3 dark:border-zinc-800">
-                        <h2 class="flex items-center gap-2 text-base font-semibold text-zinc-950 dark:text-zinc-50">
+                <section class="rounded-[2rem] border border-border bg-card p-5 shadow-sm">
+                    <div class="mb-4 border-b border-border pb-3">
+                        <h2 class="flex items-center gap-2 text-base font-semibold text-foreground">
                             <FileText class="h-4 w-4" :style="{ color: 'var(--primary)' }" />
                             Documentos imprimibles
                         </h2>
-                        <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+                        <p class="mt-1 text-xs text-muted-foreground">
                             Abre el formato para que el paciente lo firme físicamente.
                         </p>
                     </div>
@@ -1606,7 +1604,7 @@ const registerPrivacyNotice = async () => {
                         <a
                             :href="`/pacientes/${props.patient.id}/cumplimiento/ficha-ingreso/imprimir`"
                             target="_blank"
-                            class="flex items-center gap-2 rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-3 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900/40 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                            class="flex items-center gap-2 rounded-xl border border-border bg-muted/50 px-3 py-3 text-sm font-medium text-foreground transition-colors hover:bg-muted"
                         >
                             <FileText class="h-4 w-4 shrink-0 text-zinc-400" />
                             Ficha de ingreso
@@ -1647,27 +1645,27 @@ const registerPrivacyNotice = async () => {
                 </section>
 
                 <!-- Historial de consentimientos -->
-                <section class="rounded-[2rem] border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/50">
-                    <h2 class="mb-4 flex items-center gap-2 border-b border-zinc-100 pb-3 text-base font-semibold text-zinc-950 dark:border-zinc-800 dark:text-zinc-50">
+                <section class="rounded-[2rem] border border-border bg-card p-5 shadow-sm">
+                    <h2 class="mb-4 flex items-center gap-2 border-b border-border pb-3 text-base font-semibold text-foreground">
                         <ShieldAlert class="h-4 w-4" :style="{ color: 'var(--primary)' }" />
                         Historial de consentimientos
                     </h2>
 
-                    <div v-if="!props.consents.length" class="rounded-2xl border border-dashed border-zinc-300 bg-zinc-50 p-6 text-center text-sm text-zinc-500 dark:border-zinc-700 dark:bg-zinc-950/40">
+                    <div v-if="!props.consents.length" class="rounded-2xl border border-dashed border-border bg-muted/30 p-6 text-center text-sm text-muted-foreground">
                         No hay consentimientos registrados aún.
                     </div>
                     <ul v-else class="space-y-2">
                         <li
                             v-for="c in props.consents"
                             :key="c.id"
-                            class="flex items-center gap-3 rounded-2xl border border-zinc-100 bg-zinc-50/50 px-4 py-3 dark:border-zinc-800 dark:bg-zinc-900/40"
+                            class="flex items-center gap-3 rounded-2xl border border-border bg-muted/30 px-4 py-3"
                         >
                             <ShieldCheck class="h-4 w-4 shrink-0 text-emerald-500" />
                             <div class="min-w-0 flex-1">
-                                <p class="text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                                <p class="text-sm font-medium text-foreground">
                                     {{ consentTypeLabel(c.consent_type) }}
                                 </p>
-                                <p class="text-xs text-zinc-500 dark:text-zinc-400">
+                                <p class="text-xs text-muted-foreground">
                                     {{ formatDateTimeMx(c.accepted_at) }}
                                     <template v-if="c.accepted_by_name"> · {{ c.accepted_by_name }}</template>
                                     <template v-if="c.notes"> · {{ c.notes }}</template>

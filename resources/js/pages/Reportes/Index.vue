@@ -111,7 +111,7 @@ const barWidth = (total: number, rows: Array<{ total: number }>) =>
 
     <AppLayout :breadcrumbs="breadcrumbs">
         <section
-            class="space-y-6 rounded-3xl bg-white p-6 shadow-xl transition-all duration-300 dark:bg-zinc-950"
+            class="space-y-6 rounded-3xl bg-card p-6 shadow-xl transition-all duration-300"
         >
             <div
                 v-if="!moduleEnabled"
@@ -127,11 +127,11 @@ const barWidth = (total: number, rows: Array<{ total: number }>) =>
                 >
                     <div>
                         <h1
-                            class="text-2xl font-semibold text-zinc-900 dark:text-zinc-100"
+                            class="text-2xl font-semibold text-foreground"
                         >
                             Reportes
                         </h1>
-                        <p class="text-sm text-zinc-500 dark:text-zinc-400">
+                        <p class="text-sm text-muted-foreground">
                             Indicadores operativos y administrativos del periodo
                             seleccionado.
                         </p>
@@ -145,13 +145,13 @@ const barWidth = (total: number, rows: Array<{ total: number }>) =>
                         </Badge>
                         <a
                             :href="`/reportes/export/excel?${buildExportQuery()}`"
-                            class="inline-flex items-center rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm font-medium text-zinc-700 shadow-sm hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800"
+                            class="inline-flex items-center rounded-xl border border-border bg-card px-3 py-2 text-sm font-medium text-foreground shadow-sm hover:bg-muted"
                         >
                             <DownloadCloud class="mr-2 h-4 w-4 text-emerald-600" />Excel
                         </a>
                         <a
                             :href="`/reportes/export/pdf?${buildExportQuery()}`"
-                            class="inline-flex items-center rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm font-medium text-zinc-700 shadow-sm hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800"
+                            class="inline-flex items-center rounded-xl border border-border bg-card px-3 py-2 text-sm font-medium text-foreground shadow-sm hover:bg-muted"
                         >
                             <DownloadCloud class="mr-2 h-4 w-4 text-rose-600" />PDF
                         </a>
@@ -160,15 +160,15 @@ const barWidth = (total: number, rows: Array<{ total: number }>) =>
 
                 <!-- Filtros — tiempo real, sin botón Aplicar -->
                 <div
-                    class="rounded-2xl border border-zinc-200 bg-zinc-50/60 p-4 dark:border-zinc-800 dark:bg-zinc-900/40"
+                    class="rounded-2xl border border-border bg-muted/60 p-4"
                 >
                     <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
                         <div class="space-y-1">
-                            <p class="text-xs text-zinc-500">Desde</p>
+                            <p class="text-xs text-muted-foreground">Desde</p>
                             <DatePicker v-model="form.start_date" />
                         </div>
                         <div class="space-y-1">
-                            <p class="text-xs text-zinc-500">Hasta</p>
+                            <p class="text-xs text-muted-foreground">Hasta</p>
                             <DatePicker v-model="form.end_date" />
                         </div>
                         <SearchableSelect
@@ -196,7 +196,7 @@ const barWidth = (total: number, rows: Array<{ total: number }>) =>
                     </div>
                     <div class="mt-3 grid gap-3 md:grid-cols-3">
                         <div class="space-y-1">
-                            <p class="text-xs text-zinc-500">Estado de cita</p>
+                            <p class="text-xs text-muted-foreground">Estado de cita</p>
                             <SearchableSelect
                                 v-model="form.appointment_status"
                                 :options="[
@@ -211,7 +211,7 @@ const barWidth = (total: number, rows: Array<{ total: number }>) =>
                             />
                         </div>
                         <div class="space-y-1">
-                            <p class="text-xs text-zinc-500">Estado de pago</p>
+                            <p class="text-xs text-muted-foreground">Estado de pago</p>
                             <SearchableSelect
                                 v-model="form.payment_status"
                                 :options="[
@@ -224,7 +224,7 @@ const barWidth = (total: number, rows: Array<{ total: number }>) =>
                             />
                         </div>
                         <div class="space-y-1">
-                            <p class="text-xs text-zinc-500">Estado de actividad</p>
+                            <p class="text-xs text-muted-foreground">Estado de actividad</p>
                             <SearchableSelect
                                 v-model="form.activity_status"
                                 :options="[
@@ -251,7 +251,7 @@ const barWidth = (total: number, rows: Array<{ total: number }>) =>
 
                     <!-- Solo Limpiar filtros -->
                     <div class="mt-3 flex items-center gap-3">
-                        <span v-if="loading" class="text-xs text-zinc-400">
+                        <span v-if="loading" class="text-xs text-muted-foreground">
                             <Activity class="mr-1 inline h-3.5 w-3.5 animate-spin" />
                             Actualizando…
                         </span>
@@ -269,44 +269,44 @@ const barWidth = (total: number, rows: Array<{ total: number }>) =>
                 <!-- Cards resumen -->
                 <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                     <article
-                        class="rounded-2xl border border-sky-100 bg-white p-4 shadow-sm transition hover:-translate-y-1 hover:shadow-lg dark:border-sky-900/30 dark:bg-zinc-900/60"
+                        class="rounded-2xl border border-sky-100 bg-card p-4 shadow-sm transition hover:-translate-y-1 hover:shadow-lg dark:border-sky-900/30 dark:bg-muted/60"
                     >
                         <div class="flex items-center gap-2">
                             <CalendarRange class="h-4 w-4 text-sky-500" />
-                            <p class="text-xs text-zinc-500">Citas del periodo</p>
+                            <p class="text-xs text-muted-foreground">Citas del periodo</p>
                         </div>
                         <p class="mt-1 text-2xl font-semibold">
                             {{ props.summary.appointments_period }}
                         </p>
                     </article>
                     <article
-                        class="rounded-2xl border border-emerald-100 bg-white p-4 shadow-sm transition hover:-translate-y-1 hover:shadow-lg dark:border-emerald-900/30 dark:bg-zinc-900/60"
+                        class="rounded-2xl border border-emerald-100 bg-card p-4 shadow-sm transition hover:-translate-y-1 hover:shadow-lg dark:border-emerald-900/30 dark:bg-muted/60"
                     >
                         <div class="flex items-center gap-2">
                             <Activity class="h-4 w-4 text-emerald-500" />
-                            <p class="text-xs text-zinc-500">Sesiones del periodo</p>
+                            <p class="text-xs text-muted-foreground">Sesiones del periodo</p>
                         </div>
                         <p class="mt-1 text-2xl font-semibold">
                             {{ props.summary.sessions_period }}
                         </p>
                     </article>
                     <article
-                        class="rounded-2xl border border-violet-100 bg-white p-4 shadow-sm transition hover:-translate-y-1 hover:shadow-lg dark:border-violet-900/30 dark:bg-zinc-900/60"
+                        class="rounded-2xl border border-violet-100 bg-card p-4 shadow-sm transition hover:-translate-y-1 hover:shadow-lg dark:border-violet-900/30 dark:bg-muted/60"
                     >
                         <div class="flex items-center gap-2">
                             <Users class="h-4 w-4 text-violet-500" />
-                            <p class="text-xs text-zinc-500">Pacientes activos</p>
+                            <p class="text-xs text-muted-foreground">Pacientes activos</p>
                         </div>
                         <p class="mt-1 text-2xl font-semibold">
                             {{ props.summary.active_patients }}
                         </p>
                     </article>
                     <article
-                        class="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm transition hover:-translate-y-1 hover:shadow-lg dark:border-zinc-800 dark:bg-zinc-900/60"
+                        class="rounded-2xl border border-border bg-card p-4 shadow-sm transition hover:-translate-y-1 hover:shadow-lg dark:bg-muted/60"
                     >
                         <div class="flex items-center gap-2">
-                            <Users class="h-4 w-4 text-zinc-400" />
-                            <p class="text-xs text-zinc-500">
+                            <Users class="h-4 w-4 text-muted-foreground" />
+                            <p class="text-xs text-muted-foreground">
                                 Pacientes nuevos en el periodo
                             </p>
                         </div>
@@ -345,11 +345,11 @@ const barWidth = (total: number, rows: Array<{ total: number }>) =>
                         </p>
                     </article>
                     <article
-                        class="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm transition hover:-translate-y-1 hover:shadow-lg dark:border-zinc-800 dark:bg-zinc-900/60"
+                        class="rounded-2xl border border-border bg-card p-4 shadow-sm transition hover:-translate-y-1 hover:shadow-lg dark:bg-muted/60"
                     >
                         <div class="flex items-center gap-2">
-                            <Wallet class="h-4 w-4 text-zinc-400" />
-                            <p class="text-xs text-zinc-500">Total pagos registrados</p>
+                            <Wallet class="h-4 w-4 text-muted-foreground" />
+                            <p class="text-xs text-muted-foreground">Total pagos registrados</p>
                         </div>
                         <p class="mt-1 text-2xl font-semibold">
                             {{ props.summary.total_payments }}
@@ -375,7 +375,7 @@ const barWidth = (total: number, rows: Array<{ total: number }>) =>
                 <!-- Detalle por secciones -->
                 <div class="grid gap-4 xl:grid-cols-2">
                     <section
-                        class="rounded-2xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900/60"
+                        class="rounded-2xl border border-border bg-card p-4 dark:bg-muted/60"
                     >
                         <h3
                             class="mb-3 flex items-center gap-2 text-base font-semibold"
@@ -384,7 +384,7 @@ const barWidth = (total: number, rows: Array<{ total: number }>) =>
                         </h3>
                         <div
                             v-if="!props.appointmentsByStatus.length"
-                            class="text-sm text-zinc-400"
+                            class="text-sm text-muted-foreground"
                         >
                             Sin datos para el filtro actual.
                         </div>
@@ -392,14 +392,14 @@ const barWidth = (total: number, rows: Array<{ total: number }>) =>
                             <div
                                 v-for="row in props.appointmentsByStatus"
                                 :key="row.status"
-                                class="rounded-xl bg-zinc-50 p-2 dark:bg-zinc-900"
+                                class="rounded-xl bg-muted p-2 dark:bg-muted"
                             >
                                 <div class="mb-1 flex justify-between text-xs">
                                     <span>{{ tAppointmentStatus(row.status) }}</span>
                                     <strong>{{ row.total }}</strong>
                                 </div>
                                 <div
-                                    class="h-2 rounded bg-zinc-200 dark:bg-zinc-800"
+                                    class="h-2 rounded bg-border"
                                 >
                                     <div
                                         class="h-2 rounded bg-sky-500"
@@ -416,7 +416,7 @@ const barWidth = (total: number, rows: Array<{ total: number }>) =>
                     </section>
 
                     <section
-                        class="rounded-2xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900/60"
+                        class="rounded-2xl border border-border bg-card p-4 dark:bg-muted/60"
                     >
                         <h3
                             class="mb-3 flex items-center gap-2 text-base font-semibold"
@@ -425,7 +425,7 @@ const barWidth = (total: number, rows: Array<{ total: number }>) =>
                         </h3>
                         <div
                             v-if="!props.paymentsSummary.by_status.length"
-                            class="text-sm text-zinc-400"
+                            class="text-sm text-muted-foreground"
                         >
                             Sin pagos en el periodo.
                         </div>
@@ -433,7 +433,7 @@ const barWidth = (total: number, rows: Array<{ total: number }>) =>
                             <div
                                 v-for="row in props.paymentsSummary.by_status"
                                 :key="`pay-${row.status}`"
-                                class="flex items-center justify-between rounded-xl bg-zinc-50 px-3 py-2 text-sm dark:bg-zinc-900"
+                                class="flex items-center justify-between rounded-xl bg-muted px-3 py-2 text-sm dark:bg-muted"
                             >
                                 <span
                                     >{{ tPaymentStatus(row.status) }} ({{
@@ -446,7 +446,7 @@ const barWidth = (total: number, rows: Array<{ total: number }>) =>
                     </section>
 
                     <section
-                        class="rounded-2xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900/60"
+                        class="rounded-2xl border border-border bg-card p-4 dark:bg-muted/60"
                     >
                         <h3
                             class="mb-3 flex items-center gap-2 text-base font-semibold"
@@ -455,7 +455,7 @@ const barWidth = (total: number, rows: Array<{ total: number }>) =>
                         </h3>
                         <div
                             v-if="!props.activitiesSummary.by_status.length"
-                            class="text-sm text-zinc-400"
+                            class="text-sm text-muted-foreground"
                         >
                             Sin actividades para el filtro actual.
                         </div>
@@ -463,7 +463,7 @@ const barWidth = (total: number, rows: Array<{ total: number }>) =>
                             <div
                                 v-for="row in props.activitiesSummary.by_status"
                                 :key="`act-${row.status}`"
-                                class="flex items-center justify-between rounded-xl bg-zinc-50 px-3 py-2 text-sm dark:bg-zinc-900"
+                                class="flex items-center justify-between rounded-xl bg-muted px-3 py-2 text-sm dark:bg-muted"
                             >
                                 <span>{{ tActivityStatus(row.status) }}</span>
                                 <strong>{{ row.total }}</strong>
@@ -472,7 +472,7 @@ const barWidth = (total: number, rows: Array<{ total: number }>) =>
                     </section>
 
                     <section
-                        class="rounded-2xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900/60"
+                        class="rounded-2xl border border-border bg-card p-4 dark:bg-muted/60"
                     >
                         <h3
                             class="mb-3 flex items-center gap-2 text-base font-semibold"
@@ -481,7 +481,7 @@ const barWidth = (total: number, rows: Array<{ total: number }>) =>
                         </h3>
                         <div
                             v-if="!props.therapistProductivity.length"
-                            class="text-sm text-zinc-400"
+                            class="text-sm text-muted-foreground"
                         >
                             Sin sesiones por terapeuta en el periodo.
                         </div>
@@ -489,14 +489,14 @@ const barWidth = (total: number, rows: Array<{ total: number }>) =>
                             <div
                                 v-for="row in props.therapistProductivity"
                                 :key="row.therapist_user_id"
-                                class="rounded-xl bg-zinc-50 p-2 dark:bg-zinc-900"
+                                class="rounded-xl bg-muted p-2 dark:bg-muted"
                             >
                                 <div class="mb-1 flex justify-between text-sm">
                                     <span>{{ row.therapist_name }}</span>
                                     <strong>{{ row.total }}</strong>
                                 </div>
                                 <div
-                                    class="h-2 rounded bg-zinc-200 dark:bg-zinc-800"
+                                    class="h-2 rounded bg-border"
                                 >
                                     <div
                                         class="h-2 rounded bg-emerald-500"
@@ -515,7 +515,7 @@ const barWidth = (total: number, rows: Array<{ total: number }>) =>
 
                 <!-- Rango aplicado -->
                 <div
-                    class="rounded-2xl border border-zinc-200 bg-white p-3 text-sm text-zinc-500 dark:border-zinc-800 dark:bg-zinc-900/60 dark:text-zinc-400"
+                    class="rounded-2xl border border-border bg-card p-3 text-sm text-muted-foreground dark:bg-muted/60"
                 >
                     <div class="flex items-center gap-2">
                         <Activity class="h-4 w-4" />

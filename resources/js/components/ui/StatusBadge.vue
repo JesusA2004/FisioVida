@@ -22,7 +22,7 @@ const statusClasses: Record<string, string> = {
     arrived:    'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300',
     done:       'bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300',
     no_show:    'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300',
-    cancelled:  'bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400',
+    cancelled:  'bg-muted text-muted-foreground',
     // Pagos
     pending:    'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300',
     paid:       'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300',
@@ -32,16 +32,16 @@ const statusClasses: Record<string, string> = {
     // Actividades
     in_progress:'bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-300',
     completed:  'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300',
-    on_hold:    'bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400',
+    on_hold:    'bg-muted text-muted-foreground',
     overdue:    'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300',
     // Usuarios / pacientes
     active:     'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300',
-    inactive:   'bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400',
+    inactive:   'bg-muted text-muted-foreground',
     blocked:    'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300',
     suspended:  'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300',
     // Módulos
     enabled:    'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300',
-    disabled:   'bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400',
+    disabled:   'bg-muted text-muted-foreground',
 }
 
 const labelMap: Record<string, string> = {
@@ -72,7 +72,7 @@ const labelMap: Record<string, string> = {
     disabled:   'Deshabilitado',
 }
 
-const cls = computed(() => statusClasses[props.status] ?? 'bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400')
+const cls = computed(() => statusClasses[props.status] ?? 'bg-muted text-muted-foreground')
 const label = computed(() => labelMap[props.status] ?? props.status)
 </script>
 

@@ -140,54 +140,61 @@
 }
 
 .dark {
-    /* Base dark premium */
-    --background: hsl(224 40% 6%);        /* azul oscuro profundo */
-    --foreground: hsl(210 35% 95%);       /* casi blanco cálido */
+    /* Fondo navy profundo — no negro puro, tiene tinte azul oscuro */
+    --background: hsl(222 35% 7%);
+    --foreground: hsl(210 30% 94%);
 
-    --card: hsl(224 40% 9%);              /* ligeramente más claro que background */
-    --card-foreground: hsl(210 35% 95%);
+    /* Cards ligeramente más claras que el fondo — profundidad real */
+    --card: hsl(222 32% 11%);
+    --card-foreground: hsl(210 30% 94%);
 
-    --popover: hsl(224 40% 10%);
-    --popover-foreground: hsl(210 35% 95%);
+    /* Popovers y dropdowns — otro nivel de profundidad */
+    --popover: hsl(222 30% 13%);
+    --popover-foreground: hsl(210 30% 94%);
 
-    /* Brand in dark */
-    --primary: hsl(188 95% 44%);          /* teal vivo y legible */
-    --primary-hover: hsl(188 95% 52%);    /* más brillante en hover */
-    --primary-foreground: hsl(224 40% 6%); /* oscuro sobre teal */
+    /* Brand primario — teal vivo y legible en oscuro */
+    --primary: hsl(188 90% 46%);
+    --primary-hover: hsl(188 90% 54%);
+    --primary-foreground: hsl(222 35% 7%);
 
-    --secondary: hsl(188 30% 16%);
-    --secondary-foreground: hsl(188 80% 85%);
+    /* Secundarios — teal suave para áreas de apoyo */
+    --secondary: hsl(188 25% 15%);
+    --secondary-foreground: hsl(188 70% 85%);
 
-    --muted: hsl(224 35% 13%);            /* sutil, más claro que card */
-    --muted-foreground: hsl(215 22% 60%); /* gris medio — buen contraste */
+    /* Muted — un tono entre card y background */
+    --muted: hsl(222 28% 15%);
+    --muted-foreground: hsl(215 20% 58%);
 
-    --accent: hsl(188 40% 16%);
-    --accent-foreground: hsl(188 80% 85%);
+    /* Accent — teal muy suave */
+    --accent: hsl(188 35% 15%);
+    --accent-foreground: hsl(188 70% 85%);
 
+    /* Destructivo */
     --destructive: hsl(0 84% 60%);
-    --destructive-foreground: hsl(210 35% 95%);
+    --destructive-foreground: hsl(210 30% 94%);
 
-    --border: hsl(224 28% 16%);           /* borde sutil, no negro */
-    --input: hsl(224 28% 18%);            /* un poco más claro que border */
-    --ring: hsl(188 95% 44%);
+    /* Bordes muy suaves — no negros */
+    --border: hsl(222 22% 18%);
+    --input: hsl(222 22% 20%);
+    --ring: hsl(188 90% 46%);
 
-    /* Charts dark */
-    --chart-1: hsl(188 95% 44%);
+    /* Charts */
+    --chart-1: hsl(188 90% 46%);
     --chart-2: hsl(142 71% 50%);
     --chart-3: hsl(262 83% 65%);
     --chart-4: hsl(38 92% 55%);
     --chart-5: hsl(0 84% 65%);
 
-    /* Sidebar dark — ligeramente más claro que background para distinción */
-    --sidebar-background: hsl(224 40% 8%);
-    --sidebar-foreground: hsl(210 35% 92%);
-    --sidebar-primary: hsl(188 95% 44%);
-    --sidebar-primary-foreground: hsl(224 40% 6%);
-    --sidebar-accent: hsl(224 35% 13%);
-    --sidebar-accent-foreground: hsl(210 35% 92%);
-    --sidebar-border: hsl(224 28% 14%);
-    --sidebar-ring: hsl(188 95% 44%);
-    --sidebar: hsl(224 40% 8%);
+    /* Sidebar — ligeramente más oscuro que card para distinción */
+    --sidebar-background: hsl(222 38% 9%);
+    --sidebar-foreground: hsl(210 28% 88%);
+    --sidebar-primary: hsl(188 90% 46%);
+    --sidebar-primary-foreground: hsl(222 35% 7%);
+    --sidebar-accent: hsl(222 28% 14%);
+    --sidebar-accent-foreground: hsl(210 28% 88%);
+    --sidebar-border: hsl(222 22% 15%);
+    --sidebar-ring: hsl(188 90% 46%);
+    --sidebar: hsl(222 38% 9%);
 }
 
 @layer base {
@@ -258,3 +265,79 @@
     .fv-no-scrollbar::-webkit-scrollbar { width: 0px; height: 0px; }
     .fv-no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
   }
+
+@layer utilities {
+    /* ── FisioVida Premium Utilities ────────────────────────────── */
+
+    .fv-shell {
+        @apply min-h-screen bg-background text-foreground;
+    }
+
+    .fv-panel {
+        @apply rounded-2xl border border-border bg-card p-5 shadow-sm;
+    }
+
+    .fv-card-premium {
+        @apply rounded-2xl border border-border bg-card shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md;
+    }
+
+    .fv-gradient-panel {
+        @apply relative overflow-hidden rounded-2xl border border-border bg-card p-5 shadow-sm;
+    }
+
+    .fv-kpi-card {
+        @apply relative overflow-hidden rounded-2xl border border-border bg-card p-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md;
+    }
+
+    .fv-section-title {
+        @apply text-sm font-semibold text-foreground;
+    }
+
+    .fv-muted-text {
+        @apply text-xs text-muted-foreground;
+    }
+
+    .fv-icon-chip {
+        @apply flex h-8 w-8 shrink-0 items-center justify-center rounded-xl;
+    }
+
+    .fv-badge-soft {
+        @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium;
+    }
+
+    .fv-toolbar {
+        @apply rounded-2xl border border-border bg-muted/50 p-4 shadow-sm;
+    }
+
+    .fv-dialog {
+        @apply rounded-2xl border border-border bg-card shadow-2xl;
+    }
+
+    .fv-empty-state {
+        @apply flex flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-muted/30 p-10 text-center;
+    }
+
+    .fv-form-section {
+        @apply space-y-3 rounded-2xl border border-border bg-muted/30 p-4;
+    }
+
+    .fv-label {
+        @apply text-sm font-medium text-foreground;
+    }
+
+    /* Sidebar premium active state */
+    .fv-nav-active {
+        background-color: color-mix(in srgb, var(--primary) 12%, var(--sidebar-accent));
+        color: var(--primary);
+    }
+
+    /* Card with top gradient accent */
+    .fv-card-accent {
+        @apply relative overflow-hidden rounded-2xl border border-border bg-card shadow-sm;
+    }
+    .fv-card-accent::before {
+        content: '';
+        @apply absolute inset-x-0 top-0 h-0.5;
+        background: linear-gradient(90deg, var(--primary), transparent);
+    }
+}

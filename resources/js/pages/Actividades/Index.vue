@@ -101,7 +101,7 @@ const advanceActivity = (row: ActivityRow) => {
 
 const priorityClass = (priority: ActivityRow['priority']) =>
     ({
-        low: 'bg-zinc-200 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300',
+        low: 'bg-muted text-foreground',
         medium: 'bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-300',
         high: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300',
         urgent: 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300',
@@ -118,7 +118,7 @@ const statusClass = (status: ActivityRow['status']) =>
         completed:
             'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300',
         cancelled:
-            'bg-zinc-200 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300',
+            'bg-muted text-foreground',
         overdue:
             'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300',
     })[status];
@@ -128,18 +128,18 @@ const statusClass = (status: ActivityRow['status']) =>
     <Head title="Actividades" />
     <AppLayout :breadcrumbs="breadcrumbs">
         <section
-            class="space-y-6 rounded-3xl bg-white p-6 shadow-xl transition-all duration-300 dark:bg-zinc-950"
+            class="space-y-6 rounded-3xl bg-card p-6 shadow-xl transition-all duration-300"
         >
             <div
                 class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between"
             >
                 <div>
                     <h1
-                        class="text-2xl font-semibold text-zinc-900 dark:text-zinc-100"
+                        class="text-2xl font-semibold text-foreground"
                     >
                         Actividades internas
                     </h1>
-                    <p class="text-sm text-zinc-500 dark:text-zinc-400">
+                    <p class="text-sm text-muted-foreground">
                         Las actividades sirven para dar seguimiento operativo o
                         clínico: confirmar citas, contactar pacientes, revisar
                         pagos, preparar ejercicios o dar seguimiento a
@@ -156,12 +156,12 @@ const statusClass = (status: ActivityRow['status']) =>
             </div>
 
             <div
-                class="rounded-2xl border border-zinc-200 bg-zinc-50/60 p-4 dark:border-zinc-800 dark:bg-zinc-900/40"
+                class="rounded-2xl border border-border bg-muted/60 p-4"
             >
                 <div class="grid gap-3 md:grid-cols-4">
                     <div class="relative md:col-span-2">
                         <Search
-                            class="pointer-events-none absolute top-3.5 left-3 h-4 w-4 text-zinc-400"
+                            class="pointer-events-none absolute top-3.5 left-3 h-4 w-4 text-muted-foreground"
                         />
                         <Input
                             class="pl-9"
@@ -233,14 +233,14 @@ const statusClass = (status: ActivityRow['status']) =>
 
             <div
                 v-if="props.rows.length === 0"
-                class="rounded-3xl border border-dashed border-zinc-300 bg-zinc-50 p-10 text-center dark:border-zinc-700 dark:bg-zinc-900/40"
+                class="rounded-3xl border border-dashed border-border bg-muted p-10 text-center"
             >
                 <h3
-                    class="text-lg font-semibold text-zinc-800 dark:text-zinc-100"
+                    class="text-lg font-semibold text-foreground"
                 >
                     Sin actividades
                 </h3>
-                <p class="mt-2 text-sm text-zinc-500 dark:text-zinc-400">
+                <p class="mt-2 text-sm text-muted-foreground">
                     Crea una actividad o cambia filtros para encontrar
                     resultados.
                 </p>
@@ -250,24 +250,24 @@ const statusClass = (status: ActivityRow['status']) =>
                 <article
                     v-for="row in props.rows"
                     :key="row.id"
-                    class="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl dark:border-zinc-800 dark:bg-zinc-900/60"
+                    class="rounded-2xl border border-border bg-card p-4 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl"
                 >
                     <div class="space-y-3">
                         <div class="flex items-start justify-between gap-3">
                             <div>
                                 <h3
-                                    class="text-base font-semibold text-zinc-900 dark:text-zinc-100"
+                                    class="text-base font-semibold text-foreground"
                                 >
                                     {{ row.title }}
                                 </h3>
                                 <p
-                                    class="text-xs text-zinc-500 dark:text-zinc-400"
+                                    class="text-xs text-muted-foreground"
                                 >
                                     Responsable:
                                     {{ row.responsible_name ?? 'Sin asignar' }}
                                 </p>
                                 <p
-                                    class="text-xs text-zinc-500 dark:text-zinc-400"
+                                    class="text-xs text-muted-foreground"
                                 >
                                     Paciente relacionado:
                                     {{ row.patient_name ?? 'No relacionado' }}
@@ -287,7 +287,7 @@ const statusClass = (status: ActivityRow['status']) =>
                             </div>
                         </div>
 
-                        <p class="text-sm text-zinc-600 dark:text-zinc-300">
+                        <p class="text-sm text-muted-foreground">
                             {{
                                 row.description || 'Sin descripción adicional.'
                             }}
@@ -295,7 +295,7 @@ const statusClass = (status: ActivityRow['status']) =>
 
                         <div class="flex flex-wrap items-center gap-2 text-xs">
                             <span
-                                class="inline-flex items-center rounded-full bg-zinc-100 px-2 py-1 dark:bg-zinc-800"
+                                class="inline-flex items-center rounded-full bg-muted px-2 py-1"
                                 ><Clock3 class="mr-1 h-3 w-3" />{{
                                     row.due_date
                                         ? formatDateTimeMx(row.due_date)
@@ -373,9 +373,9 @@ const statusClass = (status: ActivityRow['status']) =>
             </div>
 
             <div
-                class="flex items-center justify-between rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3 dark:border-zinc-800 dark:bg-zinc-900/40"
+                class="flex items-center justify-between rounded-2xl border border-border bg-muted px-4 py-3"
             >
-                <p class="text-sm text-zinc-500 dark:text-zinc-400">
+                <p class="text-sm text-muted-foreground">
                     Total: {{ props.page.total }}
                 </p>
                 <div class="flex gap-2">
@@ -399,7 +399,7 @@ const statusClass = (status: ActivityRow['status']) =>
 
         <Dialog :open="isOpen" @update:open="closeModal">
             <DialogContent
-                class="max-h-[90vh] max-w-4xl overflow-y-auto rounded-3xl border-none bg-white shadow-2xl dark:bg-zinc-950"
+                class="max-h-[90vh] max-w-4xl overflow-y-auto rounded-3xl border-none bg-card shadow-2xl"
             >
                 <DialogHeader>
                     <DialogTitle>{{
@@ -504,7 +504,7 @@ const statusClass = (status: ActivityRow['status']) =>
                         <textarea
                             id="description"
                             v-model="form.description"
-                            class="min-h-24 w-full rounded-2xl border border-zinc-200 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-900"
+                            class="min-h-24 w-full rounded-2xl border border-input bg-card p-3"
                         />
                     </div>
                 </div>

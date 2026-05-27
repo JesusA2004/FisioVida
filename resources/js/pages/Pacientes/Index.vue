@@ -126,7 +126,7 @@ const clearSearch = () => {
 const statusClass = (status: PacienteRow['status']) =>
     status === 'active'
         ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/40 dark:bg-emerald-950/40 dark:text-emerald-300'
-        : 'border-zinc-200 bg-zinc-100 text-zinc-700 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300';
+        : 'border-border bg-muted text-foreground';
 
 const sexLabel = (sex?: PacienteRow['sexo']) =>
     sex === 'M'
@@ -155,12 +155,12 @@ const whatsappUrl = (phone?: string | null) => {
 };
 
 const inputBase =
-    'h-11 rounded-2xl border-zinc-200 bg-white shadow-sm transition-all duration-200 placeholder:text-zinc-400 focus-visible:border-[color:var(--primary)] focus-visible:ring-2 focus-visible:ring-[color:var(--primary)]/20 dark:border-zinc-800 dark:bg-zinc-900/80';
+    'h-11 rounded-2xl border-input bg-card shadow-sm transition-all duration-200 placeholder:text-muted-foreground focus-visible:border-[color:var(--primary)] focus-visible:ring-2 focus-visible:ring-[color:var(--primary)]/20';
 
-const labelBase = 'text-sm font-medium text-zinc-800 dark:text-zinc-100';
+const labelBase = 'text-sm font-medium text-foreground';
 
 const sectionTitleBase =
-    'flex items-center gap-2 text-sm font-semibold text-zinc-900 dark:text-zinc-100';
+    'flex items-center gap-2 text-sm font-semibold text-foreground';
 
 const primaryButtonStyle = {
     backgroundColor: 'var(--primary)',
@@ -200,7 +200,7 @@ const setPrimaryNormal = (event: MouseEvent) => {
 
             <template v-else>
                 <div
-                    class="relative overflow-hidden rounded-[2rem] border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/40"
+                    class="relative overflow-hidden rounded-[2rem] border border-border bg-card p-5 shadow-sm"
                 >
                     <div
                         class="pointer-events-none absolute -top-20 -right-20 h-52 w-52 rounded-full blur-3xl"
@@ -223,13 +223,13 @@ const setPrimaryNormal = (event: MouseEvent) => {
 
                             <div>
                                 <h1
-                                    class="text-2xl font-semibold tracking-tight text-zinc-950 dark:text-zinc-50"
+                                    class="text-2xl font-semibold tracking-tight text-foreground"
                                 >
                                     Pacientes
                                 </h1>
 
                                 <p
-                                    class="mt-1 max-w-2xl text-sm leading-6 text-zinc-600 dark:text-zinc-400"
+                                    class="mt-1 max-w-2xl text-sm leading-6 text-muted-foreground"
                                 >
                                     Gestiona expedientes, datos de contacto,
                                     estado del paciente y contactos de
@@ -253,24 +253,24 @@ const setPrimaryNormal = (event: MouseEvent) => {
                 </div>
 
                 <div
-                    class="rounded-[1.75rem] border border-zinc-200 bg-zinc-50 p-4 shadow-sm transition-all duration-300 dark:border-zinc-800 dark:bg-zinc-900/40"
+                    class="rounded-[1.75rem] border border-border bg-muted p-4 shadow-sm transition-all duration-300"
                 >
                     <div class="grid gap-3 lg:grid-cols-[1fr_260px]">
                         <div class="relative">
                             <Search
-                                class="pointer-events-none absolute top-3.5 left-3 h-4 w-4 text-zinc-400"
+                                class="pointer-events-none absolute top-3.5 left-3 h-4 w-4 text-muted-foreground"
                             />
 
                             <Input
                                 v-model="search"
-                                class="h-11 rounded-2xl border-zinc-200 bg-white pr-10 pl-9 shadow-sm transition-all duration-200 focus-visible:border-[color:var(--primary)] focus-visible:ring-2 focus-visible:ring-[color:var(--primary)]/20 dark:border-zinc-800 dark:bg-zinc-950"
+                                class="h-11 rounded-2xl border-border bg-card pr-10 pl-9 shadow-sm transition-all duration-200 focus-visible:border-[color:var(--primary)] focus-visible:ring-2 focus-visible:ring-[color:var(--primary)]/20"
                                 placeholder="Buscar por nombre, teléfono o correo"
                             />
 
                             <button
                                 v-if="search"
                                 type="button"
-                                class="absolute top-3 right-3 grid h-5 w-5 place-items-center rounded-full text-zinc-400 transition hover:bg-zinc-100 hover:text-zinc-700 dark:hover:bg-zinc-800 dark:hover:text-zinc-200"
+                                class="absolute top-3 right-3 grid h-5 w-5 place-items-center rounded-full text-muted-foreground transition hover:bg-muted hover:text-foreground"
                                 @click="clearSearch"
                             >
                                 <X class="h-3.5 w-3.5" />
@@ -299,21 +299,21 @@ const setPrimaryNormal = (event: MouseEvent) => {
 
                 <div
                     v-if="props.rows.length === 0"
-                    class="rounded-[2rem] border border-dashed border-zinc-300 bg-zinc-50 p-10 text-center transition-all duration-300 dark:border-zinc-700 dark:bg-zinc-900/40"
+                    class="rounded-[2rem] border border-dashed border-border bg-muted p-10 text-center transition-all duration-300"
                 >
                     <div
-                        class="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-white shadow-sm dark:bg-zinc-950"
+                        class="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-card shadow-sm"
                     >
-                        <AlertCircle class="h-6 w-6 text-zinc-400" />
+                        <AlertCircle class="h-6 w-6 text-muted-foreground" />
                     </div>
 
                     <h3
-                        class="mt-4 text-lg font-semibold text-zinc-800 dark:text-zinc-100"
+                        class="mt-4 text-lg font-semibold text-foreground"
                     >
                         Sin pacientes para mostrar
                     </h3>
 
-                    <p class="mt-2 text-sm text-zinc-500 dark:text-zinc-400">
+                    <p class="mt-2 text-sm text-muted-foreground">
                         Agrega tu primer paciente o ajusta la búsqueda y
                         filtros.
                     </p>
@@ -323,7 +323,7 @@ const setPrimaryNormal = (event: MouseEvent) => {
                     <article
                         v-for="row in props.rows"
                         :key="row.id"
-                        class="group rounded-[1.75rem] border border-zinc-200 bg-white p-4 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-[color:var(--primary)] hover:shadow-xl dark:border-zinc-800 dark:bg-zinc-900/60"
+                        class="group rounded-[1.75rem] border border-border bg-card p-4 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-[color:var(--primary)] hover:shadow-xl"
                     >
                         <div
                             class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between"
@@ -331,7 +331,7 @@ const setPrimaryNormal = (event: MouseEvent) => {
                             <div class="min-w-0">
                                 <div class="flex flex-wrap items-center gap-2">
                                     <h3
-                                        class="truncate text-base font-semibold text-zinc-950 dark:text-zinc-50"
+                                        class="truncate text-base font-semibold text-foreground"
                                     >
                                         {{
                                             row.full_name ||
@@ -348,7 +348,7 @@ const setPrimaryNormal = (event: MouseEvent) => {
                                 </div>
 
                                 <div
-                                    class="mt-3 grid gap-2 text-xs text-zinc-500 sm:grid-cols-2 dark:text-zinc-400"
+                                    class="mt-3 grid gap-2 text-xs text-muted-foreground sm:grid-cols-2"
                                 >
                                     <div class="flex items-center gap-2">
                                         <Phone class="h-3.5 w-3.5 shrink-0" />
@@ -390,12 +390,12 @@ const setPrimaryNormal = (event: MouseEvent) => {
                         </div>
 
                         <div
-                            class="mt-4 rounded-2xl p-3 text-xs leading-5 text-zinc-600 transition-colors duration-300 dark:text-zinc-300"
+                            class="mt-4 rounded-2xl p-3 text-xs leading-5 text-muted-foreground transition-colors duration-300"
                             :style="primarySoftStyle"
                         >
                             <p class="flex gap-2">
                                 <ShieldAlert
-                                    class="mt-0.5 h-3.5 w-3.5 shrink-0 text-zinc-400"
+                                    class="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground"
                                 />
                                 <span>
                                     <strong>Emergencia:</strong>
@@ -409,7 +409,7 @@ const setPrimaryNormal = (event: MouseEvent) => {
 
                             <p class="mt-1 flex gap-2">
                                 <MapPin
-                                    class="mt-0.5 h-3.5 w-3.5 shrink-0 text-zinc-400"
+                                    class="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground"
                                 />
                                 <span class="line-clamp-1">
                                     <strong>Dirección:</strong>
@@ -430,7 +430,7 @@ const setPrimaryNormal = (event: MouseEvent) => {
                                 <Button
                                     as-child
                                     variant="outline"
-                                    class="h-10 rounded-xl border-zinc-200 bg-white transition-all duration-200 hover:-translate-y-0.5 hover:border-[color:var(--primary)] hover:text-[color:var(--primary)]"
+                                    class="h-10 rounded-xl border-border bg-card transition-all duration-200 hover:-translate-y-0.5 hover:border-[color:var(--primary)] hover:text-[color:var(--primary)]"
                                 >
                                     <Link :href="`/pacientes/${row.id}`">
                                         Ver expediente
@@ -440,7 +440,7 @@ const setPrimaryNormal = (event: MouseEvent) => {
                                 <Button
                                     v-if="can('patients.update')"
                                     variant="outline"
-                                    class="h-10 rounded-xl border-zinc-200 bg-white transition-all duration-200 hover:-translate-y-0.5 hover:border-[color:var(--primary)] hover:text-[color:var(--primary)]"
+                                    class="h-10 rounded-xl border-border bg-card transition-all duration-200 hover:-translate-y-0.5 hover:border-[color:var(--primary)] hover:text-[color:var(--primary)]"
                                     @click="openEdit(row)"
                                 >
                                     <Pencil class="mr-2 h-4 w-4" />
@@ -541,18 +541,18 @@ const setPrimaryNormal = (event: MouseEvent) => {
 
         <Dialog :open="isOpen" @update:open="closeModal">
             <DialogContent
-                class="flex max-h-[94dvh] w-[calc(100vw-1rem)] max-w-none !gap-0 overflow-hidden rounded-[1.75rem] border border-zinc-200 bg-white !p-0 shadow-2xl sm:w-[calc(100vw-2rem)] sm:!max-w-[calc(100vw-2rem)] md:!max-w-[94vw] lg:!max-w-[1120px] xl:!max-w-[1280px] 2xl:!max-w-[1380px] dark:border-zinc-800 dark:bg-zinc-950"
+                class="flex max-h-[94dvh] w-[calc(100vw-1rem)] max-w-none !gap-0 overflow-hidden rounded-[1.75rem] border border-border bg-card !p-0 shadow-2xl sm:w-[calc(100vw-2rem)] sm:!max-w-[calc(100vw-2rem)] md:!max-w-[94vw] lg:!max-w-[1120px] xl:!max-w-[1280px] 2xl:!max-w-[1380px]"
             >
                 <div class="flex max-h-[94dvh] min-h-0 w-full flex-col">
                     <DialogHeader
-                        class="shrink-0 border-b border-zinc-100 bg-white px-4 py-4 sm:px-6 lg:px-7 dark:border-zinc-800 dark:bg-zinc-950"
+                        class="shrink-0 border-b border-border bg-card px-4 py-4 sm:px-6 lg:px-7"
                     >
                         <div
                             class="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between"
                         >
                             <div class="min-w-0">
                                 <DialogTitle
-                                    class="flex items-center gap-2 text-lg font-semibold text-zinc-950 sm:text-xl dark:text-zinc-50"
+                                    class="flex items-center gap-2 text-lg font-semibold text-foreground sm:text-xl"
                                 >
                                     <span
                                         class="grid h-9 w-9 shrink-0 place-items-center rounded-2xl shadow-sm"
@@ -571,7 +571,7 @@ const setPrimaryNormal = (event: MouseEvent) => {
                                 </DialogTitle>
 
                                 <DialogDescription
-                                    class="mt-2 max-w-3xl text-sm leading-6 text-zinc-500 dark:text-zinc-400"
+                                    class="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground"
                                 >
                                     Registra los datos de identificación y
                                     contacto del paciente. Los campos marcados
@@ -582,17 +582,17 @@ const setPrimaryNormal = (event: MouseEvent) => {
                     </DialogHeader>
 
                     <div
-                        class="min-h-0 flex-1 overflow-y-auto overscroll-contain bg-zinc-50/70 px-4 py-4 sm:px-6 sm:py-5 lg:px-7 dark:bg-zinc-950"
+                        class="min-h-0 flex-1 overflow-y-auto overscroll-contain bg-muted/70 px-4 py-4 sm:px-6 sm:py-5 lg:px-7"
                     >
                         <div
                             class="grid gap-4 pb-5 lg:grid-cols-[minmax(0,1.35fr)_minmax(360px,0.65fr)] xl:grid-cols-[minmax(0,1.45fr)_minmax(420px,0.55fr)]"
                         >
                             <div class="space-y-4">
                                 <section
-                                    class="rounded-[1.5rem] border border-zinc-200 bg-white p-4 shadow-sm sm:p-5 dark:border-zinc-800 dark:bg-zinc-900/50"
+                                    class="rounded-[1.5rem] border border-border bg-card p-4 shadow-sm sm:p-5"
                                 >
                                     <div
-                                        class="mb-4 flex flex-col gap-1 border-b border-zinc-100 pb-3 dark:border-zinc-800"
+                                        class="mb-4 flex flex-col gap-1 border-b border-border pb-3"
                                     >
                                         <h3 :class="sectionTitleBase">
                                             <Info
@@ -605,7 +605,7 @@ const setPrimaryNormal = (event: MouseEvent) => {
                                         </h3>
 
                                         <p
-                                            class="text-xs leading-5 text-zinc-500 dark:text-zinc-400"
+                                            class="text-xs leading-5 text-muted-foreground"
                                         >
                                             Datos básicos para identificar al
                                             paciente dentro del sistema.
@@ -703,7 +703,7 @@ const setPrimaryNormal = (event: MouseEvent) => {
                                                 >
                                                     <button
                                                         type="button"
-                                                        class="grid h-5 w-5 place-items-center rounded-full text-zinc-400 transition hover:bg-zinc-100 hover:text-zinc-700 focus:bg-zinc-100 focus:text-zinc-700 focus:outline-none dark:hover:bg-zinc-800 dark:hover:text-zinc-200 dark:focus:bg-zinc-800 dark:focus:text-zinc-200"
+                                                        class="grid h-5 w-5 place-items-center rounded-full text-muted-foreground transition hover:bg-muted hover:text-foreground focus:bg-muted focus:text-foreground focus:outline-none"
                                                         aria-label="Información sobre el estado del expediente"
                                                     >
                                                         <HelpCircle
@@ -712,7 +712,7 @@ const setPrimaryNormal = (event: MouseEvent) => {
                                                     </button>
 
                                                     <div
-                                                        class="pointer-events-none absolute top-7 left-0 z-50 hidden w-72 rounded-2xl border border-zinc-200 bg-white p-3 text-xs leading-5 text-zinc-600 shadow-xl group-hover:block group-focus-within:block dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300"
+                                                        class="pointer-events-none absolute top-7 left-0 z-50 hidden w-72 rounded-2xl border border-border bg-card p-3 text-xs leading-5 text-muted-foreground shadow-xl group-hover:block group-focus-within:block"
                                                     >
                                                         Indica si el expediente
                                                         del paciente está activo
@@ -755,7 +755,7 @@ const setPrimaryNormal = (event: MouseEvent) => {
                                             <Label :class="labelBase">
                                                 Fecha nacimiento
                                                 <span
-                                                    class="text-xs font-normal text-zinc-400"
+                                                    class="text-xs font-normal text-muted-foreground"
                                                 >
                                                     opcional
                                                 </span>
@@ -783,7 +783,7 @@ const setPrimaryNormal = (event: MouseEvent) => {
                                             <Label :class="labelBase">
                                                 Sexo
                                                 <span
-                                                    class="text-xs font-normal text-zinc-400"
+                                                    class="text-xs font-normal text-muted-foreground"
                                                 >
                                                     opcional
                                                 </span>
@@ -822,10 +822,10 @@ const setPrimaryNormal = (event: MouseEvent) => {
                                 </section>
 
                                 <section
-                                    class="rounded-[1.5rem] border border-zinc-200 bg-white p-4 shadow-sm sm:p-5 dark:border-zinc-800 dark:bg-zinc-900/50"
+                                    class="rounded-[1.5rem] border border-border bg-card p-4 shadow-sm sm:p-5"
                                 >
                                     <div
-                                        class="mb-4 flex flex-col gap-1 border-b border-zinc-100 pb-3 dark:border-zinc-800"
+                                        class="mb-4 flex flex-col gap-1 border-b border-border pb-3"
                                     >
                                         <h3 :class="sectionTitleBase">
                                             <ContactRound
@@ -838,7 +838,7 @@ const setPrimaryNormal = (event: MouseEvent) => {
                                         </h3>
 
                                         <p
-                                            class="text-xs leading-5 text-zinc-500 dark:text-zinc-400"
+                                            class="text-xs leading-5 text-muted-foreground"
                                         >
                                             Información para comunicación y
                                             localización del paciente.
@@ -855,7 +855,7 @@ const setPrimaryNormal = (event: MouseEvent) => {
                                                     >*</span
                                                 >
                                                 <span
-                                                    class="text-xs font-normal text-zinc-400"
+                                                    class="text-xs font-normal text-muted-foreground"
                                                 >
                                                     10 dígitos
                                                 </span>
@@ -885,7 +885,7 @@ const setPrimaryNormal = (event: MouseEvent) => {
                                             <Label :class="labelBase">
                                                 Email
                                                 <span
-                                                    class="text-xs font-normal text-zinc-400"
+                                                    class="text-xs font-normal text-muted-foreground"
                                                 >
                                                     opcional
                                                 </span>
@@ -913,7 +913,7 @@ const setPrimaryNormal = (event: MouseEvent) => {
                                             <Label :class="labelBase">
                                                 Dirección
                                                 <span
-                                                    class="text-xs font-normal text-zinc-400"
+                                                    class="text-xs font-normal text-muted-foreground"
                                                 >
                                                     opcional
                                                 </span>
@@ -939,10 +939,10 @@ const setPrimaryNormal = (event: MouseEvent) => {
 
                             <div class="space-y-4">
                                 <section
-                                    class="rounded-[1.5rem] border border-zinc-200 bg-white p-4 shadow-sm sm:p-5 dark:border-zinc-800 dark:bg-zinc-900/50"
+                                    class="rounded-[1.5rem] border border-border bg-card p-4 shadow-sm sm:p-5"
                                 >
                                     <div
-                                        class="mb-4 flex flex-col gap-1 border-b border-zinc-100 pb-3 dark:border-zinc-800"
+                                        class="mb-4 flex flex-col gap-1 border-b border-border pb-3"
                                     >
                                         <h3 :class="sectionTitleBase">
                                             <ShieldAlert
@@ -960,7 +960,7 @@ const setPrimaryNormal = (event: MouseEvent) => {
                                             <Label :class="labelBase">
                                                 Nombre del contacto
                                                 <span
-                                                    class="text-xs font-normal text-zinc-400"
+                                                    class="text-xs font-normal text-muted-foreground"
                                                 >
                                                     opcional
                                                 </span>
@@ -992,7 +992,7 @@ const setPrimaryNormal = (event: MouseEvent) => {
                                             <Label :class="labelBase">
                                                 Teléfono de emergencia
                                                 <span
-                                                    class="text-xs font-normal text-zinc-400"
+                                                    class="text-xs font-normal text-muted-foreground"
                                                 >
                                                     10 dígitos
                                                 </span>
@@ -1030,10 +1030,10 @@ const setPrimaryNormal = (event: MouseEvent) => {
                                 </section>
 
                                 <section
-                                    class="rounded-[1.5rem] border border-zinc-200 bg-white p-4 shadow-sm sm:p-5 dark:border-zinc-800 dark:bg-zinc-900/50"
+                                    class="rounded-[1.5rem] border border-border bg-card p-4 shadow-sm sm:p-5"
                                 >
                                     <div
-                                        class="mb-4 flex flex-col gap-1 border-b border-zinc-100 pb-3 dark:border-zinc-800"
+                                        class="mb-4 flex flex-col gap-1 border-b border-border pb-3"
                                     >
                                         <h3 :class="sectionTitleBase">
                                             <NotebookText
@@ -1049,7 +1049,7 @@ const setPrimaryNormal = (event: MouseEvent) => {
                                     <div class="space-y-2">
                                         <textarea
                                             v-model="form.notas"
-                                            class="min-h-44 w-full resize-y rounded-2xl border border-zinc-200 bg-white p-3 text-sm shadow-sm transition-all duration-200 placeholder:text-zinc-400 focus:border-[color:var(--primary)] focus:ring-2 focus:ring-[color:var(--primary)]/20 focus:outline-none lg:min-h-34 dark:border-zinc-800 dark:bg-zinc-900/80"
+                                            class="min-h-44 w-full resize-y rounded-2xl border border-input bg-card p-3 text-sm shadow-sm transition-all duration-200 placeholder:text-muted-foreground focus:border-[color:var(--primary)] focus:ring-2 focus:ring-[color:var(--primary)]/20 focus:outline-none lg:min-h-34"
                                             placeholder="Observaciones importantes del paciente"
                                         />
 
@@ -1066,7 +1066,7 @@ const setPrimaryNormal = (event: MouseEvent) => {
                     </div>
 
                     <DialogFooter
-                        class="shrink-0 border-t border-zinc-100 bg-white px-4 py-3 sm:px-6 lg:px-7 dark:border-zinc-800 dark:bg-zinc-950"
+                        class="shrink-0 border-t border-border bg-card px-4 py-3 sm:px-6 lg:px-7"
                     >
                         <div
                             class="flex w-full flex-col-reverse gap-2 sm:flex-row sm:justify-end"

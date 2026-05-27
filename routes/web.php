@@ -20,6 +20,7 @@ use App\Http\Controllers\FisioVida\DashboardController;
 use App\Http\Controllers\FisioVida\ReportesController;
 use App\Http\Controllers\FisioVida\ConsentimientosController;
 use App\Http\Controllers\FisioVida\CumplimientoDocumentosController;
+use App\Http\Controllers\FisioVida\MiJornadaController;
 
 Route::get('/', function () {
     if (auth()->check()) {
@@ -169,6 +170,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('sesiones/{sessionId}/ejercicios', [SesionEjerciciosController::class, 'store'])->name('sesiones.ejercicios.store')->middleware('permission:sessions.update');
     Route::put('sesiones/{sessionId}/ejercicios/{exerciseId}', [SesionEjerciciosController::class, 'update'])->name('sesiones.ejercicios.update')->middleware('permission:sessions.update');
     Route::delete('sesiones/{sessionId}/ejercicios/{exerciseId}', [SesionEjerciciosController::class, 'destroy'])->name('sesiones.ejercicios.destroy')->middleware('permission:sessions.update');
+
+    Route::get('mi-jornada', [MiJornadaController::class, 'index'])
+        ->name('mi-jornada.index')
+        ->middleware('permission:appointments.view');
 
 });
 

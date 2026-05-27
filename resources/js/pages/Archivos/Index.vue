@@ -304,7 +304,7 @@ const getFileSoftColor = (row: ArchivoRow) => {
         return 'bg-amber-50 text-amber-700 ring-amber-100';
     }
 
-    return 'bg-zinc-50 text-zinc-700 ring-zinc-100';
+    return 'bg-muted text-foreground ring-border';
 };
 
 const getFileTypeLabel = (row: ArchivoRow) => {
@@ -602,21 +602,21 @@ const destroyArchivo = async (row: ArchivoRow) => {
         <section class="w-full space-y-6">
             <!-- HEADER -->
             <div
-                class="flex flex-col gap-4 rounded-[2rem] border border-zinc-200 bg-white p-5 shadow-sm lg:flex-row lg:items-center lg:justify-between"
+                class="flex flex-col gap-4 rounded-[2rem] border border-border bg-card p-5 shadow-sm lg:flex-row lg:items-center lg:justify-between"
             >
                 <div>
                     <div
-                        class="mb-3 inline-flex items-center gap-2 rounded-full bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-600"
+                        class="mb-3 inline-flex items-center gap-2 rounded-full bg-muted px-3 py-1 text-xs font-semibold text-muted-foreground"
                     >
                         <Archive class="h-3.5 w-3.5" />
                         Expediente digital
                     </div>
 
-                    <h1 class="text-2xl font-bold tracking-tight text-zinc-950">
+                    <h1 class="text-2xl font-bold tracking-tight text-foreground">
                         Archivos
                     </h1>
 
-                    <p class="mt-1 max-w-2xl text-sm leading-6 text-zinc-500">
+                    <p class="mt-1 max-w-2xl text-sm leading-6 text-muted-foreground">
                         Administra documentos clínicos, imágenes, archivos de
                         sesión y documentos relacionados con pacientes.
                     </p>
@@ -625,14 +625,14 @@ const destroyArchivo = async (row: ArchivoRow) => {
 
             <!-- UPLOAD -->
             <div
-                class="rounded-[2rem] border border-zinc-200 bg-white p-4 shadow-sm sm:p-5 lg:p-6"
+                class="rounded-[2rem] border border-border bg-card p-4 shadow-sm sm:p-5 lg:p-6"
             >
                 <div
-                    class="mb-5 flex flex-col gap-3 border-b border-zinc-100 pb-5 md:flex-row md:items-center md:justify-between"
+                    class="mb-5 flex flex-col gap-3 border-b border-border pb-5 md:flex-row md:items-center md:justify-between"
                 >
                     <div>
                         <div>
-                            <h2 class="text-lg font-semibold text-zinc-950">
+                            <h2 class="text-lg font-semibold text-foreground">
                                 Subir nuevos archivos
                             </h2>
 
@@ -643,7 +643,7 @@ const destroyArchivo = async (row: ArchivoRow) => {
                                 Archivo para: {{ expedientePatientName }}
                             </p>
 
-                            <p v-else class="mt-1 text-sm text-zinc-500">
+                            <p v-else class="mt-1 text-sm text-muted-foreground">
                                 Relaciona los archivos con un paciente, sesión o
                                 tipo de documento para mantener el expediente
                                 organizado.
@@ -683,7 +683,7 @@ const destroyArchivo = async (row: ArchivoRow) => {
                         @dragleave="onDragLeave"
                     >
                         <div
-                            class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-[1.5rem] shadow-sm ring-1 ring-zinc-200"
+                            class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-[1.5rem] shadow-sm ring-1 ring-border"
                             style="
                                 background: color-mix(
                                     in srgb,
@@ -696,12 +696,12 @@ const destroyArchivo = async (row: ArchivoRow) => {
                             <FileUp class="h-8 w-8" />
                         </div>
 
-                        <h3 class="text-lg font-semibold text-zinc-950">
+                        <h3 class="text-lg font-semibold text-foreground">
                             Arrastra tus archivos aquí
                         </h3>
 
                         <p
-                            class="mx-auto mt-2 max-w-xl text-sm leading-6 text-zinc-500"
+                            class="mx-auto mt-2 max-w-xl text-sm leading-6 text-muted-foreground"
                         >
                             Se permiten {{ acceptedExtensionsLabel }}. Máximo 50
                             MB por archivo y hasta 15 archivos por carga.
@@ -750,10 +750,10 @@ const destroyArchivo = async (row: ArchivoRow) => {
                     <!-- FORM CONFIG -->
                     <div class="space-y-4">
                         <div
-                            class="rounded-[1.75rem] border border-zinc-200 bg-zinc-50 p-4"
+                            class="rounded-[1.75rem] border border-border bg-muted p-4"
                         >
                             <h3
-                                class="mb-4 text-sm font-semibold text-zinc-900"
+                                class="mb-4 text-sm font-semibold text-foreground"
                             >
                                 Datos del archivo
                             </h3>
@@ -809,7 +809,7 @@ const destroyArchivo = async (row: ArchivoRow) => {
 
                                     <p
                                         v-else-if="!fromExpediente && !hasUploadSession"
-                                        class="text-xs text-zinc-500"
+                                        class="text-xs text-muted-foreground"
                                     >
                                         Opcional, pero recomendado.
                                     </p>
@@ -859,7 +859,7 @@ const destroyArchivo = async (row: ArchivoRow) => {
                                         sesión.
                                     </p>
 
-                                    <p v-else class="text-xs text-zinc-500">
+                                    <p v-else class="text-xs text-muted-foreground">
                                         Si eliges sesión, el paciente queda
                                         implícito.
                                     </p>
@@ -886,7 +886,7 @@ const destroyArchivo = async (row: ArchivoRow) => {
                                         {{ uploadForm.errors.file_type }}
                                     </p>
 
-                                    <p v-else class="text-xs text-zinc-500">
+                                    <p v-else class="text-xs text-muted-foreground">
                                         Ayuda a organizar el expediente.
                                     </p>
                                 </div>
@@ -902,18 +902,18 @@ const destroyArchivo = async (row: ArchivoRow) => {
 
                         <div
                             v-if="selectedFiles.length"
-                            class="rounded-[1.75rem] border border-zinc-200 bg-white p-4 shadow-sm"
+                            class="rounded-[1.75rem] border border-border bg-card p-4 shadow-sm"
                         >
                             <div
                                 class="mb-4 flex items-center justify-between gap-3"
                             >
                                 <div>
                                     <p
-                                        class="text-sm font-semibold text-zinc-900"
+                                        class="text-sm font-semibold text-foreground"
                                     >
                                         Listos para subir
                                     </p>
-                                    <p class="text-xs text-zinc-500">
+                                    <p class="text-xs text-muted-foreground">
                                         Peso total:
                                         {{ fmtSize(selectedFilesTotalSize) }}
                                     </p>
@@ -948,7 +948,7 @@ const destroyArchivo = async (row: ArchivoRow) => {
 
                             <div
                                 v-if="uploadForm.processing"
-                                class="mb-4 overflow-hidden rounded-full bg-zinc-100"
+                                class="mb-4 overflow-hidden rounded-full bg-muted"
                             >
                                 <div
                                     class="h-2 rounded-full transition-all"
@@ -965,10 +965,10 @@ const destroyArchivo = async (row: ArchivoRow) => {
                                 <div
                                     v-for="(file, index) in selectedFiles"
                                     :key="`${file.name}-${file.size}-${index}`"
-                                    class="flex items-center gap-3 rounded-2xl border border-zinc-200 bg-zinc-50 p-3"
+                                    class="flex items-center gap-3 rounded-2xl border border-border bg-muted p-3"
                                 >
                                     <div
-                                        class="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl ring-1 ring-zinc-200"
+                                        class="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl ring-1 ring-border"
                                         style="
                                             background: color-mix(
                                                 in srgb,
@@ -983,18 +983,18 @@ const destroyArchivo = async (row: ArchivoRow) => {
 
                                     <div class="min-w-0 flex-1">
                                         <p
-                                            class="truncate text-sm font-semibold text-zinc-900"
+                                            class="truncate text-sm font-semibold text-foreground"
                                         >
                                             {{ file.name }}
                                         </p>
-                                        <p class="text-xs text-zinc-500">
+                                        <p class="text-xs text-muted-foreground">
                                             {{ fmtSize(file.size) }}
                                         </p>
                                     </div>
 
                                     <button
                                         type="button"
-                                        class="rounded-xl p-2 text-zinc-400 transition hover:bg-red-50 hover:text-red-600"
+                                        class="rounded-xl p-2 text-muted-foreground transition hover:bg-red-50 hover:text-red-600"
                                         :disabled="uploadForm.processing"
                                         @click="removeSelectedFile(index)"
                                     >
@@ -1009,22 +1009,22 @@ const destroyArchivo = async (row: ArchivoRow) => {
 
             <!-- FILTERS -->
             <div
-                class="rounded-[1.75rem] border border-zinc-200 bg-white p-4 shadow-sm"
+                class="rounded-[1.75rem] border border-border bg-card p-4 shadow-sm"
             >
                 <div
                     class="mb-4 flex flex-col gap-2 md:flex-row md:items-center md:justify-between"
                 >
                     <div>
-                        <h2 class="text-base font-semibold text-zinc-950">
+                        <h2 class="text-base font-semibold text-foreground">
                             Biblioteca de archivos
                         </h2>
-                        <p class="text-sm text-zinc-500">
+                        <p class="text-sm text-muted-foreground">
                             Busca, filtra y administra los documentos cargados.
                         </p>
                     </div>
 
                     <div
-                        class="flex w-fit items-center gap-2 rounded-full bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-600"
+                        class="flex w-fit items-center gap-2 rounded-full bg-muted px-3 py-1 text-xs font-semibold text-muted-foreground"
                     >
                         <Filter class="h-3.5 w-3.5" />
                         Filtros
@@ -1036,19 +1036,19 @@ const destroyArchivo = async (row: ArchivoRow) => {
                 >
                     <div class="relative">
                         <Search
-                            class="pointer-events-none absolute top-3.5 left-3 h-4 w-4 text-zinc-400"
+                            class="pointer-events-none absolute top-3.5 left-3 h-4 w-4 text-muted-foreground"
                         />
 
                         <Input
                             v-model="search"
-                            class="h-11 rounded-2xl border-zinc-200 bg-zinc-50 pr-10 pl-9 shadow-sm focus-visible:border-[color:var(--primary)] focus-visible:ring-2 focus-visible:ring-[color:var(--primary)]/20"
+                            class="h-11 rounded-2xl border-border bg-muted pr-10 pl-9 shadow-sm focus-visible:border-[color:var(--primary)] focus-visible:ring-2 focus-visible:ring-[color:var(--primary)]/20"
                             placeholder="Buscar archivo, paciente o usuario..."
                         />
 
                         <button
                             v-if="search"
                             type="button"
-                            class="absolute top-3 right-3 grid h-5 w-5 place-items-center rounded-full text-zinc-400 transition hover:bg-zinc-100 hover:text-zinc-700"
+                            class="absolute top-3 right-3 grid h-5 w-5 place-items-center rounded-full text-muted-foreground transition hover:bg-muted hover:text-foreground"
                             @click="clearSearch"
                         >
                             <X class="h-3.5 w-3.5" />
@@ -1091,15 +1091,15 @@ const destroyArchivo = async (row: ArchivoRow) => {
             <!-- EMPTY STATE -->
             <div
                 v-if="props.rows.length === 0"
-                class="rounded-[2rem] border border-dashed border-zinc-300 bg-zinc-50 p-10 text-center"
+                class="rounded-[2rem] border border-dashed border-border bg-muted p-10 text-center"
             >
-                <FolderOpen class="mx-auto h-10 w-10 text-zinc-400" />
+                <FolderOpen class="mx-auto h-10 w-10 text-muted-foreground" />
 
-                <h3 class="mt-4 text-lg font-semibold text-zinc-800">
+                <h3 class="mt-4 text-lg font-semibold text-foreground">
                     Sin archivos para mostrar
                 </h3>
 
-                <p class="mt-2 text-sm text-zinc-500">
+                <p class="mt-2 text-sm text-muted-foreground">
                     Sube tu primer archivo o ajusta los filtros.
                 </p>
             </div>
@@ -1109,7 +1109,7 @@ const destroyArchivo = async (row: ArchivoRow) => {
                 <article
                     v-for="row in props.rows"
                     :key="row.id"
-                    class="group flex min-h-[320px] flex-col rounded-[1.75rem] border border-zinc-200 bg-white p-4 shadow-sm transition hover:-translate-y-1 hover:border-[color:var(--primary)] hover:shadow-xl"
+                    class="group flex min-h-[320px] flex-col rounded-[1.75rem] border border-border bg-card p-4 shadow-sm transition hover:-translate-y-1 hover:border-[color:var(--primary)] hover:shadow-xl"
                 >
                     <div class="flex items-start gap-3">
                         <div
@@ -1122,7 +1122,7 @@ const destroyArchivo = async (row: ArchivoRow) => {
                         <div class="min-w-0 flex-1">
                             <button
                                 type="button"
-                                class="line-clamp-2 text-left text-base font-semibold text-zinc-950 transition hover:text-[color:var(--primary)]"
+                                class="line-clamp-2 text-left text-base font-semibold text-foreground transition hover:text-[color:var(--primary)]"
                                 @click="openPreview(row)"
                             >
                                 {{ row.original_name }}
@@ -1130,7 +1130,7 @@ const destroyArchivo = async (row: ArchivoRow) => {
 
                             <div class="mt-2 flex flex-wrap items-center gap-2">
                                 <span
-                                    class="rounded-full bg-zinc-100 px-2.5 py-1 text-xs font-semibold text-zinc-600"
+                                    class="rounded-full bg-muted px-2.5 py-1 text-xs font-semibold text-muted-foreground"
                                 >
                                     {{ getExtension(row) }}
                                 </span>
@@ -1150,7 +1150,7 @@ const destroyArchivo = async (row: ArchivoRow) => {
                                 </span>
 
                                 <span
-                                    class="rounded-full bg-zinc-100 px-2.5 py-1 text-xs text-zinc-500"
+                                    class="rounded-full bg-muted px-2.5 py-1 text-xs text-muted-foreground"
                                 >
                                     {{ fmtSize(row.size_bytes) }}
                                 </span>
@@ -1160,10 +1160,10 @@ const destroyArchivo = async (row: ArchivoRow) => {
 
                     <div class="mt-4 grid gap-2 text-sm">
                         <div
-                            class="flex items-center gap-2 rounded-2xl bg-zinc-50 px-3 py-2"
+                            class="flex items-center gap-2 rounded-2xl bg-muted px-3 py-2"
                         >
-                            <UserRound class="h-4 w-4 shrink-0 text-zinc-400" />
-                            <span class="truncate text-zinc-600">
+                            <UserRound class="h-4 w-4 shrink-0 text-muted-foreground" />
+                            <span class="truncate text-muted-foreground">
                                 {{
                                     row.patient_name ||
                                     'Sin paciente relacionado'
@@ -1172,12 +1172,12 @@ const destroyArchivo = async (row: ArchivoRow) => {
                         </div>
 
                         <div
-                            class="flex items-center gap-2 rounded-2xl bg-zinc-50 px-3 py-2"
+                            class="flex items-center gap-2 rounded-2xl bg-muted px-3 py-2"
                         >
                             <CalendarDays
-                                class="h-4 w-4 shrink-0 text-zinc-400"
+                                class="h-4 w-4 shrink-0 text-muted-foreground"
                             />
-                            <span class="truncate text-zinc-600">
+                            <span class="truncate text-muted-foreground">
                                 {{
                                     row.session_id
                                         ? `Sesión #${row.session_id}${row.session_date ? ` · ${row.session_date}` : ''}`
@@ -1187,12 +1187,12 @@ const destroyArchivo = async (row: ArchivoRow) => {
                         </div>
 
                         <div
-                            class="flex items-center gap-2 rounded-2xl bg-zinc-50 px-3 py-2"
+                            class="flex items-center gap-2 rounded-2xl bg-muted px-3 py-2"
                         >
                             <UploadCloud
-                                class="h-4 w-4 shrink-0 text-zinc-400"
+                                class="h-4 w-4 shrink-0 text-muted-foreground"
                             />
-                            <span class="truncate text-zinc-600">
+                            <span class="truncate text-muted-foreground">
                                 Subido por
                                 {{
                                     row.uploaded_by_name ||
@@ -1203,8 +1203,8 @@ const destroyArchivo = async (row: ArchivoRow) => {
                     </div>
 
                     <div class="mt-auto pt-4">
-                        <div class="border-t border-zinc-100 pt-4">
-                            <p class="mb-3 text-xs text-zinc-500">
+                        <div class="border-t border-border pt-4">
+                            <p class="mb-3 text-xs text-muted-foreground">
                                 {{
                                     row.created_at
                                         ? formatDateTimeMx(row.created_at)
@@ -1297,17 +1297,17 @@ const destroyArchivo = async (row: ArchivoRow) => {
             class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-3 backdrop-blur-sm sm:p-4"
         >
             <div
-                class="flex h-[94vh] w-full max-w-7xl flex-col overflow-hidden rounded-[2rem] bg-white shadow-2xl"
+                class="flex h-[94vh] w-full max-w-7xl flex-col overflow-hidden rounded-[2rem] bg-card shadow-2xl"
             >
                 <div
-                    class="flex shrink-0 flex-col gap-3 border-b border-zinc-200 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5"
+                    class="flex shrink-0 flex-col gap-3 border-b border-border px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5"
                 >
                     <div class="min-w-0">
-                        <h2 class="text-lg font-semibold text-zinc-950">
+                        <h2 class="text-lg font-semibold text-foreground">
                             Vista previa
                         </h2>
 
-                        <p class="truncate text-sm text-zinc-500">
+                        <p class="truncate text-sm text-muted-foreground">
                             {{ selectedPreview.original_name }}
                         </p>
                     </div>
@@ -1335,7 +1335,7 @@ const destroyArchivo = async (row: ArchivoRow) => {
 
                         <button
                             type="button"
-                            class="rounded-2xl p-2 text-zinc-400 transition hover:bg-zinc-100 hover:text-zinc-700"
+                            class="rounded-2xl p-2 text-muted-foreground transition hover:bg-muted hover:text-foreground"
                             @click="closePreview"
                         >
                             <X class="h-5 w-5" />
@@ -1343,7 +1343,7 @@ const destroyArchivo = async (row: ArchivoRow) => {
                     </div>
                 </div>
 
-                <div class="min-h-0 flex-1 bg-zinc-100 p-3 sm:p-4">
+                <div class="min-h-0 flex-1 bg-muted p-3 sm:p-4">
                     <iframe
                         v-if="selectedPreview.is_pdf"
                         :src="
@@ -1351,7 +1351,7 @@ const destroyArchivo = async (row: ArchivoRow) => {
                             selectedPreview.url ??
                             ''
                         "
-                        class="h-full w-full rounded-2xl border border-zinc-200 bg-white"
+                        class="h-full w-full rounded-2xl border border-border bg-card"
                     />
 
                     <div
@@ -1371,16 +1371,16 @@ const destroyArchivo = async (row: ArchivoRow) => {
 
                     <div
                         v-else
-                        class="flex h-full items-center justify-center rounded-2xl border border-dashed border-zinc-300 bg-white text-center"
+                        class="flex h-full items-center justify-center rounded-2xl border border-dashed border-border bg-card text-center"
                     >
                         <div>
-                            <File class="mx-auto h-12 w-12 text-zinc-400" />
+                            <File class="mx-auto h-12 w-12 text-muted-foreground" />
 
-                            <p class="mt-3 text-sm font-semibold text-zinc-800">
+                            <p class="mt-3 text-sm font-semibold text-foreground">
                                 Este formato no se puede previsualizar aquí.
                             </p>
 
-                            <p class="mt-1 text-sm text-zinc-500">
+                            <p class="mt-1 text-sm text-muted-foreground">
                                 Puedes abrirlo en otra pestaña o descargarlo.
                             </p>
                         </div>
@@ -1395,10 +1395,10 @@ const destroyArchivo = async (row: ArchivoRow) => {
             class="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-3 backdrop-blur-sm sm:p-4"
         >
             <div
-                class="flex max-h-[94vh] w-full max-w-4xl flex-col overflow-hidden rounded-[2rem] bg-white shadow-2xl"
+                class="flex max-h-[94vh] w-full max-w-4xl flex-col overflow-hidden rounded-[2rem] bg-card shadow-2xl"
             >
                 <div
-                    class="flex shrink-0 items-start justify-between gap-4 border-b border-zinc-200 px-5 py-4"
+                    class="flex shrink-0 items-start justify-between gap-4 border-b border-border px-5 py-4"
                 >
                     <div class="flex min-w-0 gap-3">
                         <div
@@ -1416,11 +1416,11 @@ const destroyArchivo = async (row: ArchivoRow) => {
                         </div>
 
                         <div class="min-w-0">
-                            <h2 class="text-lg font-semibold text-zinc-950">
+                            <h2 class="text-lg font-semibold text-foreground">
                                 Editar archivo
                             </h2>
 
-                            <p class="mt-1 text-sm text-zinc-500">
+                            <p class="mt-1 text-sm text-muted-foreground">
                                 Cambia la clasificación, relación o reemplaza el
                                 documento.
                             </p>
@@ -1429,7 +1429,7 @@ const destroyArchivo = async (row: ArchivoRow) => {
 
                     <button
                         type="button"
-                        class="rounded-2xl p-2 text-zinc-400 transition hover:bg-zinc-100 hover:text-zinc-700"
+                        class="rounded-2xl p-2 text-muted-foreground transition hover:bg-muted hover:text-foreground"
                         @click="closeEdit"
                     >
                         <X class="h-5 w-5" />
@@ -1438,21 +1438,21 @@ const destroyArchivo = async (row: ArchivoRow) => {
 
                 <div class="min-h-0 flex-1 overflow-y-auto px-5 py-5">
                     <div
-                        class="mb-5 rounded-2xl border border-zinc-200 bg-zinc-50 p-4"
+                        class="mb-5 rounded-2xl border border-border bg-muted p-4"
                     >
                         <p
-                            class="text-xs font-semibold text-zinc-400 uppercase"
+                            class="text-xs font-semibold text-muted-foreground uppercase"
                         >
                             Archivo actual
                         </p>
 
                         <p
-                            class="mt-1 text-sm font-semibold break-words text-zinc-900"
+                            class="mt-1 text-sm font-semibold break-words text-foreground"
                         >
                             {{ selectedEdit.original_name }}
                         </p>
 
-                        <p class="mt-1 text-xs text-zinc-500">
+                        <p class="mt-1 text-xs text-muted-foreground">
                             {{ fmtSize(selectedEdit.size_bytes) }}
                         </p>
                     </div>
@@ -1463,7 +1463,7 @@ const destroyArchivo = async (row: ArchivoRow) => {
 
                             <label
                                 for="replacement-file"
-                                class="flex cursor-pointer flex-col gap-3 rounded-2xl border border-dashed border-zinc-300 bg-zinc-50 px-4 py-4 transition hover:border-[color:var(--primary)] sm:flex-row sm:items-center sm:justify-between"
+                                class="flex cursor-pointer flex-col gap-3 rounded-2xl border border-dashed border-border bg-muted px-4 py-4 transition hover:border-[color:var(--primary)] sm:flex-row sm:items-center sm:justify-between"
                             >
                                 <div class="flex min-w-0 items-center gap-3">
                                     <div
@@ -1482,7 +1482,7 @@ const destroyArchivo = async (row: ArchivoRow) => {
 
                                     <div class="min-w-0">
                                         <p
-                                            class="truncate text-sm font-semibold text-zinc-900"
+                                            class="truncate text-sm font-semibold text-foreground"
                                         >
                                             {{
                                                 replacementFile
@@ -1491,14 +1491,14 @@ const destroyArchivo = async (row: ArchivoRow) => {
                                             }}
                                         </p>
 
-                                        <p class="text-xs text-zinc-500">
+                                        <p class="text-xs text-muted-foreground">
                                             Opcional. Si no eliges archivo, solo
                                             se guardan los datos.
                                         </p>
                                     </div>
                                 </div>
 
-                                <span class="text-xs text-zinc-500">
+                                <span class="text-xs text-muted-foreground">
                                     {{
                                         replacementFile
                                             ? fmtSize(replacementFile.size)
@@ -1604,7 +1604,7 @@ const destroyArchivo = async (row: ArchivoRow) => {
                 </div>
 
                 <div
-                    class="flex shrink-0 flex-col-reverse gap-2 border-t border-zinc-200 px-5 py-4 sm:flex-row sm:justify-end"
+                    class="flex shrink-0 flex-col-reverse gap-2 border-t border-border px-5 py-4 sm:flex-row sm:justify-end"
                 >
                     <Button
                         type="button"

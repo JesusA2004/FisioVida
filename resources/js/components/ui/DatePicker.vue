@@ -206,11 +206,11 @@ const clearDate = () => {
         <PopoverTrigger as-child>
             <Button
                 variant="outline"
-                class="h-11 w-full justify-start rounded-2xl border-zinc-200 bg-white text-left font-normal shadow-sm transition-all duration-200 hover:bg-zinc-50 focus-visible:border-[color:var(--primary)] focus-visible:ring-2 focus-visible:ring-[color:var(--primary)]/20 dark:border-zinc-800 dark:bg-zinc-900/80 dark:hover:bg-zinc-900"
+                class="h-11 w-full justify-start rounded-2xl border-input bg-card text-left font-normal shadow-sm transition-all duration-200 hover:bg-muted focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/20"
             >
                 <CalendarDays class="mr-2 h-4 w-4 shrink-0" />
 
-                <span class="truncate" :class="modelValue ? '' : 'text-zinc-400'">
+                <span class="truncate" :class="modelValue ? '' : 'text-muted-foreground'">
                     {{ triggerLabel }}
                 </span>
             </Button>
@@ -221,7 +221,7 @@ const clearDate = () => {
             align="center"
             :side-offset="6"
             :collision-padding="12"
-            class="z-[100] flex max-h-[420px] w-[min(calc(100vw-1rem),20rem)] flex-col overflow-hidden rounded-2xl border border-zinc-200 bg-white p-0 shadow-2xl sm:max-h-[440px] sm:w-[20rem] dark:border-zinc-800 dark:bg-zinc-950"
+            class="z-[100] flex max-h-[420px] w-[min(calc(100vw-1rem),20rem)] flex-col overflow-hidden rounded-2xl border border-border bg-popover p-0 shadow-2xl sm:max-h-[440px] sm:w-[20rem]"
         >
             <div class="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 pt-3 pb-2">
                 <div class="space-y-2">
@@ -239,7 +239,7 @@ const clearDate = () => {
                         </Button>
 
                         <p
-                            class="truncate text-sm font-semibold capitalize text-zinc-800 dark:text-zinc-100"
+                            class="truncate text-sm font-semibold capitalize text-foreground"
                         >
                             {{ monthLabel }}
                         </p>
@@ -260,7 +260,7 @@ const clearDate = () => {
                     <div class="grid grid-cols-[1fr_6.5rem] gap-2">
                         <select
                             :value="viewMonth"
-                            class="h-9 min-w-0 rounded-xl border border-zinc-200 bg-white px-3 text-sm capitalize shadow-sm outline-none transition focus:border-[color:var(--primary)] focus:ring-2 focus:ring-[color:var(--primary)]/20 dark:border-zinc-800 dark:bg-zinc-950"
+                            class="h-9 min-w-0 rounded-xl border border-input bg-card px-3 text-sm capitalize text-foreground shadow-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
                             aria-label="Seleccionar mes"
                             @change="setMonth"
                         >
@@ -275,7 +275,7 @@ const clearDate = () => {
 
                         <select
                             :value="viewYear"
-                            class="h-9 min-w-0 rounded-xl border border-zinc-200 bg-white px-3 text-sm shadow-sm outline-none transition focus:border-[color:var(--primary)] focus:ring-2 focus:ring-[color:var(--primary)]/20 dark:border-zinc-800 dark:bg-zinc-950"
+                            class="h-9 min-w-0 rounded-xl border border-input bg-card px-3 text-sm text-foreground shadow-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
                             aria-label="Seleccionar año"
                             @change="setYear"
                         >
@@ -286,7 +286,7 @@ const clearDate = () => {
                     </div>
 
                     <div
-                        class="grid grid-cols-7 gap-1 text-center text-[11px] font-medium text-zinc-500 dark:text-zinc-400"
+                        class="grid grid-cols-7 gap-1 text-center text-[11px] font-medium text-muted-foreground"
                     >
                         <span
                             v-for="day in weekDays"
@@ -306,10 +306,10 @@ const clearDate = () => {
                             :disabled="isOutsideRange(cell.date)"
                             :class="[
                                 cell.inCurrentMonth
-                                    ? 'text-zinc-900 hover:bg-zinc-100 dark:text-zinc-100 dark:hover:bg-zinc-800'
-                                    : 'text-zinc-400 hover:bg-zinc-100 dark:text-zinc-600 dark:hover:bg-zinc-800',
+                                    ? 'text-foreground hover:bg-muted'
+                                    : 'text-muted-foreground hover:bg-muted',
                                 isSelected(cell.date)
-                                    ? 'bg-primary text-primary-foreground hover:bg-primary/90 dark:text-primary-foreground'
+                                    ? '!bg-primary !text-primary-foreground hover:!bg-primary/90'
                                     : '',
                             ]"
                             @click="pickDay(cell.date)"
@@ -321,7 +321,7 @@ const clearDate = () => {
             </div>
 
             <div
-                class="shrink-0 border-t border-zinc-100 bg-white px-3 py-2 dark:border-zinc-800 dark:bg-zinc-950"
+                class="shrink-0 border-t border-border bg-popover px-3 py-2"
             >
                 <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
                     <Button

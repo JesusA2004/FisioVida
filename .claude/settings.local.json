@@ -16,7 +16,9 @@
       "Bash(python -c \"import json,sys; d=json.load\\(sys.stdin\\); [print\\(t['name']\\) for t in d.get\\('tables',[]\\)]\")",
       "Bash(Remove-Item \"database/migrations/2026_05_14_043332_create_privacy_notice_acceptances_table.php\")",
       "Bash(Get-ChildItem -Path \"C:\\\\wamp64\\\\www\\\\FisioVida\" -Directory)",
-      "Bash(Select-Object -ExpandProperty Name)"
+      "Bash(Select-Object -ExpandProperty Name)",
+      "Bash(Get-ChildItem \"C:\\\\wamp64\\\\www\\\\FisioVida\\\\resources\\\\js\\\\components\\\\ui\" -Directory)",
+      "Bash(Select-Object Name)"
     ]
   }
 }

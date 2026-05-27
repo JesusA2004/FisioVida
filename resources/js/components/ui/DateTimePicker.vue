@@ -268,13 +268,13 @@ const selectToday = () => {
         <PopoverTrigger as-child>
             <Button
                 variant="outline"
-                class="h-11 w-full justify-start overflow-hidden rounded-2xl border-zinc-200 bg-white px-3 text-left font-normal shadow-sm transition-all duration-200 hover:border-[color:var(--primary)] hover:text-[color:var(--primary)] focus-visible:border-[color:var(--primary)] focus-visible:ring-2 focus-visible:ring-[color:var(--primary)]/20 dark:border-zinc-800 dark:bg-zinc-900/80"
+                class="h-11 w-full justify-start overflow-hidden rounded-2xl border-input bg-card px-3 text-left font-normal shadow-sm transition-all duration-200 hover:border-primary focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/20"
             >
                 <CalendarClock class="mr-2 h-4 w-4 shrink-0" />
 
                 <span
                     class="min-w-0 truncate"
-                    :class="modelValue ? 'text-zinc-800 dark:text-zinc-100' : 'text-zinc-400'"
+                    :class="modelValue ? 'text-foreground' : 'text-muted-foreground'"
                 >
                     {{ triggerLabel }}
                 </span>
@@ -284,7 +284,7 @@ const selectToday = () => {
         <PopoverContent
             align="start"
             side="bottom"
-            class="z-[80] w-[min(calc(100vw-2rem),21rem)] rounded-[1.35rem] border border-zinc-200 bg-white p-3 shadow-2xl dark:border-zinc-800 dark:bg-zinc-950"
+            class="z-[80] w-[min(calc(100vw-2rem),21rem)] rounded-[1.35rem] border border-border bg-popover p-3 shadow-2xl"
         >
             <div class="space-y-3">
                 <!-- Navegación de mes -->
@@ -293,14 +293,14 @@ const selectToday = () => {
                         type="button"
                         variant="outline"
                         size="icon"
-                        class="h-9 w-9 rounded-xl border-zinc-200 bg-white transition hover:border-[color:var(--primary)] hover:text-[color:var(--primary)]"
+                        class="h-9 w-9 rounded-xl border-input bg-card transition hover:border-primary hover:text-primary"
                         @click="goPrevMonth"
                     >
                         <ChevronLeft class="h-4 w-4" />
                     </Button>
 
                     <p
-                        class="truncate px-2 text-center text-sm font-semibold capitalize text-zinc-900 dark:text-zinc-100"
+                        class="truncate px-2 text-center text-sm font-semibold capitalize text-foreground"
                     >
                         {{ monthLabel }}
                     </p>
@@ -309,7 +309,7 @@ const selectToday = () => {
                         type="button"
                         variant="outline"
                         size="icon"
-                        class="h-9 w-9 rounded-xl border-zinc-200 bg-white transition hover:border-[color:var(--primary)] hover:text-[color:var(--primary)]"
+                        class="h-9 w-9 rounded-xl border-input bg-card transition hover:border-primary hover:text-primary"
                         @click="goNextMonth"
                     >
                         <ChevronRight class="h-4 w-4" />
@@ -318,7 +318,7 @@ const selectToday = () => {
 
                 <!-- Días de la semana -->
                 <div
-                    class="grid grid-cols-7 gap-1 text-center text-[11px] font-medium text-zinc-500 dark:text-zinc-400"
+                    class="grid grid-cols-7 gap-1 text-center text-[11px] font-medium text-muted-foreground"
                 >
                     <span v-for="day in weekDays" :key="day">
                         {{ day }}
@@ -334,8 +334,8 @@ const selectToday = () => {
                         class="grid h-8 w-8 place-items-center rounded-xl text-xs transition"
                         :class="[
                             cell.inCurrentMonth
-                                ? 'text-zinc-900 hover:bg-zinc-100 dark:text-zinc-100 dark:hover:bg-zinc-800'
-                                : 'text-zinc-400 hover:bg-zinc-100 dark:text-zinc-600 dark:hover:bg-zinc-800',
+                                ? 'text-foreground hover:bg-muted'
+                                : 'text-muted-foreground hover:bg-muted',
                             isSelected(cell.date)
                                 ? 'bg-[color:var(--primary)] text-white hover:bg-[color:var(--primary-hover)]'
                                 : '',
@@ -347,8 +347,8 @@ const selectToday = () => {
                 </div>
 
                 <!-- Selector de hora -->
-                <div class="rounded-xl bg-zinc-50 p-2 dark:bg-zinc-900/50">
-                    <p class="mb-2 text-[11px] font-medium text-zinc-500 dark:text-zinc-400">
+                <div class="rounded-xl bg-muted/60 p-2">
+                    <p class="mb-2 text-[11px] font-medium text-muted-foreground">
                         Hora
                     </p>
                     <div class="grid grid-cols-[1fr_1fr_90px] gap-2">
@@ -378,7 +378,7 @@ const selectToday = () => {
                         type="button"
                         variant="outline"
                         size="sm"
-                        class="h-9 rounded-xl border-zinc-200 bg-white px-3 transition hover:border-[color:var(--primary)] hover:text-[color:var(--primary)]"
+                        class="h-9 rounded-xl border-input bg-card px-3 transition hover:border-primary hover:text-primary"
                         @click="selectToday"
                     >
                         Hoy
@@ -390,7 +390,7 @@ const selectToday = () => {
                             type="button"
                             variant="outline"
                             size="sm"
-                            class="h-9 rounded-xl border-zinc-200 bg-white px-3 transition hover:border-red-300 hover:text-red-600"
+                            class="h-9 rounded-xl border-input bg-card px-3 transition hover:border-red-300 hover:text-red-600"
                             @click="clear"
                         >
                             <X class="mr-1 h-3.5 w-3.5" />
