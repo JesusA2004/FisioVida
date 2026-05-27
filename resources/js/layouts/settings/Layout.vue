@@ -37,87 +37,49 @@ const activeTitle = computed(() => {
 
 <template>
   <div class="w-full px-4 py-6 sm:px-6 lg:px-8">
-    <!-- Header (más pro) -->
-    <div
-      class="relative overflow-hidden rounded-3xl bg-background/50 p-5 shadow-sm ring-1 ring-foreground/5 backdrop-blur sm:p-6"
-    >
-      <!-- acento suave -->
-      <div
-        class="pointer-events-none absolute inset-x-0 -top-16 h-32 opacity-70 blur-2xl"
-        style="background: radial-gradient(600px 140px at 50% 50%, rgba(5,154,178,.28), transparent 70%);"
-      />
-      <div class="relative">
+    <!-- Header + Tabs -->
+    <div class="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+      <!-- Acento de color en la parte superior -->
+      <div class="h-1 bg-primary" />
+
+      <div class="px-5 pt-4 pb-2 sm:px-6">
         <Heading
-          title="Configuración"
-          description="Administra tu cuenta, seguridad y preferencias"
+          title="Configuración de cuenta"
+          description="Perfil, seguridad y preferencias de visualización"
         />
       </div>
 
-      <!-- Tabs premium -->
-      <div class="relative mt-0">
-        <div
-          class="rounded-2xl bg-muted/25 p-1.5 ring-1 ring-foreground/5 backdrop-blur"
+      <!-- Tabs -->
+      <div class="px-3 pb-3 sm:px-4">
+        <nav
+          aria-label="Navegación de configuración"
+          class="flex flex-wrap gap-1"
         >
-          <nav
-            aria-label="Navegación de configuración"
-            class="grid grid-cols-2 gap-1.5 sm:flex sm:flex-wrap sm:gap-1.5"
+          <Link
+            v-for="item in navItems"
+            :key="toUrl(item.href)"
+            :href="item.href"
+            class="group flex items-center gap-2 rounded-xl px-3 py-2 text-sm transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+            :class="isCurrentUrl(item.href)
+              ? 'bg-primary/10 text-primary font-semibold'
+              : 'text-muted-foreground hover:bg-muted hover:text-foreground'"
+            :aria-current="isCurrentUrl(item.href) ? 'page' : undefined"
           >
-            <Link
-              v-for="item in navItems"
-              :key="toUrl(item.href)"
-              :href="item.href"
-              class="group relative flex items-center gap-3 rounded-2xl px-3 py-2.5 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
-              :class="isCurrentUrl(item.href)
-                ? 'bg-background shadow-sm ring-1 ring-primary/25'
-                : 'hover:bg-background/60'"
-              :aria-current="isCurrentUrl(item.href) ? 'page' : undefined"
-            >
-              <span
-                class="grid h-10 w-10 place-items-center rounded-2xl ring-1 ring-foreground/5 transition-all"
-                :class="isCurrentUrl(item.href)
-                  ? 'bg-primary/10 text-primary shadow-[0_0_0_6px_rgba(5,154,178,0.10)]'
-                  : 'bg-background/60 text-foreground/80 group-hover:bg-background/70'"
-              >
-                <component :is="item.icon" class="h-5 w-5" />
-              </span>
-
-              <span class="min-w-0 flex-1">
-                <span
-                  class="block truncate text-sm font-semibold"
-                  :class="isCurrentUrl(item.href) ? 'text-foreground' : 'text-foreground/90'"
-                >
-                  {{ item.title }}
-                </span>
-                <span class="mt-0.5 block truncate text-xs text-muted-foreground">
-                  {{ subtitles[item.title] ?? '' }}
-                </span>
-              </span>
-
-              <!-- Indicador activo (barra) -->
-              <span
-                v-if="isCurrentUrl(item.href)"
-                class="absolute inset-x-4 -bottom-[2px] h-[3px] rounded-full bg-primary"
-                aria-hidden="true"
-              />
-            </Link>
-          </nav>
-        </div>
+            <component
+              :is="item.icon"
+              class="h-4 w-4 shrink-0"
+              :class="isCurrentUrl(item.href) ? 'text-primary' : 'text-muted-foreground group-hover:text-foreground'"
+            />
+            {{ item.title }}
+          </Link>
+        </nav>
       </div>
     </div>
 
-    <!-- Content panel (mucho más limpio) -->
-    <div class="mt-6">
-      <div
-        class="relative overflow-hidden rounded-3xl bg-background/60 p-5 shadow-sm ring-1 ring-foreground/5 backdrop-blur sm:p-6"
-      >
-        <!-- borde/acento lateral sutil -->
-        <div
-          class="pointer-events-none absolute left-0 top-10 h-24 w-[3px] rounded-full bg-primary/70"
-          aria-hidden="true"
-        />
-        <div class="min-w-0">
-          <slot />
-        </div>
+    <!-- Content panel -->
+    <div class="mt-4">
+      <div class="rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6">
+        <slot />
       </div>
     </div>
   </div>

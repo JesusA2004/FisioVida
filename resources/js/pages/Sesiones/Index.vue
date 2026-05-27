@@ -376,7 +376,7 @@ const primaryButtonStyle = {
 };
 
 const primarySoftStyle = {
-    backgroundColor: 'color-mix(in srgb, var(--primary) 8%, white)',
+    backgroundColor: 'color-mix(in srgb, var(--primary) 10%, var(--card))',
 };
 
 const setPrimaryHover = (event: MouseEvent) => {
@@ -1240,8 +1240,8 @@ const setPrimaryNormal = (event: MouseEvent) => {
                                                 form.exercise_ids.includes(
                                                     exercise.id,
                                                 )
-                                                    ? 'border-[color:var(--primary)] bg-[color-mix(in_srgb,var(--primary)_8%,white)]'
-                                                    : 'border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900/60'
+                                                    ? 'border-[color:var(--primary)] bg-[color-mix(in_srgb,var(--primary)_10%,var(--card))]'
+                                                    : 'border-border bg-card dark:bg-card/60'
                                             "
                                             @click="toggleExercise(exercise.id)"
                                         >

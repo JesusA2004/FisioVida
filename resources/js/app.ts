@@ -5,7 +5,7 @@ import { createApp, h } from 'vue';
 import '../css/app.css';
 import { initializeTheme } from './composables/useAppearance';
 
-const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
+const appName = import.meta.env.VITE_APP_NAME || 'FisioVida';
 
 const applyThemeColors = (settings: Record<string, string | null> | undefined) => {
     if (!settings) return;
@@ -17,15 +17,19 @@ const applyThemeColors = (settings: Record<string, string | null> | undefined) =
         root.style.setProperty('--color-primary', settings.primary_color);
         root.style.setProperty('--ring', settings.primary_color);
         root.style.setProperty('--color-ring', settings.primary_color);
+        root.style.setProperty('--sidebar-primary', settings.primary_color);
+        root.style.setProperty('--sidebar-ring', settings.primary_color);
     }
 
     if (settings.primary_hover_color) {
         root.style.setProperty('--primary-hover', settings.primary_hover_color);
+        root.style.setProperty('--color-primary-hover', settings.primary_hover_color);
     }
 
     if (settings.primary_foreground_color) {
         root.style.setProperty('--primary-foreground', settings.primary_foreground_color);
         root.style.setProperty('--color-primary-foreground', settings.primary_foreground_color);
+        root.style.setProperty('--sidebar-primary-foreground', settings.primary_foreground_color);
     }
 
     if (settings.app_background_color) {
@@ -40,6 +44,7 @@ const applyThemeColors = (settings: Record<string, string | null> | undefined) =
 
     if (settings.sidebar_background_color) {
         root.style.setProperty('--sidebar-background', settings.sidebar_background_color);
+        root.style.setProperty('--sidebar', settings.sidebar_background_color);
         root.style.setProperty('--color-sidebar', settings.sidebar_background_color);
     }
 };
@@ -52,16 +57,21 @@ createInertiaApp({
             import.meta.glob<DefineComponent>('./pages/**/*.vue'),
         ),
     setup({ el, App, props, plugin }) {
-        applyThemeColors((props as any).initialPage?.props?.appSettings);
+        const settings = (props as any).initialPage?.props?.appSettings as Record<string, string | null> | undefined;
+        applyThemeColors(settings);
+
+        // Determinar modo oscuro por defecto desde system_settings
+        // (solo aplica si el usuario no tiene preferencia guardada en localStorage)
+        let adminDefault: 'dark' | 'light' | undefined;
+        if (settings?.dark_mode_enabled === '1') adminDefault = 'dark';
+        else if (settings?.dark_mode_enabled === '0') adminDefault = 'light';
+        initializeTheme(adminDefault);
 
         createApp({ render: () => h(App, props) })
             .use(plugin)
             .mount(el);
     },
     progress: {
-        color: '#4B5563',
+        color: 'var(--primary)',
     },
 });
-
-// This will set light / dark mode on page load...
-initializeTheme();

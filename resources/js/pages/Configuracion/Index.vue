@@ -206,19 +206,19 @@ const toggleModule = (moduleName: string, value: boolean) => {
 }
 
 const inputClass =
-    'h-11 rounded-2xl border-zinc-200 bg-white px-4 text-zinc-900 shadow-sm transition-all duration-200 placeholder:text-zinc-400 focus-visible:border-[color:var(--primary)] focus-visible:ring-2 focus-visible:ring-[color:var(--primary)]/20'
+    'h-11 rounded-2xl border-border bg-card px-4 text-foreground shadow-sm transition-all duration-200 placeholder:text-muted-foreground focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/20 dark:border-border'
 
 const cardClass =
-    'rounded-[2rem] border border-zinc-200 bg-white p-4 shadow-sm transition-all duration-300 hover:shadow-md sm:p-5'
+    'rounded-[2rem] border border-border bg-card p-4 shadow-sm transition-all duration-300 hover:shadow-md sm:p-5'
 
 const titleClass =
-    'flex items-center gap-2 text-lg font-semibold text-zinc-900'
+    'flex items-center gap-2 text-lg font-semibold text-foreground'
 
 const colorInputClass =
-    'h-11 w-14 shrink-0 rounded-2xl border-zinc-200 bg-white p-1 shadow-sm'
+    'h-11 w-14 shrink-0 rounded-2xl border-border bg-card p-1 shadow-sm'
 
 const colorTextClass =
-    'h-11 rounded-2xl border-zinc-200 bg-white px-4 text-sm font-semibold text-zinc-900 shadow-sm'
+    'h-11 rounded-2xl border-border bg-card px-4 text-sm font-semibold text-foreground shadow-sm'
 
 const hoverButtonStyle = (normal: string, hover: string) => ({
     backgroundColor: normal,
@@ -234,8 +234,7 @@ const setHoverColor = (event: MouseEvent, color: string) => {
 
     <AppLayout :breadcrumbs="breadcrumbs">
         <section class="w-full space-y-4 px-2 py-1 sm:px-3 lg:px-4">
-            <header class="overflow-hidden rounded-[2rem] border
-            border-zinc-200 bg-white p-5 shadow-sm">
+            <header class="overflow-hidden rounded-[2rem] border border-border bg-card p-5 shadow-sm">
                 <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                     <div class="flex items-start gap-4">
                         <div
@@ -249,10 +248,10 @@ const setHoverColor = (event: MouseEvent, color: string) => {
                         </div>
 
                         <div>
-                            <h1 class="text-2xl font-semibold text-zinc-900">
+                            <h1 class="text-2xl font-semibold text-foreground">
                                 Configuración general
                             </h1>
-                            <p class="mt-1 text-sm text-zinc-500">
+                            <p class="mt-1 text-sm text-muted-foreground">
                                 Personaliza datos de clínica, colores principales y módulos del sistema.
                             </p>
                         </div>
@@ -334,7 +333,7 @@ const setHoverColor = (event: MouseEvent, color: string) => {
                             </div>
                         </div>
 
-                        <div class="rounded-[1.5rem] border border-zinc-200 bg-zinc-50 p-4">
+                        <div class="rounded-[1.5rem] border border-border bg-muted/30 p-4">
                             <h2 :class="titleClass">
                                 <SlidersHorizontal class="h-5 w-5" :style="{ color: form.primary_color }" />
                                 Parámetros generales
@@ -362,12 +361,12 @@ const setHoverColor = (event: MouseEvent, color: string) => {
                             </div>
                         </div>
 
-                        <div class="rounded-[1.5rem] border border-zinc-200 bg-zinc-50 p-4">
+                        <div class="rounded-[1.5rem] border border-border bg-muted/30 p-4">
                             <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                                 <div class="flex flex-col gap-4 md:flex-row md:items-center">
                                     <button
                                         type="button"
-                                        class="group relative flex h-36 w-full items-center justify-center overflow-hidden rounded-2xl border-2 border-dashed border-zinc-300 bg-white p-4 transition-all duration-200 hover:-translate-y-0.5 hover:border-[color:var(--primary)] hover:bg-zinc-50 md:w-64"
+                                        class="group relative flex h-36 w-full items-center justify-center overflow-hidden rounded-2xl border-2 border-dashed border-border bg-card p-4 transition-all duration-200 hover:-translate-y-0.5 hover:border-primary hover:bg-muted/50 md:w-64"
                                         @click="triggerLogoInput"
                                         @dragover.prevent
                                         @dragenter.prevent
@@ -382,24 +381,24 @@ const setHoverColor = (event: MouseEvent, color: string) => {
 
                                         <div
                                             v-else
-                                            class="flex flex-col items-center gap-2 text-zinc-400"
+                                            class="flex flex-col items-center gap-2 text-muted-foreground"
                                         >
-                                            <ImageIcon class="h-9 w-9" />
+                                            <ImageIcon class="h-9 w-9 opacity-60" />
                                             <span class="text-xs font-medium">Arrastra tu logo aquí</span>
                                         </div>
 
                                         <div
-                                            class="pointer-events-none absolute inset-x-3 bottom-3 rounded-xl bg-white/90 px-3 py-2 text-center text-xs font-medium text-zinc-600 opacity-0 shadow-sm transition-opacity duration-200 group-hover:opacity-100"
+                                            class="pointer-events-none absolute inset-x-3 bottom-3 rounded-xl bg-card/90 px-3 py-2 text-center text-xs font-medium text-foreground opacity-0 shadow-sm transition-opacity duration-200 group-hover:opacity-100"
                                         >
                                             Clic o arrastra una imagen
                                         </div>
                                     </button>
 
                                     <div>
-                                        <Label class="text-sm font-semibold text-zinc-900">
+                                        <Label class="text-sm font-semibold text-foreground">
                                             Logo de la clínica
                                         </Label>
-                                        <p class="mt-1 max-w-md text-xs leading-5 text-zinc-500">
+                                        <p class="mt-1 max-w-md text-xs leading-5 text-muted-foreground">
                                             Sube o arrastra un logo en PNG, JPG, WEBP o SVG. Recomendado con fondo transparente.
                                         </p>
 
@@ -431,7 +430,7 @@ const setHoverColor = (event: MouseEvent, color: string) => {
                                     <Button
                                         type="button"
                                         variant="outline"
-                                        class="h-10 rounded-2xl border-zinc-200 bg-white px-5 text-sm hover:bg-zinc-50"
+                                        class="h-10 rounded-2xl px-5 text-sm"
                                         @click="triggerLogoInput"
                                     >
                                         <UploadCloud class="mr-2 h-4 w-4" />
@@ -442,7 +441,7 @@ const setHoverColor = (event: MouseEvent, color: string) => {
                                         v-if="form.clinic_logo_file"
                                         type="button"
                                         variant="ghost"
-                                        class="h-10 rounded-2xl px-5 text-sm hover:bg-zinc-100"
+                                        class="h-10 rounded-2xl px-5 text-sm"
                                         @click="restorePreviousLogo"
                                     >
                                         <RefreshCw class="mr-2 h-4 w-4" />
@@ -460,7 +459,7 @@ const setHoverColor = (event: MouseEvent, color: string) => {
                         Colores del sistema
                     </h2>
 
-                    <p class="mt-1 text-sm text-zinc-500">
+                    <p class="mt-1 text-sm text-muted-foreground">
                         Estos colores afectan botones, fondo general, tarjetas y menú lateral.
                     </p>
 
@@ -514,25 +513,25 @@ const setHoverColor = (event: MouseEvent, color: string) => {
                         </div>
                     </div>
 
-                    <div class="mt-4 rounded-[1.5rem] border border-zinc-200 bg-zinc-50 p-3">
-                        <p class="text-sm font-semibold text-zinc-900">
+                    <div class="mt-4 rounded-[1.5rem] border border-border bg-muted/30 p-3">
+                        <p class="text-sm font-semibold text-foreground">
                             Vista previa
                         </p>
 
                         <div
-                            class="mt-3 rounded-2xl border border-zinc-200 p-3"
+                            class="mt-3 rounded-2xl border border-border p-3"
                             :style="{ backgroundColor: form.app_background_color }"
                         >
                             <div class="grid gap-3 sm:grid-cols-[135px_1fr]">
                                 <div
                                     class="rounded-2xl p-3 text-sm font-semibold"
-                                    :style="{ backgroundColor: form.sidebar_background_color }"
+                                    :style="{ backgroundColor: form.sidebar_background_color, color: '#374151' }"
                                 >
                                     Menú lateral
                                 </div>
 
                                 <div
-                                    class="rounded-2xl border border-zinc-200 p-3"
+                                    class="rounded-2xl border border-border/40 p-3"
                                     :style="{ backgroundColor: form.card_background_color }"
                                 >
                                     <button
@@ -561,7 +560,7 @@ const setHoverColor = (event: MouseEvent, color: string) => {
                             <Blocks class="h-5 w-5" :style="{ color: form.primary_color }" />
                             Módulos habilitados
                         </h2>
-                        <p class="mt-1 text-sm text-zinc-500">
+                        <p class="mt-1 text-sm text-muted-foreground">
                             Activa o desactiva secciones del sistema de forma global.
                         </p>
                     </div>
@@ -581,15 +580,15 @@ const setHoverColor = (event: MouseEvent, color: string) => {
                     <label
                         v-for="module in props.modules"
                         :key="module.id"
-                        class="group flex items-center justify-between rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3 transition-all duration-200 hover:-translate-y-0.5 hover:border-zinc-300 hover:bg-white hover:shadow-sm"
+                        class="group flex cursor-pointer items-center justify-between rounded-2xl border border-border bg-muted/40 px-4 py-3 transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:bg-card hover:shadow-sm"
                     >
                         <div class="pr-3">
-                            <p class="font-semibold text-zinc-900">
+                            <p class="font-semibold text-foreground">
                                 {{ module.label || tModule(module.module) }}
                             </p>
                             <p
                                 v-if="module.description"
-                                class="mt-0.5 line-clamp-1 text-xs text-zinc-500"
+                                class="mt-0.5 line-clamp-1 text-xs text-muted-foreground"
                             >
                                 {{ module.description }}
                             </p>

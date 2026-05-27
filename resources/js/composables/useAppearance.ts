@@ -70,16 +70,24 @@ const handleSystemThemeChange = () => {
     updateTheme(currentAppearance || 'system');
 };
 
-export function initializeTheme(): void {
+export function initializeTheme(adminDefault?: 'dark' | 'light'): void {
     if (typeof window === 'undefined') {
         return;
     }
 
-    // Initialize theme from saved preference or default to system...
     const savedAppearance = getStoredAppearance();
-    updateTheme(savedAppearance || 'system');
 
-    // Set up system theme change listener...
+    if (savedAppearance) {
+        // El usuario tiene una preferencia guardada — respetarla siempre
+        updateTheme(savedAppearance);
+    } else if (adminDefault) {
+        // No hay preferencia de usuario, usar el default del admin/sistema
+        updateTheme(adminDefault);
+    } else {
+        // Sin preferencia ni config de admin, seguir la preferencia del OS
+        updateTheme('system');
+    }
+
     mediaQuery()?.addEventListener('change', handleSystemThemeChange);
 }
 

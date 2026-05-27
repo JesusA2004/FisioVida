@@ -675,8 +675,8 @@ const destroyArchivo = async (row: ArchivoRow) => {
                         class="flex min-h-[340px] flex-col justify-center rounded-[1.75rem] border border-dashed p-6 text-center transition sm:p-8"
                         :class="
                             isDragging
-                                ? 'scale-[1.01] border-[var(--primary)] bg-[color-mix(in_srgb,var(--primary)_8%,white)]'
-                                : 'border-zinc-300 bg-zinc-50/80 hover:border-zinc-400'
+                                ? 'scale-[1.01] border-[var(--primary)] bg-[color-mix(in_srgb,var(--primary)_10%,var(--card))]'
+                                : 'border-border bg-muted/40 hover:border-muted-foreground/40'
                         "
                         @drop="onDrop"
                         @dragover="onDragOver"

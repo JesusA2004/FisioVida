@@ -163,7 +163,7 @@ const primaryButtonStyle = {
 };
 
 const primarySoftStyle = {
-    backgroundColor: 'color-mix(in srgb, var(--primary) 8%, white)',
+    backgroundColor: 'color-mix(in srgb, var(--primary) 10%, var(--card))',
 };
 
 const setPrimaryHover = (event: MouseEvent) => {

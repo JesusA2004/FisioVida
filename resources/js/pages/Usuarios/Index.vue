@@ -168,7 +168,7 @@ const primaryButtonStyle = {
 };
 
 const primarySoftStyle = {
-    backgroundColor: 'color-mix(in srgb, var(--primary) 8%, white)',
+    backgroundColor: 'color-mix(in srgb, var(--primary) 10%, var(--card))',
 };
 
 const setPrimaryHover = (event: MouseEvent) => {
@@ -785,8 +785,8 @@ const setPrimaryNormal = (event: MouseEvent) => {
                                             class="flex items-center gap-3 rounded-2xl border p-3 text-left text-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-[color:var(--primary)] hover:shadow-sm"
                                             :class="
                                                 form.role_ids.includes(role.id)
-                                                    ? 'border-[color:var(--primary)] bg-[color-mix(in_srgb,var(--primary)_8%,white)] dark:bg-zinc-900'
-                                                    : 'border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900/60'
+                                                    ? 'border-[color:var(--primary)] bg-[color-mix(in_srgb,var(--primary)_10%,var(--card))]'
+                                                    : 'border-border bg-card dark:bg-card/60'
                                             "
                                             @click="toggleRole(role.id)"
                                         >
@@ -842,8 +842,8 @@ const setPrimaryNormal = (event: MouseEvent) => {
                                         class="flex w-full items-center justify-between gap-3 rounded-2xl border p-4 text-left transition-all duration-200 hover:-translate-y-0.5 hover:border-[color:var(--primary)]"
                                         :class="
                                             form.is_super_admin
-                                                ? 'border-[color:var(--primary)] bg-[color-mix(in_srgb,var(--primary)_8%,white)]'
-                                                : 'border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900/60'
+                                                ? 'border-[color:var(--primary)] bg-[color-mix(in_srgb,var(--primary)_10%,var(--card))]'
+                                                : 'border-border bg-card dark:bg-card/60'
                                         "
                                         @click="
                                             form.is_super_admin =

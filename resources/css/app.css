@@ -27,6 +27,7 @@
     --color-popover-foreground: var(--popover-foreground);
 
     --color-primary: var(--primary);
+    --color-primary-hover: var(--primary-hover);
     --color-primary-foreground: var(--primary-foreground);
 
     --color-secondary: var(--secondary);
@@ -62,12 +63,8 @@
 }
 
 /*
-  The default border color has changed to `currentColor` in Tailwind CSS v4,
-  so we've added these compatibility styles to make sure everything still
-  looks the same as it did with Tailwind CSS v3.
-
-  If we ever want to remove these styles, we need to add an explicit border
-  color utility to any element that depends on these defaults.
+  Tailwind CSS v4 compatibility — usa transparent como fallback para evitar
+  bordes negros en pseudo-elementos cuando --color-gray-200 no está definido.
 */
 @layer base {
     *,
@@ -75,7 +72,7 @@
     ::before,
     ::backdrop,
     ::file-selector-button {
-        border-color: var(--color-gray-200, currentColor);
+        border-color: var(--color-gray-200, transparent);
     }
 }
 
@@ -90,104 +87,107 @@
 }
 
 :root {
-    /* Base */
-    --background: hsl(210 40% 98%);       /* slate-50 */
+    /* Base — fondo ligeramente gris para que las tarjetas blancas resalten */
+    --background: hsl(214 26% 94%);       /* slate-100ish: contraste real con cards blancas */
     --foreground: hsl(222 47% 11%);       /* slate-900 */
 
-    --card: hsl(0, 0%, 0%);
+    --card: hsl(0 0% 100%);               /* blanco puro — resalta sobre el fondo */
     --card-foreground: hsl(222 47% 11%);
 
     --popover: hsl(0 0% 100%);
     --popover-foreground: hsl(222 47% 11%);
 
-    /* Brand = FisioVida (Teal/Lime) */
+    /* Brand = FisioVida (Teal) */
     --primary: hsl(188 95% 36%);          /* ~ #059AB2 */
-    --primary-foreground: hsl(210 40% 98%);
+    --primary-hover: hsl(188 95% 29%);    /* teal más profundo para hover */
+    --primary-foreground: hsl(0 0% 100%); /* blanco sobre teal */
 
-    --secondary: hsl(142 56% 90%);        /* lime muy suave */
-    --secondary-foreground: hsl(222 47% 11%);
+    --secondary: hsl(188 30% 92%);        /* teal muy suave */
+    --secondary-foreground: hsl(188 95% 22%);
 
-    --muted: hsl(210 40% 96%);
-    --muted-foreground: hsl(215 16% 47%); /* slate-500 */
+    --muted: hsl(214 26% 91%);            /* gris suave para fondos muted */
+    --muted-foreground: hsl(215 20% 48%); /* slate-500 con buen contraste */
 
-    --accent: hsl(188 80% 92%);           /* teal suave */
-    --accent-foreground: hsl(222 47% 11%);
+    --accent: hsl(188 60% 90%);           /* teal muy suave para accents */
+    --accent-foreground: hsl(188 95% 22%);
 
     --destructive: hsl(0 84.2% 60.2%);
-    --destructive-foreground: hsl(210 40% 98%);
+    --destructive-foreground: hsl(0 0% 100%);
 
-    --border: hsl(214 32% 91%);           /* slate-200 */
-    --input: hsl(214 32% 91%);
-    --ring: hsl(188 95% 36%);             /* mismo que primary */
+    --border: hsl(214 26% 87%);           /* borde suave slate-200ish */
+    --input: hsl(214 26% 87%);            /* mismo que border para inputs */
+    --ring: hsl(188 95% 36%);
 
-    /* Charts (alineados al logo) */
-    --chart-1: hsl(188 95% 36%);          /* teal */
-    --chart-2: hsl(88 55% 45%);           /* lime */
-    --chart-3: hsl(165 38% 26%);          /* ink/forest */
-    --chart-4: hsl(142 45% 36%);          /* forest */
-    --chart-5: hsl(200 70% 45%);          /* teal variante */
+    /* Charts */
+    --chart-1: hsl(188 95% 36%);
+    --chart-2: hsl(142 71% 45%);
+    --chart-3: hsl(262 83% 58%);
+    --chart-4: hsl(38 92% 50%);
+    --chart-5: hsl(0 84% 60%);
 
-    --radius: 0.8rem;
+    --radius: 0.75rem;
 
-    /* Sidebar (light) */
-    --sidebar-background: hsl(210 40% 98%);
+    /* Sidebar (light) — blanco: separa visualmente del fondo gris */
+    --sidebar-background: hsl(0 0% 100%);
     --sidebar-foreground: hsl(222 47% 11%);
     --sidebar-primary: hsl(188 95% 36%);
-    --sidebar-primary-foreground: hsl(210 40% 98%);
-    --sidebar-accent: hsl(210 40% 96%);
+    --sidebar-primary-foreground: hsl(0 0% 100%);
+    --sidebar-accent: hsl(214 26% 94%);
     --sidebar-accent-foreground: hsl(222 47% 11%);
-    --sidebar-border: hsl(214 32% 91%);
+    --sidebar-border: hsl(214 26% 90%);
     --sidebar-ring: hsl(188 95% 36%);
-    --sidebar: hsl(210 40% 98%);
+    --sidebar: hsl(0 0% 100%);
 }
 
 .dark {
     /* Base dark premium */
-    --background: hsl(222 47% 6%);        /* near slate-950 */
-    --foreground: hsl(210 40% 98%);
+    --background: hsl(224 40% 6%);        /* azul oscuro profundo */
+    --foreground: hsl(210 35% 95%);       /* casi blanco cálido */
 
-    --card: hsl(222 47% 8%);
-    --card-foreground: hsl(210 40% 98%);
+    --card: hsl(224 40% 9%);              /* ligeramente más claro que background */
+    --card-foreground: hsl(210 35% 95%);
 
-    --popover: hsl(222 47% 8%);
-    --popover-foreground: hsl(210 40% 98%);
+    --popover: hsl(224 40% 10%);
+    --popover-foreground: hsl(210 35% 95%);
 
     /* Brand in dark */
-    --primary: hsl(188 95% 42%);          /* teal más vivo */
-    --primary-foreground: hsl(222 47% 6%);
+    --primary: hsl(188 95% 44%);          /* teal vivo y legible */
+    --primary-hover: hsl(188 95% 52%);    /* más brillante en hover */
+    --primary-foreground: hsl(224 40% 6%); /* oscuro sobre teal */
 
-    --secondary: hsl(142 36% 18%);
-    --secondary-foreground: hsl(210 40% 98%);
+    --secondary: hsl(188 30% 16%);
+    --secondary-foreground: hsl(188 80% 85%);
 
-    --muted: hsl(215 28% 14%);
-    --muted-foreground: hsl(215 20% 65%);
+    --muted: hsl(224 35% 13%);            /* sutil, más claro que card */
+    --muted-foreground: hsl(215 22% 60%); /* gris medio — buen contraste */
 
-    --accent: hsl(188 35% 18%);
-    --accent-foreground: hsl(210 40% 98%);
+    --accent: hsl(188 40% 16%);
+    --accent-foreground: hsl(188 80% 85%);
 
     --destructive: hsl(0 84% 60%);
-    --destructive-foreground: hsl(210 40% 98%);
+    --destructive-foreground: hsl(210 35% 95%);
 
-    --border: hsl(215 28% 16%);
-    --input: hsl(215 28% 16%);
-    --ring: hsl(188 95% 42%);
+    --border: hsl(224 28% 16%);           /* borde sutil, no negro */
+    --input: hsl(224 28% 18%);            /* un poco más claro que border */
+    --ring: hsl(188 95% 44%);
 
-    --chart-1: hsl(188 95% 42%);
-    --chart-2: hsl(88 55% 50%);
-    --chart-3: hsl(165 35% 35%);
-    --chart-4: hsl(142 45% 45%);
-    --chart-5: hsl(200 70% 52%);
+    /* Charts dark */
+    --chart-1: hsl(188 95% 44%);
+    --chart-2: hsl(142 71% 50%);
+    --chart-3: hsl(262 83% 65%);
+    --chart-4: hsl(38 92% 55%);
+    --chart-5: hsl(0 84% 65%);
 
-    /* Sidebar (dark) */
-    --sidebar-background: hsl(222 47% 7%);
-    --sidebar-foreground: hsl(210 40% 96%);
-    --sidebar-primary: hsl(188 95% 42%);
-    --sidebar-primary-foreground: hsl(222 47% 6%);
-    --sidebar-accent: hsl(215 28% 14%);
-    --sidebar-accent-foreground: hsl(210 40% 96%);
-    --sidebar-border: hsl(215 28% 16%);
-    --sidebar-ring: hsl(188 95% 42%);
-    --sidebar: hsl(222 47% 7%);
+    /* Sidebar dark — ligeramente más claro que background para distinción */
+    --sidebar-background: hsl(224 40% 8%);
+    --sidebar-foreground: hsl(210 35% 92%);
+    --sidebar-primary: hsl(188 95% 44%);
+    --sidebar-primary-foreground: hsl(224 40% 6%);
+    --sidebar-accent: hsl(224 35% 13%);
+    --sidebar-accent-foreground: hsl(210 35% 92%);
+    --sidebar-border: hsl(224 28% 14%);
+    --sidebar-ring: hsl(188 95% 44%);
+    --sidebar: hsl(224 40% 8%);
 }
 
 @layer base {
@@ -203,19 +203,55 @@
     .fv-page {
       @apply min-h-screen bg-background text-foreground;
     }
-  
+
+    /* Tarjeta estándar: blanca en claro, oscura en dark, sombra y borde suaves */
     .fv-card {
-      @apply rounded-2xl border bg-card text-card-foreground shadow-sm;
+      @apply rounded-2xl border border-border bg-card text-card-foreground shadow-sm;
     }
-  
+
+    /* Input estándar: fondo card, borde suave, focus con color primario */
+    .fv-input {
+      @apply h-10 w-full rounded-xl border border-input bg-card px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground shadow-sm transition-colors
+             focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20
+             disabled:opacity-50 disabled:cursor-not-allowed;
+    }
+
     .fv-soft-border {
-      border-color: hsl(var(--border) / 0.7);
+      border-color: color-mix(in srgb, var(--border) 70%, transparent);
     }
   }
-  
-  /* SweetAlert2 arriba de TODO (modales, dropdowns, etc.) */
+
+  /* SweetAlert2 — z-index y estilos base */
   .swal2-container { z-index: 20000 !important; }
-  .swal2-popup { border-radius: 16px !important; }
+  .swal2-popup {
+    border-radius: 16px !important;
+    font-family: inherit !important;
+  }
+
+  /* SweetAlert2 — dark mode */
+  .dark .swal2-popup {
+    background-color: var(--card) !important;
+    color: var(--card-foreground) !important;
+    border: 1px solid var(--border) !important;
+  }
+  .dark .swal2-title {
+    color: var(--foreground) !important;
+  }
+  .dark .swal2-html-container {
+    color: var(--muted-foreground) !important;
+  }
+  .dark .swal2-icon.swal2-warning {
+    border-color: hsl(38 92% 50%) !important;
+    color: hsl(38 92% 50%) !important;
+  }
+  .dark .swal2-icon.swal2-error {
+    border-color: hsl(0 84% 60%) !important;
+    color: hsl(0 84% 60%) !important;
+  }
+  .dark .swal2-icon.swal2-success {
+    border-color: hsl(142 71% 45%) !important;
+    color: hsl(142 71% 45%) !important;
+  }
   
 
   @layer utilities {
