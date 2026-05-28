@@ -4,6 +4,7 @@ namespace App\Http\Controllers\FisioVida;
 
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\FisioVida\Concerns\CrudHelpers;
+use App\Mail\PatientWelcomeMail;
 use App\Mail\UserCredentialsMail;
 use App\Models\Persona;
 use App\Models\Role;
@@ -218,13 +219,26 @@ class UsuariosController extends Controller {
             $token = app('auth.password.broker')->createToken($user);
             $resetUrl = url('/reset-password/' . $token . '?email=' . urlencode($user->email));
 
-            Mail::to($user->email)->send(
-                new UserCredentialsMail(
+            $isPatient = Role::whereIn('id', $roleIds)->where('slug', 'paciente')->exists();
+
+            $clinicName = \Illuminate\Support\Facades\DB::table('system_settings')
+                ->where('key', 'clinic_name')
+                ->value('value') ?? 'FisioVida';
+
+            if ($isPatient) {
+                Mail::to($user->email)->send(new PatientWelcomeMail(
+                    user: $user,
+                    portalUrl: url('/mi-portal'),
+                    resetUrl: $resetUrl,
+                    clinicName: $clinicName,
+                ));
+            } else {
+                Mail::to($user->email)->send(new UserCredentialsMail(
                     user: $user,
                     loginUrl: url('/login'),
                     resetUrl: $resetUrl,
-                )
-            );
+                ));
+            }
         } catch (Throwable $exception) {
             Log::error('No se pudo enviar el correo de credenciales del usuario.', [
                 'user_id' => $user->id,

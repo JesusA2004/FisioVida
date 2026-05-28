@@ -160,15 +160,66 @@ class MiJornadaController extends Controller
             ->limit(60)
             ->get(['id', 'name', 'description', 'video_url']);
 
+        // Compliance warnings para mostrar antes del formulario SOAP
+        $complianceWarnings = $this->complianceWarnings((int) $patientId);
+
         return response()->json([
-            'appointment'     => $appointment,
-            'sessions'        => $sessions,
-            'exercises'       => $exercises,
-            'files'           => $files,
-            'upcoming'        => $upcoming,
-            'activities'      => $activities,
-            'exerciseCatalog' => $exerciseCatalog,
+            'appointment'        => $appointment,
+            'sessions'           => $sessions,
+            'exercises'          => $exercises,
+            'files'              => $files,
+            'upcoming'           => $upcoming,
+            'activities'         => $activities,
+            'exerciseCatalog'    => $exerciseCatalog,
+            'complianceWarnings' => $complianceWarnings,
         ]);
+    }
+
+    private function complianceWarnings(int $patientId): array
+    {
+        if (! Schema::hasTable('patient_legal_acceptances') || ! Schema::hasTable('system_settings')) {
+            return [];
+        }
+
+        $settings = DB::table('system_settings')
+            ->whereIn('key', [
+                'require_privacy_notice_before_session',
+                'require_treatment_consent_before_session',
+            ])
+            ->pluck('value', 'key');
+
+        $warnings = [];
+
+        if (($settings['require_privacy_notice_before_session'] ?? '0') === '1') {
+            $has = DB::table('patient_legal_acceptances')
+                ->where('patient_persona_id', $patientId)
+                ->where('document_type', 'privacy_notice')
+                ->where('status', 'accepted')
+                ->exists();
+
+            if (! $has) {
+                $warnings[] = 'Falta aviso de privacidad aceptado (requerido para sesiones).';
+            }
+        }
+
+        if (($settings['require_treatment_consent_before_session'] ?? '0') === '1') {
+            $has = DB::table('patient_legal_acceptances')
+                ->where('patient_persona_id', $patientId)
+                ->where('document_type', 'treatment_consent')
+                ->where('status', 'accepted')
+                ->exists()
+                || DB::table('patient_consents')
+                    ->where('patient_persona_id', $patientId)
+                    ->where('consent_type', 'tratamiento')
+                    ->where('status', 'active')
+                    ->exists();
+
+            if (! $has) {
+                $warnings[] = 'Falta consentimiento de tratamiento (requerido para sesiones).';
+            }
+        }
+
+        return $warnings;
     }
 
     // POST /mi-jornada/citas/{cita}/sesion
@@ -182,6 +233,16 @@ class MiJornadaController extends Controller
             ->first();
 
         abort_if(! $appointment, 403);
+
+        // Bloqueo de cumplimiento
+        $warnings = $this->complianceWarnings((int) $appointment->patient_persona_id);
+        if (! empty($warnings)) {
+            return response()->json([
+                'ok'      => false,
+                'blocked' => true,
+                'message' => implode(' / ', $warnings),
+            ], 422);
+        }
 
         $data = $request->validate([
             'subjective'   => 'nullable|string|max:2000',

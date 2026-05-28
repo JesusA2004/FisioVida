@@ -109,6 +109,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('pacientes.legal.download')
         ->middleware('permission:patients.view');
 
+    Route::get('pacientes/{paciente}/documentos-legales/{aceptacion}/ver', [LegalDocumentsController::class, 'viewStaff'])
+        ->name('pacientes.legal.view')
+        ->middleware('permission:patients.view');
+
     // ── Portal paciente: aceptar y descargar documentos ─────────────────────
     Route::post('mi-portal/documentos/aceptar', [LegalDocumentsController::class, 'portalAccept'])
         ->name('portal.legal.accept')
@@ -116,6 +120,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::get('mi-portal/documentos/{aceptacion}/descargar', [LegalDocumentsController::class, 'downloadPortal'])
         ->name('portal.legal.download')
+        ->middleware('permission:patient_portal.view');
+
+    Route::get('mi-portal/documentos/{aceptacion}/ver', [LegalDocumentsController::class, 'viewPortal'])
+        ->name('portal.legal.view')
         ->middleware('permission:patient_portal.view');
 
     Route::get('usuarios', [UsuariosController::class, 'index'])->name('usuarios.index')->middleware('permission:users.view');

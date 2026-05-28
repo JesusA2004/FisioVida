@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\FisioVida;
 
 use App\Http\Controllers\Controller;
+use App\Services\Compliance\SignedDocumentService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -178,16 +179,40 @@ class PacientePortalController extends Controller
         // ---------- Configuración de compliance (para mostrar textos en portal) ----------
         $complianceSettings = [];
         if (Schema::hasTable('system_settings')) {
-            $complianceSettings = DB::table('system_settings')
+            $allSettings = DB::table('system_settings')
                 ->whereIn('key', [
                     'privacy_notice_version', 'privacy_notice_effective_date',
                     'privacy_notice_text', 'sensitive_data_consent_text',
                     'treatment_consent_text', 'image_consent_text', 'minor_consent_text',
                     'allow_patient_portal_acceptance',
-                    'privacy_responsible_name', 'privacy_contact_email',
+                    'privacy_contact_email', 'privacy_contact_phone',
+                    'privacy_address', 'clinic_address', 'clinic_phone',
+                    'clinic_name', 'legal_business_name', 'legal_representative',
                 ])
                 ->pluck('value', 'key')
                 ->toArray();
+
+            // Resolve variables in legal texts so no [placeholder] reaches the frontend
+            $resolveVars = [
+                'clinic_name'          => $allSettings['clinic_name'] ?? 'FisioVida',
+                'legal_business_name'  => $allSettings['legal_business_name'] ?? ($allSettings['clinic_name'] ?? 'FisioVida'),
+                'clinic_address'       => $allSettings['privacy_address'] ?? $allSettings['clinic_address'] ?? '',
+                'address'              => $allSettings['privacy_address'] ?? $allSettings['clinic_address'] ?? '',
+                'phone'                => $allSettings['privacy_contact_phone'] ?? $allSettings['clinic_phone'] ?? '',
+                'email'                => $allSettings['privacy_contact_email'] ?? '',
+                'privacy_email'        => $allSettings['privacy_contact_email'] ?? '',
+                'legal_representative' => $allSettings['legal_representative'] ?? '',
+            ];
+
+            $sds = app(SignedDocumentService::class);
+            $textKeys = ['privacy_notice_text', 'sensitive_data_consent_text', 'treatment_consent_text', 'image_consent_text', 'minor_consent_text'];
+            foreach ($textKeys as $k) {
+                if (isset($allSettings[$k])) {
+                    $allSettings[$k] = $sds->resolveTemplate($allSettings[$k], $resolveVars);
+                }
+            }
+
+            $complianceSettings = $allSettings;
         }
 
         // ---------- Aviso de privacidad (tabla legacy) ----------

@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import {
     CalendarClock, Dumbbell, FileText, Activity,
     HeartPulse, UserRound, Clock, ExternalLink,
-    Download, AlertCircle, CheckCircle2, ChevronDown, ChevronUp,
+    Download, Eye, AlertCircle, CheckCircle2, ChevronDown, ChevronUp,
     Building2, Phone, Mail, Plus, X, Loader2, Play,
     CalendarPlus, TrendingUp, ClipboardList, Star, ShieldCheck,
 } from 'lucide-vue-next';
@@ -17,6 +17,7 @@ import { youtubeThumbnail, youtubeEmbedUrl, isYoutubeUrl } from '@/lib/youtube';
 import VueApexCharts from 'vue3-apexcharts';
 import DatePicker from '@/components/ui/DatePicker.vue';
 import SignaturePad from '@/components/fv/SignaturePad.vue';
+import { postJson, patchJson } from '@/lib/http';
 
 // ───────── Types ─────────
 type Patient = {
@@ -94,36 +95,41 @@ const openVideo = (url: string) => {
 const closeVideo = () => { videoOpen.value = false; videoEmbedUrl.value = null; };
 
 // ───────── Solicitud de cita ─────────
-const showRequestForm = ref(false);
-const requestSaving   = ref(false);
-const requestForm     = ref({ preferred_date: '', preferred_time: '', reason: '', notes: '' });
-const getCsrf = () => (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content ?? '';
+const showRequestForm  = ref(false);
+const requestSaving    = ref(false);
+const requestError     = ref('');
+const requestForm      = ref({ preferred_date: '', preferred_time: '', reason: '', notes: '' });
 
 const sendRequest = async () => {
     if (!requestForm.value.preferred_date) return;
     requestSaving.value = true;
+    requestError.value  = '';
     try {
-        const res = await fetch('/solicitudes-cita', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest', 'X-CSRF-TOKEN': getCsrf() },
-            body: JSON.stringify(requestForm.value),
-        });
+        const res = await postJson('/solicitudes-cita', requestForm.value);
         if (res.ok) {
             showRequestForm.value = false;
             requestForm.value = { preferred_date: '', preferred_time: '', reason: '', notes: '' };
             router.reload();
+        } else if (res.status === 419) {
+            requestError.value = 'Tu sesión expiró. Recarga la página e intenta de nuevo.';
+        } else {
+            const json = await res.json().catch(() => ({}));
+            requestError.value = json?.message ?? 'No se pudo enviar la solicitud.';
         }
+    } catch {
+        requestError.value = 'Error de conexión. Intenta de nuevo.';
     } finally {
         requestSaving.value = false;
     }
 };
 
 const cancelRequest = async (id: number) => {
-    const res = await fetch(`/solicitudes-cita/${id}/cancelar`, {
-        method: 'PATCH',
-        headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest', 'X-CSRF-TOKEN': getCsrf() },
-    });
-    if (res.ok) router.reload();
+    const res = await patchJson(`/solicitudes-cita/${id}/cancelar`);
+    if (res.status === 419) {
+        alert('Tu sesión expiró. Recarga la página e intenta de nuevo.');
+    } else if (res.ok) {
+        router.reload();
+    }
 };
 
 // ───────── Helpers ─────────
@@ -228,6 +234,7 @@ const showDocText = ref<string | null>(null);
 const acceptingDoc = ref<string | null>(null);
 const acceptSaving = ref(false);
 const acceptError  = ref('');
+const signatureStep = ref<1 | 2>(1);
 const portalSignaturePad = ref<InstanceType<typeof SignaturePad> | null>(null);
 const portalSignatureData = ref('');
 
@@ -249,12 +256,21 @@ const startAccept = (docKey: string) => {
     };
     portalSignatureData.value = '';
     acceptError.value = '';
+    signatureStep.value = 1;
     acceptingDoc.value = docKey;
     showDocText.value = null;
 };
 
-const getCsrfPortal = () =>
-    (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content ?? '';
+const goToSignStep = () => {
+    signatureStep.value = 2;
+};
+
+const closeAcceptModal = () => {
+    acceptingDoc.value = null;
+    portalSignatureData.value = '';
+    acceptError.value = '';
+    signatureStep.value = 1;
+};
 
 const canSubmitAccept = computed(() =>
     acceptForm.value.confirmed &&
@@ -294,29 +310,24 @@ const submitAccept = async () => {
             body.guardian_relationship = acceptForm.value.guardian_relationship.trim();
         }
 
-        const res = await fetch('/mi-portal/documentos/aceptar', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                Accept: 'application/json',
-                'X-Requested-With': 'XMLHttpRequest',
-                'X-CSRF-TOKEN': getCsrfPortal(),
-            },
-            body: JSON.stringify(body),
-        });
-
+        const res = await postJson('/mi-portal/documentos/aceptar', body);
         const json = await res.json().catch(() => ({}));
 
-        if (res.ok || res.status === 200) {
-            acceptingDoc.value = null;
-            portalSignatureData.value = '';
+        if (res.ok) {
+            closeAcceptModal();
             router.reload();
+        } else if (res.status === 419) {
+            acceptError.value = 'Tu sesión expiró. Recarga la página e intenta de nuevo.';
         } else if (res.status === 422) {
             const errs = json?.errors ?? {};
             acceptError.value = Object.values(errs).flat().join(' ') || 'Revisa los datos ingresados.';
+        } else if (res.status === 403) {
+            acceptError.value = json?.message ?? 'No tienes permiso para realizar esta acción.';
         } else {
             acceptError.value = json?.message ?? 'Error al registrar. Intenta de nuevo.';
         }
+    } catch {
+        acceptError.value = 'Error de conexión. Verifica tu red e intenta de nuevo.';
     } finally {
         acceptSaving.value = false;
     }
@@ -419,6 +430,57 @@ const submitAccept = async () => {
 
                 <!-- ═══════ TAB: INICIO ═══════ -->
                 <div v-if="activeTab === 'inicio'" class="space-y-5">
+
+                    <!-- Documentos pendientes — alerta prioritaria -->
+                    <div
+                        v-if="pendingDocs.length > 0 && portalAllowed"
+                        class="rounded-[2rem] border-2 border-amber-300 bg-gradient-to-br from-amber-50 to-orange-50 p-5 dark:border-amber-700/50 dark:from-amber-950/30 dark:to-orange-950/20 shadow-sm"
+                    >
+                        <div class="flex items-start gap-4">
+                            <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-amber-100 dark:bg-amber-900/40">
+                                <AlertCircle class="h-6 w-6 text-amber-600 dark:text-amber-400" />
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-sm font-bold text-amber-800 dark:text-amber-300">
+                                    {{ pendingDocs.length === 1 ? '1 documento pendiente' : `${pendingDocs.length} documentos pendientes` }} de firmar
+                                </p>
+                                <p class="mt-1 text-xs text-amber-700/80 dark:text-amber-400/80 leading-relaxed">
+                                    Antes de tu próxima cita necesitamos que firmes digitalmente tus documentos de consentimiento. Solo toma unos minutos.
+                                </p>
+                                <!-- Checklist -->
+                                <ul class="mt-3 space-y-1.5">
+                                    <li
+                                        v-for="doc in PORTAL_DOCS"
+                                        :key="doc.key"
+                                        class="flex items-center gap-2 text-xs"
+                                    >
+                                        <CheckCircle2
+                                            v-if="legalActive(doc.key)"
+                                            class="h-4 w-4 shrink-0 text-emerald-500"
+                                        />
+                                        <div v-else class="h-4 w-4 shrink-0 rounded-full border-2 border-amber-400 dark:border-amber-600" />
+                                        <span :class="legalActive(doc.key) ? 'text-emerald-700 dark:text-emerald-400 line-through' : 'text-amber-800 dark:text-amber-300 font-medium'">
+                                            {{ doc.label }}
+                                        </span>
+                                        <span v-if="!legalActive(doc.key) && doc.required" class="ml-auto rounded-full bg-amber-200 px-2 py-0.5 text-[10px] font-semibold text-amber-800 dark:bg-amber-900/60 dark:text-amber-300">Requerido</span>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="mt-4 flex gap-2">
+                            <Button
+                                class="h-9 rounded-2xl px-5 text-sm font-semibold shadow-sm"
+                                style="background:#d97706;color:#fff;"
+                                @click="activeTab = 'privacidad'; startAccept(pendingDocs[0].key)"
+                            >
+                                <ShieldCheck class="mr-1.5 h-4 w-4" />
+                                Firmar ahora →
+                            </Button>
+                            <Button variant="ghost" size="sm" class="h-9 rounded-2xl text-xs text-amber-700 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/30" @click="activeTab = 'privacidad'">
+                                Ver detalles
+                            </Button>
+                        </div>
+                    </div>
 
                     <!-- Cards rápidas -->
                     <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -772,12 +834,15 @@ const submitAccept = async () => {
                                 <label class="text-xs font-medium text-muted-foreground">Notas adicionales</label>
                                 <textarea v-model="requestForm.notes" rows="2" placeholder="Información relevante para tu terapeuta..." class="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary resize-none" />
                             </div>
+                            <p v-if="requestError" class="text-xs text-rose-600 dark:text-rose-400 flex items-center gap-1.5">
+                                <AlertCircle class="h-3.5 w-3.5 shrink-0" />{{ requestError }}
+                            </p>
                             <div class="flex gap-2">
                                 <Button size="sm" class="rounded-xl text-xs h-9" :style="primaryStyle" :disabled="requestSaving || !requestForm.preferred_date" @click="sendRequest">
                                     <Loader2 v-if="requestSaving" class="mr-1.5 h-3.5 w-3.5 animate-spin" />
                                     {{ requestSaving ? 'Enviando...' : 'Enviar solicitud' }}
                                 </Button>
-                                <Button size="sm" variant="outline" class="rounded-xl text-xs h-9 border-border" @click="showRequestForm = false">Cancelar</Button>
+                                <Button size="sm" variant="outline" class="rounded-xl text-xs h-9 border-border" @click="showRequestForm = false; requestError = ''">Cancelar</Button>
                             </div>
                         </div>
 
@@ -867,107 +932,160 @@ const submitAccept = async () => {
                         La aceptación de documentos desde el portal no está disponible en este momento. Consulta con el personal de la clínica.
                     </div>
 
-                    <!-- Modal de aceptación con firma digital -->
-                    <div v-if="acceptingDoc" class="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 p-2 sm:p-4">
-                        <div class="w-full max-w-xl rounded-[2rem] border border-border bg-card shadow-2xl overflow-hidden flex flex-col max-h-[95vh]">
+                    <!-- Modal de firma digital — diseño por pasos -->
+                    <Teleport to="body">
+                    <div v-if="acceptingDoc" class="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/70 p-0 sm:p-4">
+                        <div class="w-full max-w-2xl rounded-t-[2rem] sm:rounded-[2rem] border border-border bg-card shadow-2xl flex flex-col"
+                             style="max-height:96dvh;">
 
-                            <!-- Header -->
-                            <div class="p-5 border-b border-border shrink-0">
-                                <div class="flex items-start justify-between gap-2">
+                            <!-- Header con indicadores de paso -->
+                            <div class="px-6 pt-5 pb-4 border-b border-border shrink-0">
+                                <div class="flex items-start justify-between gap-3 mb-4">
                                     <div>
-                                        <p class="font-semibold text-foreground">{{ PORTAL_DOCS.find(d => d.key === acceptingDoc)?.label }}</p>
-                                        <p class="text-xs text-muted-foreground mt-0.5">Lee el documento completo y firma digitalmente</p>
+                                        <p class="text-base font-bold text-foreground">{{ PORTAL_DOCS.find(d => d.key === acceptingDoc)?.label }}</p>
+                                        <p class="text-xs text-muted-foreground mt-0.5">
+                                            {{ signatureStep === 1 ? 'Lee el documento con atención antes de firmar' : 'Completa tu firma digital para aceptar' }}
+                                        </p>
                                     </div>
-                                    <button class="text-muted-foreground hover:text-foreground p-1" @click="acceptingDoc = null; portalSignatureData = ''">
+                                    <button class="shrink-0 h-8 w-8 flex items-center justify-center rounded-xl text-muted-foreground hover:bg-muted hover:text-foreground transition-colors" @click="closeAcceptModal">
                                         <X class="h-4 w-4" />
                                     </button>
                                 </div>
-                            </div>
-
-                            <!-- Texto del documento -->
-                            <div class="overflow-y-auto px-5 py-4 flex-1">
-                                <pre class="whitespace-pre-wrap text-xs leading-relaxed text-foreground font-sans rounded-xl border border-border bg-muted/40 p-4">{{ props.complianceSettings?.[PORTAL_DOCS.find(d => d.key === acceptingDoc)?.textKey ?? ''] ?? 'Cargando documento...' }}</pre>
-                            </div>
-
-                            <!-- Formulario de aceptación y firma -->
-                            <div class="p-5 border-t border-border space-y-4 shrink-0">
-
-                                <!-- Checkbox de lectura -->
-                                <label class="flex items-start gap-3 cursor-pointer">
-                                    <input type="checkbox" v-model="acceptForm.confirmed" class="mt-0.5 h-4 w-4 rounded border-border" />
-                                    <span class="text-sm text-foreground">
-                                        He leído y entendido el documento. Acepto voluntariamente.
-                                    </span>
-                                </label>
-
-                                <!-- Nombre del firmante -->
-                                <div>
-                                    <label class="mb-1 block text-xs font-medium text-muted-foreground">Tu nombre completo *</label>
-                                    <input
-                                        v-model="acceptForm.signer_name"
-                                        type="text"
-                                        placeholder="Como aparece en tu identificación"
-                                        class="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-                                    />
-                                </div>
-
-                                <!-- Datos de tutor si es minor_consent -->
-                                <template v-if="acceptingDoc === 'minor_consent'">
-                                    <div class="grid gap-3 sm:grid-cols-2">
-                                        <div>
-                                            <label class="mb-1 block text-xs font-medium text-muted-foreground">Nombre del tutor / representante legal *</label>
-                                            <input v-model="acceptForm.guardian_name" type="text" placeholder="Nombre del tutor" class="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary" />
-                                        </div>
-                                        <div>
-                                            <label class="mb-1 block text-xs font-medium text-muted-foreground">Parentesco</label>
-                                            <input v-model="acceptForm.guardian_relationship" type="text" placeholder="Madre, Padre, Tutor legal..." class="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary" />
-                                        </div>
+                                <!-- Step indicators -->
+                                <div class="flex items-center gap-2">
+                                    <div class="flex items-center gap-1.5">
+                                        <div class="flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-bold transition-all"
+                                             :style="signatureStep >= 1 ? primaryStyle : { background: 'var(--muted)', color: 'var(--muted-foreground)' }">1</div>
+                                        <span class="text-xs font-medium" :class="signatureStep >= 1 ? 'text-foreground' : 'text-muted-foreground'">Leer</span>
                                     </div>
-                                </template>
-
-                                <!-- Firma dibujada -->
-                                <div>
-                                    <label class="mb-2 block text-xs font-medium text-muted-foreground">
-                                        Firma digital * <span class="font-normal">(dibuja tu firma con el mouse o dedo)</span>
-                                    </label>
-                                    <SignaturePad
-                                        ref="portalSignaturePad"
-                                        v-model="portalSignatureData"
-                                        :height="140"
-                                    />
-                                </div>
-
-                                <!-- Error -->
-                                <p v-if="acceptError" class="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700 dark:border-rose-900/40 dark:bg-rose-950/20 dark:text-rose-400">
-                                    {{ acceptError }}
-                                </p>
-
-                                <!-- Aviso legal -->
-                                <p class="text-[11px] text-muted-foreground leading-snug">
-                                    Esta firma digital simple registra evidencia de aceptación. La clínica debe validar su contenido con asesor jurídico. No es firma electrónica avanzada.
-                                </p>
-
-                                <!-- Acciones -->
-                                <div class="flex gap-2 justify-end">
-                                    <button
-                                        class="h-9 rounded-xl border border-border bg-card px-4 text-sm font-medium text-muted-foreground hover:bg-muted"
-                                        @click="acceptingDoc = null; portalSignatureData = ''; acceptError = ''"
-                                    >
-                                        Cancelar
-                                    </button>
-                                    <button
-                                        class="h-9 rounded-xl px-5 text-sm font-semibold text-white disabled:opacity-50 transition-opacity"
-                                        :style="primaryStyle"
-                                        :disabled="!canSubmitAccept || acceptSaving"
-                                        @click="submitAccept"
-                                    >
-                                        <Loader2 v-if="acceptSaving" class="mr-1.5 inline h-3.5 w-3.5 animate-spin" />
-                                        {{ acceptSaving ? 'Firmando...' : 'Firmar y aceptar' }}
-                                    </button>
+                                    <div class="h-px flex-1 bg-border" />
+                                    <div class="flex items-center gap-1.5">
+                                        <div class="flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-bold transition-all"
+                                             :style="signatureStep >= 2 ? primaryStyle : { background: 'var(--muted)', color: 'var(--muted-foreground)' }">2</div>
+                                        <span class="text-xs font-medium" :class="signatureStep >= 2 ? 'text-foreground' : 'text-muted-foreground'">Firmar</span>
+                                    </div>
+                                    <div class="h-px flex-1 bg-border" />
+                                    <div class="flex items-center gap-1.5">
+                                        <div class="flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-bold"
+                                             :style="{ background: 'var(--muted)', color: 'var(--muted-foreground)' }">✓</div>
+                                        <span class="text-xs text-muted-foreground">Listo</span>
+                                    </div>
                                 </div>
                             </div>
+
+                            <!-- ── Paso 1: Texto del documento ── -->
+                            <div v-if="signatureStep === 1" class="flex flex-col overflow-hidden flex-1 min-h-0">
+                                <div class="overflow-y-auto flex-1 px-6 py-4">
+                                    <pre class="whitespace-pre-wrap text-xs leading-relaxed text-foreground font-sans rounded-2xl border border-border bg-muted/40 p-5">{{ props.complianceSettings?.[PORTAL_DOCS.find(d => d.key === acceptingDoc)?.textKey ?? ''] ?? 'Cargando documento...' }}</pre>
+                                </div>
+                                <div class="px-6 py-4 border-t border-border shrink-0 space-y-3">
+                                    <label class="flex items-start gap-3 cursor-pointer select-none">
+                                        <input type="checkbox" v-model="acceptForm.confirmed" class="mt-0.5 h-4 w-4 rounded border-border accent-primary" />
+                                        <span class="text-sm text-foreground">He leído el documento completo y acepto su contenido voluntariamente.</span>
+                                    </label>
+                                    <div class="flex gap-2 justify-end">
+                                        <button class="h-10 rounded-2xl border border-border bg-card px-5 text-sm font-medium text-muted-foreground hover:bg-muted transition-colors" @click="closeAcceptModal">
+                                            Cancelar
+                                        </button>
+                                        <button
+                                            class="h-10 rounded-2xl px-6 text-sm font-semibold text-white disabled:opacity-40 transition-all"
+                                            :style="primaryStyle"
+                                            :disabled="!acceptForm.confirmed"
+                                            @click="goToSignStep"
+                                        >
+                                            Continuar a firmar →
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- ── Paso 2: Firma digital ── -->
+                            <div v-if="signatureStep === 2" class="flex flex-col overflow-hidden flex-1 min-h-0">
+                                <div class="overflow-y-auto flex-1 px-6 py-4 space-y-4">
+
+                                    <!-- Nombre del firmante -->
+                                    <div>
+                                        <label class="mb-1.5 block text-xs font-semibold text-muted-foreground uppercase tracking-wide">Nombre completo del firmante *</label>
+                                        <input
+                                            v-model="acceptForm.signer_name"
+                                            type="text"
+                                            placeholder="Como aparece en tu identificación oficial"
+                                            class="w-full rounded-2xl border border-border bg-background px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 transition-shadow"
+                                        />
+                                    </div>
+
+                                    <!-- Datos de tutor si es minor_consent -->
+                                    <template v-if="acceptingDoc === 'minor_consent'">
+                                        <div class="grid gap-3 sm:grid-cols-2">
+                                            <div>
+                                                <label class="mb-1.5 block text-xs font-semibold text-muted-foreground uppercase tracking-wide">Nombre del tutor / representante *</label>
+                                                <input v-model="acceptForm.guardian_name" type="text" placeholder="Nombre del tutor" class="w-full rounded-2xl border border-border bg-background px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50" />
+                                            </div>
+                                            <div>
+                                                <label class="mb-1.5 block text-xs font-semibold text-muted-foreground uppercase tracking-wide">Parentesco</label>
+                                                <input v-model="acceptForm.guardian_relationship" type="text" placeholder="Madre, Padre, Tutor legal..." class="w-full rounded-2xl border border-border bg-background px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50" />
+                                            </div>
+                                        </div>
+                                    </template>
+
+                                    <!-- Firma dibujada -->
+                                    <div>
+                                        <label class="mb-1.5 block text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                                            Firma autógrafa digital *
+                                        </label>
+                                        <p class="text-xs text-muted-foreground mb-2">Dibuja tu firma con el mouse o con el dedo en pantallas táctiles.</p>
+                                        <div class="rounded-2xl border-2 border-dashed border-border overflow-hidden bg-background">
+                                            <SignaturePad
+                                                ref="portalSignaturePad"
+                                                v-model="portalSignatureData"
+                                                :height="180"
+                                            />
+                                        </div>
+                                        <p v-if="portalSignatureData" class="mt-1.5 text-xs text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                                            <CheckCircle2 class="h-3 w-3" /> Firma capturada
+                                        </p>
+                                    </div>
+
+                                    <!-- Aviso legal -->
+                                    <div class="rounded-2xl border border-amber-200 bg-amber-50/60 dark:border-amber-900/30 dark:bg-amber-950/20 px-4 py-3">
+                                        <p class="text-[11px] text-amber-800 dark:text-amber-400 leading-snug">
+                                            <strong>Firma digital simple</strong> — Registra evidencia de aceptación conforme al Art. 89 del Código de Comercio. No equivale a FIEL/SAT ni e.firma. Se generará un PDF sellado con tus datos de trazabilidad.
+                                        </p>
+                                    </div>
+
+                                    <!-- Error -->
+                                    <p v-if="acceptError" class="rounded-2xl border border-rose-200 bg-rose-50 dark:border-rose-900/40 dark:bg-rose-950/20 px-4 py-3 text-xs text-rose-700 dark:text-rose-400 flex items-center gap-2">
+                                        <AlertCircle class="h-4 w-4 shrink-0" />
+                                        {{ acceptError }}
+                                    </p>
+                                </div>
+
+                                <!-- Acciones paso 2 -->
+                                <div class="px-6 py-4 border-t border-border shrink-0 flex gap-2 justify-between">
+                                    <button class="h-10 rounded-2xl border border-border bg-card px-4 text-sm font-medium text-muted-foreground hover:bg-muted transition-colors" @click="signatureStep = 1">
+                                        ← Volver
+                                    </button>
+                                    <div class="flex gap-2">
+                                        <button class="h-10 rounded-2xl border border-border bg-card px-4 text-sm font-medium text-muted-foreground hover:bg-muted transition-colors" @click="closeAcceptModal">
+                                            Cancelar
+                                        </button>
+                                        <button
+                                            class="h-10 rounded-2xl px-6 text-sm font-bold text-white disabled:opacity-40 transition-all flex items-center gap-2"
+                                            :style="primaryStyle"
+                                            :disabled="!canSubmitAccept || acceptSaving"
+                                            @click="submitAccept"
+                                        >
+                                            <Loader2 v-if="acceptSaving" class="h-4 w-4 animate-spin" />
+                                            <ShieldCheck v-else class="h-4 w-4" />
+                                            {{ acceptSaving ? 'Firmando...' : 'Firmar y aceptar' }}
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
                         </div>
                     </div>
+                    </Teleport>
 
                     <!-- Documentos aceptados -->
                     <div class="fv-card-premium p-4">
@@ -990,21 +1108,30 @@ const submitAccept = async () => {
                                 <div class="min-w-0 flex-1">
                                     <p class="text-sm font-medium text-foreground">{{ doc.title ?? doc.document_type }}</p>
                                     <p class="text-xs text-muted-foreground">
-                                        v{{ doc.version }} · {{ doc.accepted_at ? new Date(doc.accepted_at).toLocaleDateString('es-MX') : '—' }}
+                                        {{ doc.accepted_at ? new Date(doc.accepted_at).toLocaleDateString('es-MX') : '—' }}
                                         <span v-if="doc.signature_method === 'drawn_signature'" class="ml-1 text-emerald-600 dark:text-emerald-400">· Firma dibujada</span>
                                         <span v-if="doc.source === 'portal'" class="ml-1 text-indigo-600 dark:text-indigo-400">· Portal</span>
                                     </p>
                                 </div>
-                                <a
-                                    v-if="doc.signed_pdf_path"
-                                    :href="`/mi-portal/documentos/${doc.id}/descargar`"
-                                    target="_blank"
-                                    class="inline-flex items-center gap-1 rounded-lg border border-emerald-300 bg-white px-2.5 py-1.5 text-[11px] font-medium text-emerald-700 hover:bg-emerald-50 shrink-0"
-                                    title="Descargar PDF firmado"
-                                >
-                                    <Download class="h-3 w-3" />
-                                    PDF
-                                </a>
+                                <div v-if="doc.signed_pdf_path" class="flex items-center gap-1 shrink-0">
+                                    <a
+                                        :href="`/mi-portal/documentos/${doc.id}/ver`"
+                                        target="_blank"
+                                        class="inline-flex items-center gap-1 rounded-lg border border-blue-300 bg-white px-2.5 py-1.5 text-[11px] font-medium text-blue-700 hover:bg-blue-50"
+                                        title="Ver PDF en el navegador"
+                                    >
+                                        <Eye class="h-3 w-3" />
+                                        Ver
+                                    </a>
+                                    <a
+                                        :href="`/mi-portal/documentos/${doc.id}/descargar`"
+                                        class="inline-flex items-center gap-1 rounded-lg border border-emerald-300 bg-white px-2.5 py-1.5 text-[11px] font-medium text-emerald-700 hover:bg-emerald-50"
+                                        title="Descargar PDF firmado"
+                                    >
+                                        <Download class="h-3 w-3" />
+                                        PDF
+                                    </a>
+                                </div>
                             </li>
                         </ul>
                     </div>

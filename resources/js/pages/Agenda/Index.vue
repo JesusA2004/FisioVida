@@ -248,30 +248,28 @@ const showQuickPatient = ref(false);
 const quickSaving      = ref(false);
 const quickForm = ref({ nombres: '', apellido_paterno: '', apellido_materno: '', telefono: '' });
 
-const getCsrfMeta = (): string =>
-    (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content ?? '';
-
+const quickError = ref('');
 const createQuickPatient = async () => {
     if (!quickForm.value.nombres || !quickForm.value.apellido_paterno) return;
     quickSaving.value = true;
+    quickError.value = '';
     try {
-        const res = await fetch('/pacientes/rapido', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest',
-                'X-CSRF-TOKEN': getCsrfMeta(),
-            },
-            body: JSON.stringify(quickForm.value),
-        });
+        const { postJson } = await import('@/lib/http');
+        const res = await postJson('/pacientes/rapido', quickForm.value);
         if (res.ok) {
             const { id, label } = await res.json();
             localPatients.value.unshift({ id, label });
             form.patient_persona_id = id;
             showQuickPatient.value = false;
             quickForm.value = { nombres: '', apellido_paterno: '', apellido_materno: '', telefono: '' };
+        } else if (res.status === 419) {
+            quickError.value = 'Tu sesión expiró. Recarga la página e intenta de nuevo.';
+        } else {
+            const data = await res.json().catch(() => ({}));
+            quickError.value = data.message ?? 'No se pudo crear el paciente.';
         }
+    } catch {
+        quickError.value = 'Error de conexión. Intenta de nuevo.';
     } finally {
         quickSaving.value = false;
     }
@@ -792,6 +790,7 @@ const atenderCita = (row: CitaRow) => {
                                                         <input v-model="quickForm.telefono" type="text" class="mt-0.5 w-full rounded-xl border border-border bg-background px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary" placeholder="5512345678" />
                                                     </div>
                                                 </div>
+                                                <p v-if="quickError" class="text-xs text-rose-600 dark:text-rose-400">{{ quickError }}</p>
                                                 <div class="flex gap-2 pt-1">
                                                     <button
                                                         type="button"
@@ -804,7 +803,7 @@ const atenderCita = (row: CitaRow) => {
                                                         <UserPlus v-else class="h-3 w-3" />
                                                         {{ quickSaving ? 'Guardando...' : 'Crear y seleccionar' }}
                                                     </button>
-                                                    <button type="button" class="rounded-xl px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground" @click="showQuickPatient = false">Cancelar</button>
+                                                    <button type="button" class="rounded-xl px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground" @click="showQuickPatient = false; quickError = ''">Cancelar</button>
                                                 </div>
                                             </div>
 

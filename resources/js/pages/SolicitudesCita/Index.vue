@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
 import { router, usePage } from '@inertiajs/vue3';
+import { patchJson } from '@/lib/http';
 import AppLayout from '@/layouts/AppLayout.vue';
+import DateTimePicker from '@/components/ui/DateTimePicker.vue';
 import {
     CalendarClock, CheckCircle2, XCircle, Clock, AlertCircle,
     ChevronDown, ChevronUp, Search, Filter, MessageSquare,
@@ -39,6 +41,11 @@ const props = defineProps<{
 
 const page = usePage();
 
+const canApprove = computed(() => {
+    const auth = (page.props as any).auth;
+    return auth?.is_super_admin || (auth?.permissions ?? []).includes('appointment_requests.approve');
+});
+
 // ── filters ──────────────────────────────────────────────────────────────────
 const statusFilter = ref(props.filters.status ?? '');
 const searchFilter = ref(props.filters.search ?? '');
@@ -53,41 +60,44 @@ function applyFilters() {
 // ── approve modal ─────────────────────────────────────────────────────────────
 const approveModal = ref(false);
 const approveTarget = ref<AppointmentRequest | null>(null);
-const approveDate = ref('');
-const approveTime = ref('');
+const approveDatetime = ref<string | null>(null);
 const approveNotes = ref('');
 const approveLoading = ref(false);
 const approveError = ref('');
 
 function openApprove(req: AppointmentRequest) {
     approveTarget.value = req;
-    approveDate.value = req.preferred_date ?? '';
-    approveTime.value = req.preferred_time ?? '';
+    approveDatetime.value = req.preferred_date && req.preferred_time
+        ? `${req.preferred_date}T${req.preferred_time}`
+        : null;
     approveNotes.value = '';
     approveError.value = '';
     approveModal.value = true;
 }
 
 async function submitApprove() {
-    if (!approveDate.value || !approveTime.value) {
+    if (!approveDatetime.value) {
         approveError.value = 'Fecha y hora son requeridas.';
         return;
     }
     approveLoading.value = true;
     approveError.value = '';
     try {
-        const csrf = (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content ?? '';
-        const res = await fetch(`/solicitudes-cita/${approveTarget.value!.id}/aprobar`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf, 'X-Requested-With': 'XMLHttpRequest' },
-            body: JSON.stringify({ start_at: `${approveDate.value}T${approveTime.value}`, notes: approveNotes.value }),
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.message ?? 'Error al aprobar');
+        const res = await patchJson(
+            `/solicitudes-cita/${approveTarget.value!.id}/aprobar`,
+            { start_at: approveDatetime.value, notes: approveNotes.value }
+        );
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+            approveError.value = res.status === 419
+                ? 'Tu sesión expiró. Recarga la página e intenta de nuevo.'
+                : (data.message ?? 'No se pudo aprobar la solicitud. Intenta de nuevo.');
+            return;
+        }
         approveModal.value = false;
         router.reload({ only: ['rows'] });
-    } catch (e: any) {
-        approveError.value = e.message ?? 'Error inesperado';
+    } catch {
+        approveError.value = 'Error de conexión. Verifica tu red e intenta de nuevo.';
     } finally {
         approveLoading.value = false;
     }
@@ -111,18 +121,21 @@ async function submitReject() {
     rejectLoading.value = true;
     rejectError.value = '';
     try {
-        const csrf = (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content ?? '';
-        const res = await fetch(`/solicitudes-cita/${rejectTarget.value!.id}/rechazar`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf, 'X-Requested-With': 'XMLHttpRequest' },
-            body: JSON.stringify({ rejection_reason: rejectReason.value }),
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.message ?? 'Error al rechazar');
+        const res = await patchJson(
+            `/solicitudes-cita/${rejectTarget.value!.id}/rechazar`,
+            { rejection_reason: rejectReason.value }
+        );
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+            rejectError.value = res.status === 419
+                ? 'Tu sesión expiró. Recarga la página e intenta de nuevo.'
+                : (data.message ?? 'No se pudo rechazar la solicitud. Intenta de nuevo.');
+            return;
+        }
         rejectModal.value = false;
         router.reload({ only: ['rows'] });
-    } catch (e: any) {
-        rejectError.value = e.message ?? 'Error inesperado';
+    } catch {
+        rejectError.value = 'Error de conexión. Verifica tu red e intenta de nuevo.';
     } finally {
         rejectLoading.value = false;
     }
@@ -286,7 +299,7 @@ const pendingCount = computed(() => props.rows.data.filter(r => r.status === 'pe
                                 </td>
                                 <!-- Actions -->
                                 <td class="px-4 py-3">
-                                    <div v-if="req.status === 'pending'" class="flex items-center gap-2">
+                                    <div v-if="req.status === 'pending' && canApprove" class="flex items-center gap-2">
                                         <button
                                             class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors"
                                             style="background:var(--primary);color:var(--primary-foreground)"
@@ -351,24 +364,12 @@ const pendingCount = computed(() => props.rows.data.filter(r => r.status === 'pe
                     <div class="space-y-3">
                         <div>
                             <label class="block text-sm font-medium mb-1" style="color:var(--foreground)">
-                                Fecha de la cita <span class="text-red-500">*</span>
+                                Fecha y hora de la cita <span class="text-red-500">*</span>
                             </label>
-                            <input
-                                v-model="approveDate"
-                                type="date"
-                                class="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2"
-                                style="background:var(--input);border-color:var(--border);color:var(--foreground)"
-                            />
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium mb-1" style="color:var(--foreground)">
-                                Hora <span class="text-red-500">*</span>
-                            </label>
-                            <input
-                                v-model="approveTime"
-                                type="time"
-                                class="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2"
-                                style="background:var(--input);border-color:var(--border);color:var(--foreground)"
+                            <DateTimePicker
+                                v-model="approveDatetime"
+                                placeholder="Seleccionar fecha y hora..."
+                                :clearable="false"
                             />
                         </div>
                         <div>

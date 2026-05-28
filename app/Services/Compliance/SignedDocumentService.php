@@ -84,13 +84,40 @@ class SignedDocumentService
     }
 
     /**
-     * Stream a private file as a download response.
+     * Stream a private file as a download (attachment) response.
      */
     public function download(string $path, string $filename): \Symfony\Component\HttpFoundation\StreamedResponse
     {
         abort_if(!Storage::disk('private')->exists($path), 404, 'El archivo no está disponible.');
 
         return Storage::disk('private')->download($path, $filename);
+    }
+
+    /**
+     * Stream a private file inline (opens in browser, not downloaded).
+     */
+    public function stream(string $path, string $filename): \Symfony\Component\HttpFoundation\StreamedResponse
+    {
+        abort_if(!Storage::disk('private')->exists($path), 404, 'El archivo no está disponible.');
+
+        return Storage::disk('private')->response($path, $filename, ['Content-Type' => 'application/pdf']);
+    }
+
+    /**
+     * Replace {variable} tokens in a template string with clinic settings values.
+     * Also strips any remaining [placeholder] markers that were never replaced.
+     */
+    public function resolveTemplate(string $text, array $vars): string
+    {
+        // Replace {var} tokens
+        foreach ($vars as $key => $value) {
+            $text = str_replace('{' . $key . '}', (string) ($value ?? ''), $text);
+        }
+
+        // Strip any remaining [bracketed placeholders] — never show them
+        $text = preg_replace('/\[[^\]]{1,80}\]/', '', $text);
+
+        return $text;
     }
 
     /**
@@ -131,9 +158,16 @@ class SignedDocumentService
             'guardianRelationship' => $acceptance['guardian_relationship'] ?? null,
             'docLabel'             => $acceptance['title'] ?? $acceptance['document_type'],
             'version'              => $acceptance['version'] ?? '1.0',
-            'signedAt'             => $acceptance['signed_at']
-                                        ? (new \DateTime($acceptance['signed_at']))->format('d/m/Y H:i:s')
-                                        : (new \DateTime($acceptance['accepted_at']))->format('d/m/Y H:i:s'),
+            'signedAt'             => (function () use ($acceptance): string {
+                                            $tz  = new \DateTimeZone('America/Mexico_City');
+                                            $raw = $acceptance['signed_at'] ?? $acceptance['accepted_at'] ?? null;
+                                            if (! $raw) {
+                                                return '—';
+                                            }
+                                            return (new \DateTime($raw, new \DateTimeZone('UTC')))
+                                                ->setTimezone($tz)
+                                                ->format('d/m/Y H:i:s');
+                                        })(),
             'signedIp'             => $acceptance['signed_ip'] ?? $acceptance['ip_address'] ?? '—',
             'userAgent'            => substr($acceptance['signed_user_agent'] ?? $acceptance['user_agent'] ?? '', 0, 100),
             'source'               => $acceptance['source'] ?? 'staff',
@@ -142,7 +176,7 @@ class SignedDocumentService
             'signatureHash'        => $acceptance['signature_hash'] ?? '—',
             'signatureImageBase64' => $signatureBase64,
             'contentSnapshot'      => $contentTruncated,
-            'generatedAt'          => now()->format('d/m/Y H:i:s'),
+            'generatedAt'          => now('America/Mexico_City')->format('d/m/Y H:i:s'),
         ];
     }
 }

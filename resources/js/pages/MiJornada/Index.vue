@@ -12,6 +12,7 @@ import {
 } from 'lucide-vue-next';
 import { formatDateTimeMx, formatDateMx } from '@/lib/dates';
 import { tAppointmentStatus } from '@/lib/labels';
+import { postJson, getJson } from '@/lib/http';
 
 type LastSession = {
     session_date: string;
@@ -43,6 +44,7 @@ type AtencionData = {
     upcoming: any[];
     activities: any[];
     exerciseCatalog: any[];
+    complianceWarnings: string[];
 };
 
 const props = defineProps<{
@@ -63,6 +65,7 @@ const atencionLoading = ref(false);
 // Form sesión inline
 const showSesionForm = ref(false);
 const sesionSaving   = ref(false);
+const sesionError    = ref('');
 const sesionForm = ref({
     subjective:   '',
     objective:    '',
@@ -77,41 +80,31 @@ const sesionForm = ref({
 const resetSesionForm = () => {
     sesionForm.value = { subjective: '', objective: '', assessment: '', plan: '', pain_scale: null, notes: '', exercise_ids: [], marcar_done: true };
     showSesionForm.value = false;
-};
-
-const getCsrfToken = (): string => {
-    return (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content ?? '';
+    sesionError.value = '';
 };
 
 const saveSesion = async (appt: AppointmentItem) => {
     sesionSaving.value = true;
+    sesionError.value = '';
     try {
-        const res = await fetch(`/mi-jornada/citas/${appt.id}/sesion`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest',
-                'X-CSRF-TOKEN': getCsrfToken(),
-            },
-            body: JSON.stringify(sesionForm.value),
-        });
+        const res = await postJson(`/mi-jornada/citas/${appt.id}/sesion`, sesionForm.value);
         if (res.ok) {
             resetSesionForm();
-            // Reload atencion data to reflect new session
             atencionData.value = null;
             atencionLoading.value = true;
-            const r2 = await fetch(`/mi-jornada/citas/${appt.id}/atencion`, {
-                headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
-            });
+            const r2 = await getJson(`/mi-jornada/citas/${appt.id}/atencion`);
             if (r2.ok) atencionData.value = await r2.json();
-            // If marked done, refresh page so status updates
             if (sesionForm.value.marcar_done) {
                 setTimeout(() => router.reload(), 800);
             }
+        } else if (res.status === 419) {
+            sesionError.value = 'Tu sesión expiró. Recarga la página e intenta de nuevo.';
+        } else {
+            const body = await res.json().catch(() => ({}));
+            sesionError.value = body.message ?? 'No se pudo guardar la sesión.';
         }
     } catch {
-        // silent
+        sesionError.value = 'Error de conexión. Intenta de nuevo.';
     } finally {
         sesionSaving.value = false;
         atencionLoading.value = false;
@@ -140,12 +133,7 @@ const loadAtencion = async (appt: AppointmentItem) => {
     // Abrir también el panel expandido
     expandedId.value = appt.id;
     try {
-        const res = await fetch(`/mi-jornada/citas/${appt.id}/atencion`, {
-            headers: {
-                'Accept': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest',
-            },
-        });
+        const res = await getJson(`/mi-jornada/citas/${appt.id}/atencion`);
         if (res.ok) {
             atencionData.value = await res.json();
         }
@@ -426,6 +414,20 @@ const edad = (fechaNacimiento: string | null) => {
                                     </div>
                                 </div>
 
+                                <!-- Advertencias de cumplimiento -->
+                                <div
+                                    v-if="atencionData.complianceWarnings?.length"
+                                    class="rounded-2xl border border-amber-300 bg-amber-50/80 p-3 dark:border-amber-900/40 dark:bg-amber-950/20"
+                                >
+                                    <p class="flex items-center gap-1.5 text-xs font-semibold text-amber-700 dark:text-amber-400 mb-1.5">
+                                        <AlertCircle class="h-3.5 w-3.5 shrink-0" />
+                                        Cumplimiento requerido antes de registrar sesión
+                                    </p>
+                                    <ul class="list-disc list-inside space-y-0.5">
+                                        <li v-for="w in atencionData.complianceWarnings" :key="w" class="text-xs text-amber-700 dark:text-amber-300">{{ w }}</li>
+                                    </ul>
+                                </div>
+
                                 <!-- Formulario inline de sesión -->
                                 <div v-if="showSesionForm" class="rounded-2xl border border-border bg-card p-4 space-y-3">
                                     <div class="flex items-center justify-between">
@@ -487,6 +489,10 @@ const edad = (fechaNacimiento: string | null) => {
                                         <input id="marcar-done" v-model="sesionForm.marcar_done" type="checkbox" class="h-3.5 w-3.5 rounded accent-primary" />
                                         <label for="marcar-done" class="text-xs text-muted-foreground cursor-pointer">Marcar cita como completada al guardar</label>
                                     </div>
+                                    <p v-if="sesionError" class="text-xs text-rose-600 dark:text-rose-400 flex items-center gap-1">
+                                        <AlertCircle class="h-3 w-3 shrink-0" />
+                                        {{ sesionError }}
+                                    </p>
                                     <div class="flex gap-2 pt-1">
                                         <Button size="sm" class="rounded-xl text-xs h-8" :style="primaryButtonStyle" :disabled="sesionSaving" @click="saveSesion(appt)">
                                             <Loader2 v-if="sesionSaving" class="mr-1.5 h-3.5 w-3.5 animate-spin" />

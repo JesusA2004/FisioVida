@@ -23,7 +23,10 @@
       "Bash(Out-Null)",
       "Bash(find C:\\\\\\\\wamp64\\\\\\\\www\\\\\\\\FisioVida -type f -name \"*.php\")",
       "Bash(ls *)",
-      "Bash(xargs grep -l \"consent\\\\|privacy\\\\|patient\")"
+      "Bash(xargs grep -l \"consent\\\\|privacy\\\\|patient\")",
+      "Bash(Select-String \"legal|consent|download|archivos\")",
+      "Bash(xargs grep -l \"permission\\\\|Permission\")",
+      "PowerShell(Test-Path *)"
     ]
   }
 }

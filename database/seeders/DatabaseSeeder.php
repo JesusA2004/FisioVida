@@ -22,6 +22,7 @@ class DatabaseSeeder extends Seeder
             ActividadesDemoSeeder::class,
             AppointmentRequestsDemoSeeder::class,
             CumplimientoDemoSeeder::class,
+            JesusDemoSeeder::class,
         ]);
     }
 }

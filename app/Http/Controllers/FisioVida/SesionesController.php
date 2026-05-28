@@ -10,6 +10,7 @@ use App\Http\Resources\SesionResource;
 use App\Services\Audit\AuditLogService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Inertia\Inertia;
 
 class SesionesController extends Controller {
@@ -233,6 +234,13 @@ class SesionesController extends Controller {
     public function store(SesionStoreRequest $request) {
         $payload = $request->validated();
 
+        $warnings = $this->complianceWarnings((int) $payload['patient_persona_id']);
+        if (! empty($warnings)) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'compliance' => implode(' / ', $warnings),
+            ]);
+        }
+
         $exerciseIds = collect($payload['exercise_ids'] ?? [])
             ->filter()
             ->unique()
@@ -345,6 +353,53 @@ class SesionesController extends Controller {
         });
 
         return back()->with('success', 'Sesión actualizada.');
+    }
+
+    private function complianceWarnings(int $patientId): array
+    {
+        if (! Schema::hasTable('patient_legal_acceptances') || ! Schema::hasTable('system_settings')) {
+            return [];
+        }
+
+        $settings = DB::table('system_settings')
+            ->whereIn('key', [
+                'require_privacy_notice_before_session',
+                'require_treatment_consent_before_session',
+            ])
+            ->pluck('value', 'key');
+
+        $warnings = [];
+
+        if (($settings['require_privacy_notice_before_session'] ?? '0') === '1') {
+            $has = DB::table('patient_legal_acceptances')
+                ->where('patient_persona_id', $patientId)
+                ->where('document_type', 'privacy_notice')
+                ->where('status', 'accepted')
+                ->exists();
+
+            if (! $has) {
+                $warnings[] = 'Falta aviso de privacidad aceptado (requerido para sesiones).';
+            }
+        }
+
+        if (($settings['require_treatment_consent_before_session'] ?? '0') === '1') {
+            $has = DB::table('patient_legal_acceptances')
+                    ->where('patient_persona_id', $patientId)
+                    ->where('document_type', 'treatment_consent')
+                    ->where('status', 'accepted')
+                    ->exists()
+                || DB::table('patient_consents')
+                    ->where('patient_persona_id', $patientId)
+                    ->where('consent_type', 'tratamiento')
+                    ->where('status', 'active')
+                    ->exists();
+
+            if (! $has) {
+                $warnings[] = 'Falta consentimiento de tratamiento (requerido para sesiones).';
+            }
+        }
+
+        return $warnings;
     }
 
     public function destroy(Request $request, string $id)

@@ -1772,15 +1772,27 @@ const expedienteStatus = computed(() => {
                                     <Printer class="h-3 w-3" />
                                     Imprimir
                                 </a>
-                                <!-- Descarga PDF firmado -->
-                                <a v-if="legalDocActive(doc.key)?.signed_pdf_path"
-                                    :href="`/pacientes/${props.patient.id}/documentos-legales/${legalDocActive(doc.key)!.id}/descargar`"
-                                    target="_blank"
-                                    class="inline-flex items-center gap-1 rounded-lg border border-emerald-200 bg-emerald-50 px-2 py-1 text-[11px] font-medium text-emerald-700 hover:bg-emerald-100 dark:border-emerald-900/40 dark:bg-emerald-950/20 dark:text-emerald-400"
-                                >
-                                    <Download class="h-3 w-3" />
-                                    PDF firmado
-                                </a>
+                                <!-- PDF firmado: ver en línea y descargar -->
+                                <template v-if="legalDocActive(doc.key)?.signed_pdf_path">
+                                    <a
+                                        :href="`/pacientes/${props.patient.id}/documentos-legales/${legalDocActive(doc.key)!.id}/ver`"
+                                        target="_blank"
+                                        class="inline-flex items-center gap-1 rounded-lg border border-blue-200 bg-blue-50 px-2 py-1 text-[11px] font-medium text-blue-700 hover:bg-blue-100 dark:border-blue-900/40 dark:bg-blue-950/20 dark:text-blue-400"
+                                        title="Ver PDF en el navegador"
+                                    >
+                                        <Eye class="h-3 w-3" />
+                                        Ver PDF
+                                    </a>
+                                    <a
+                                        :href="`/pacientes/${props.patient.id}/documentos-legales/${legalDocActive(doc.key)!.id}/descargar`"
+                                        target="_blank"
+                                        class="inline-flex items-center gap-1 rounded-lg border border-emerald-200 bg-emerald-50 px-2 py-1 text-[11px] font-medium text-emerald-700 hover:bg-emerald-100 dark:border-emerald-900/40 dark:bg-emerald-950/20 dark:text-emerald-400"
+                                        title="Descargar PDF firmado"
+                                    >
+                                        <Download class="h-3 w-3" />
+                                        PDF
+                                    </a>
+                                </template>
                                 <button v-if="legalDocActive(doc.key)"
                                     class="inline-flex items-center gap-1 rounded-lg border border-rose-200 bg-rose-50 px-2 py-1 text-[11px] font-medium text-rose-700 hover:bg-rose-100 dark:border-rose-900/40 dark:bg-rose-950/20 dark:text-rose-400"
                                     @click="startRevoke(legalDocActive(doc.key)!.id)"

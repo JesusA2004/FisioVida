@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
+import DatePicker from '@/components/ui/DatePicker.vue'
 import {
     Save,
     Settings2,
@@ -668,7 +669,12 @@ const setHoverColor = (event: MouseEvent, color: string) => {
                             </div>
                             <div class="space-y-1.5">
                                 <label class="text-xs font-medium text-foreground">Fecha de vigencia</label>
-                                <Input v-model="form.privacy_notice_effective_date" :class="inputClass" type="date" />
+                                <DatePicker
+                                    :model-value="form.privacy_notice_effective_date || null"
+                                    :disable-future="false"
+                                    placeholder="Seleccionar fecha..."
+                                    @update:model-value="(v) => (form.privacy_notice_effective_date = v ?? '')"
+                                />
                             </div>
                         </div>
                     </div>

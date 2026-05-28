@@ -40,7 +40,7 @@ class LegalDocumentsController extends Controller
             ->value('value') ?? '1.0';
     }
 
-    private function contentSnapshot(string $docType): ?string
+    private function contentSnapshot(string $docType, array $clinicSettings = []): ?string
     {
         if (! Schema::hasTable('system_settings')) {
             return null;
@@ -55,7 +55,18 @@ class LegalDocumentsController extends Controller
             default             => null,
         };
 
-        return $key ? DB::table('system_settings')->where('key', $key)->value('value') : null;
+        $text = $key ? DB::table('system_settings')->where('key', $key)->value('value') : null;
+
+        if ($text === null) {
+            return null;
+        }
+
+        // Resolve placeholders so no [brackets] ever appear in documents or PDFs
+        if (empty($clinicSettings)) {
+            $clinicSettings = $this->clinicSettings();
+        }
+
+        return app(SignedDocumentService::class)->resolveTemplate($text, $this->resolveVars($clinicSettings));
     }
 
     private function clinicSettings(): array
@@ -65,9 +76,28 @@ class LegalDocumentsController extends Controller
         }
 
         return DB::table('system_settings')
-            ->whereIn('key', ['clinic_name', 'legal_business_name', 'privacy_address'])
+            ->whereIn('key', [
+                'clinic_name', 'legal_business_name', 'privacy_address',
+                'clinic_address', 'clinic_phone', 'privacy_contact_email',
+                'privacy_contact_phone', 'legal_representative',
+            ])
             ->pluck('value', 'key')
             ->toArray();
+    }
+
+    private function resolveVars(array $clinicSettings): array
+    {
+        return [
+            'clinic_name'           => $clinicSettings['clinic_name'] ?? 'FisioVida',
+            'legal_business_name'   => $clinicSettings['legal_business_name'] ?? ($clinicSettings['clinic_name'] ?? 'FisioVida'),
+            'clinic_address'        => $clinicSettings['privacy_address'] ?? $clinicSettings['clinic_address'] ?? '',
+            'clinic_phone'          => $clinicSettings['privacy_contact_phone'] ?? $clinicSettings['clinic_phone'] ?? '',
+            'privacy_email'         => $clinicSettings['privacy_contact_email'] ?? '',
+            'legal_representative'  => $clinicSettings['legal_representative'] ?? '',
+            'address'               => $clinicSettings['privacy_address'] ?? $clinicSettings['clinic_address'] ?? '',
+            'phone'                 => $clinicSettings['privacy_contact_phone'] ?? $clinicSettings['clinic_phone'] ?? '',
+            'email'                 => $clinicSettings['privacy_contact_email'] ?? '',
+        ];
     }
 
     private function patientFullName(object $patient): string
@@ -102,7 +132,8 @@ class LegalDocumentsController extends Controller
         $patientName = $this->patientFullName($patient);
 
         $sds              = app(SignedDocumentService::class);
-        $contentSnapshot  = $this->contentSnapshot($docType);
+        $clinicSettings   = $this->clinicSettings();
+        $contentSnapshot  = $this->contentSnapshot($docType, $clinicSettings);
         $signedAt         = now();
         $signerName       = $data['signer_name'];
         $signatureMethod  = 'staff_recorded';
@@ -157,7 +188,7 @@ class LegalDocumentsController extends Controller
         ];
 
         $signedPdfPath = $sds->generatePdf(
-            $sds->buildPdfData($acceptance, ['full_name' => $patientName], $this->clinicSettings()),
+            $sds->buildPdfData($acceptance, ['full_name' => $patientName], $clinicSettings),
             (int) $paciente
         );
 
@@ -319,7 +350,8 @@ class LegalDocumentsController extends Controller
         }
 
         $sds             = app(SignedDocumentService::class);
-        $contentSnapshot = $this->contentSnapshot($docType);
+        $clinicSettings  = $this->clinicSettings();
+        $contentSnapshot = $this->contentSnapshot($docType, $clinicSettings);
         $signedAt        = now();
         $signerName      = $data['signer_name'];
         $signerRole      = empty($data['guardian_name']) ? 'patient' : 'guardian';
@@ -371,7 +403,7 @@ class LegalDocumentsController extends Controller
         ];
 
         $signedPdfPath = $sds->generatePdf(
-            $sds->buildPdfData($acceptance, ['full_name' => $patientName], $this->clinicSettings()),
+            $sds->buildPdfData($acceptance, ['full_name' => $patientName], $clinicSettings),
             (int) $personaId
         );
 
@@ -432,6 +464,26 @@ class LegalDocumentsController extends Controller
         ]);
     }
 
+    // ── GET /mi-portal/documentos/{aceptacion}/ver ───────────────────────────
+    public function viewPortal(Request $request, int $aceptacion)
+    {
+        $user      = $request->user();
+        $personaId = $user->persona_id ?? null;
+        abort_if(! $personaId, 403);
+
+        $acceptance = DB::table('patient_legal_acceptances')
+            ->where('id', $aceptacion)
+            ->where('patient_persona_id', $personaId)
+            ->first();
+
+        abort_if(! $acceptance, 404);
+        abort_if(empty($acceptance->signed_pdf_path), 404, 'El PDF firmado no está disponible.');
+
+        $filename = 'documento-' . $acceptance->document_type . '.pdf';
+
+        return app(SignedDocumentService::class)->stream($acceptance->signed_pdf_path, $filename);
+    }
+
     // ── GET /mi-portal/documentos/{aceptacion}/descargar ─────────────────────
     public function downloadPortal(Request $request, int $aceptacion)
     {
@@ -464,6 +516,24 @@ class LegalDocumentsController extends Controller
         $filename = 'documento-' . $acceptance->document_type . '-v' . $acceptance->version . '.pdf';
 
         return app(SignedDocumentService::class)->download($acceptance->signed_pdf_path, $filename);
+    }
+
+    // ── GET /pacientes/{paciente}/documentos-legales/{aceptacion}/ver ─────────
+    public function viewStaff(Request $request, string $paciente, int $aceptacion)
+    {
+        $this->patientOrFail($paciente);
+
+        $acceptance = DB::table('patient_legal_acceptances')
+            ->where('id', $aceptacion)
+            ->where('patient_persona_id', $paciente)
+            ->first();
+
+        abort_if(! $acceptance, 404);
+        abort_if(empty($acceptance->signed_pdf_path), 404, 'El PDF firmado no está disponible.');
+
+        $filename = 'paciente-' . $paciente . '-' . $acceptance->document_type . '.pdf';
+
+        return app(SignedDocumentService::class)->stream($acceptance->signed_pdf_path, $filename);
     }
 
     // ── GET /pacientes/{paciente}/documentos-legales/{aceptacion}/descargar ───
