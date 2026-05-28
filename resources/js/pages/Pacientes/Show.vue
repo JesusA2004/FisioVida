@@ -27,6 +27,11 @@ import {
     ShieldX,
     Stethoscope,
     UserRound,
+    XCircle,
+    Clock,
+    Printer,
+    AlertTriangle,
+    Info,
 } from 'lucide-vue-next';
 import { useForm } from '@inertiajs/vue3';
 import { swalConfirm, swalToast } from '@/lib/swal';
@@ -38,6 +43,7 @@ import {
     tPriority,
 } from '@/lib/labels';
 import { formatDateMx, formatDateTimeMx } from '@/lib/dates';
+import SignaturePad from '@/components/fv/SignaturePad.vue';
 
 type Patient = {
     id: number;
@@ -114,11 +120,55 @@ type ConsentItem = {
     accepted_by_name?: string | null;
 };
 
+type LegalAcceptance = {
+    id: number;
+    document_type: string;
+    version: string;
+    title?: string | null;
+    accepted_at: string;
+    status: string; // accepted | revoked
+    source: string; // staff | portal
+    guardian_name?: string | null;
+    guardian_relationship?: string | null;
+    revoked_at?: string | null;
+    revocation_reason?: string | null;
+    accepted_by_name?: string | null;
+    revoked_by_name?: string | null;
+    // Firma digital simple
+    signer_name?: string | null;
+    signer_role?: string | null;
+    signature_method?: string | null;
+    document_hash?: string | null;
+    signature_hash?: string | null;
+    signed_pdf_path?: string | null;
+    signed_at?: string | null;
+};
+
+type ComplianceStatus = {
+    has_privacy_notice: boolean;
+    has_sensitive_data: boolean;
+    has_treatment_consent: boolean;
+    has_image_consent: boolean;
+    has_minor_consent: boolean;
+    has_sessions: boolean;
+    has_plan: boolean;
+    has_emergency_contact: boolean;
+    has_responsible_therapist: boolean;
+};
+
 // 'privacidad' se gestiona en privacy_notice_acceptances (tabla separada por normativa)
 const CONSENT_TYPES = [
     { key: 'tratamiento', label: 'Consentimiento de tratamiento' },
     { key: 'imagenes', label: 'Uso de imágenes / fotografías' },
     { key: 'datos_sensibles', label: 'Datos sensibles de salud' },
+] as const;
+
+const LEGAL_DOC_TYPES = [
+    { key: 'privacy_notice',    label: 'Aviso de privacidad',                         color: 'indigo',   printSlug: 'aviso-privacidad' },
+    { key: 'sensitive_data',    label: 'Datos sensibles de salud',                    color: 'purple',   printSlug: 'consentimiento-datos-sensibles' },
+    { key: 'treatment_consent', label: 'Consentimiento de tratamiento',               color: 'emerald',  printSlug: 'consentimiento-tratamiento' },
+    { key: 'image_consent',     label: 'Consentimiento de imágenes / evidencia',      color: 'amber',    printSlug: 'consentimiento-imagenes' },
+    { key: 'minor_consent',     label: 'Consentimiento para menor de edad',           color: 'rose',     printSlug: null },
 ] as const;
 
 type PrivacyNotice = {
@@ -137,6 +187,8 @@ const props = defineProps<{
     activities: ActivityItem[];
     consents: ConsentItem[];
     privacyNotices: PrivacyNotice[];
+    legalAcceptances: LegalAcceptance[];
+    complianceStatus: ComplianceStatus;
 }>();
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -408,7 +460,7 @@ const registerConsent = async () => {
     });
 };
 
-// ── Aviso de Privacidad ──────────────────────────────────────────────────────
+// ── Aviso de Privacidad (legacy) ─────────────────────────────────────────────
 const privacyForm = useForm({ version: '1.0' });
 const latestPrivacyNotice = computed(() => props.privacyNotices[0] ?? null);
 
@@ -426,6 +478,142 @@ const registerPrivacyNotice = async () => {
         onError: () => swalToast('No se pudo registrar', 'error'),
     });
 };
+
+// ── Documentos Legales (firma digital simple) ─────────────────────────────────
+const showLegalForm = ref(false);
+const staffSignaturePad = ref<InstanceType<typeof SignaturePad> | null>(null);
+const staffSignatureData = ref('');
+
+const legalForm = useForm({
+    document_type: '',
+    version: '',
+    guardian_name: '',
+    guardian_relationship: '',
+    signer_name: '',
+    signature_image: '',
+});
+
+const showRevokeModal = ref(false);
+const revokeTargetId = ref<number | null>(null);
+const revokeReason = ref('');
+
+// Obtener la aceptación activa (status=accepted) de un tipo de documento
+const legalDocActive = (docType: string): LegalAcceptance | null =>
+    props.legalAcceptances.find(a => a.document_type === docType && a.status === 'accepted') ?? null;
+
+// Obtener todos los registros de un tipo (historial)
+const legalDocHistory = (docType: string): LegalAcceptance[] =>
+    props.legalAcceptances.filter(a => a.document_type === docType);
+
+const totalDocsPending = computed(() =>
+    LEGAL_DOC_TYPES.filter(d => !legalDocActive(d.key)).length
+);
+
+const totalDocsAccepted = computed(() =>
+    LEGAL_DOC_TYPES.filter(d => legalDocActive(d.key) !== null).length
+);
+
+const registerLegalDoc = async () => {
+    if (!legalForm.document_type) return;
+    if (!legalForm.signer_name.trim()) {
+        swalToast('Ingresa el nombre del firmante', 'warning');
+        return;
+    }
+
+    const label = LEGAL_DOC_TYPES.find(d => d.key === legalForm.document_type)?.label ?? legalForm.document_type;
+    const hasSignature = staffSignaturePad.value && !staffSignaturePad.value.isEmpty();
+    const method = hasSignature ? 'con firma dibujada' : 'sin firma (registro administrativo)';
+
+    const ok = await swalConfirm(
+        `¿Registrar "${label}"?`,
+        `Se guardará snapshot del documento, ${method}, fecha, IP y nombre del firmante.`,
+        'Sí, registrar'
+    );
+    if (!ok) return;
+
+    legalForm.signature_image = staffSignatureData.value;
+
+    legalForm.post(`/pacientes/${props.patient.id}/documentos-legales`, {
+        preserveScroll: true,
+        onSuccess: () => {
+            swalToast('Documento firmado y registrado', 'success');
+            legalForm.reset();
+            staffSignatureData.value = '';
+            staffSignaturePad.value?.clear();
+            showLegalForm.value = false;
+        },
+        onError: () => swalToast('Revisa el formulario', 'warning'),
+    });
+};
+
+const startRevoke = (id: number) => {
+    revokeTargetId.value = id;
+    revokeReason.value = '';
+    showRevokeModal.value = true;
+};
+
+const confirmRevoke = async () => {
+    if (!revokeTargetId.value) return;
+    const ok = await swalConfirm('¿Revocar este consentimiento?', 'Esta acción quedará registrada en la bitácora.', 'Sí, revocar');
+    if (!ok) return;
+
+    useForm({ reason: revokeReason.value })
+        .patch(`/pacientes/${props.patient.id}/documentos-legales/${revokeTargetId.value}/revocar`, {
+            preserveScroll: true,
+            onSuccess: () => {
+                swalToast('Consentimiento revocado', 'success');
+                showRevokeModal.value = false;
+                revokeTargetId.value = null;
+            },
+            onError: () => swalToast('No se pudo revocar', 'error'),
+        });
+};
+
+// Colores por tipo de documento
+const docColorClasses = (color: string, accepted: boolean) => {
+    if (!accepted) return 'border-border bg-muted/30 dark:border-border dark:bg-muted/10';
+    const map: Record<string, string> = {
+        indigo: 'border-indigo-200 bg-indigo-50/60 dark:border-indigo-900/40 dark:bg-indigo-950/20',
+        purple: 'border-purple-200 bg-purple-50/60 dark:border-purple-900/40 dark:bg-purple-950/20',
+        emerald: 'border-emerald-200 bg-emerald-50/60 dark:border-emerald-900/40 dark:bg-emerald-950/20',
+        amber: 'border-amber-200 bg-amber-50/60 dark:border-amber-900/40 dark:bg-amber-950/20',
+        rose: 'border-rose-200 bg-rose-50/60 dark:border-rose-900/40 dark:bg-rose-950/20',
+    };
+    return map[color] ?? 'border-border bg-muted/30';
+};
+
+const docIconColor = (color: string, accepted: boolean) => {
+    if (!accepted) return 'text-muted-foreground';
+    const map: Record<string, string> = {
+        indigo: 'text-indigo-600 dark:text-indigo-400',
+        purple: 'text-purple-600 dark:text-purple-400',
+        emerald: 'text-emerald-600 dark:text-emerald-400',
+        amber: 'text-amber-600 dark:text-amber-400',
+        rose: 'text-rose-600 dark:text-rose-400',
+    };
+    return map[color] ?? 'text-muted-foreground';
+};
+
+// NOM-004 checklist items
+const nom004Items = computed(() => [
+    { label: 'Identificación del paciente',          ok: true }, // siempre: tiene expediente
+    { label: 'Contacto de emergencia',               ok: props.complianceStatus.has_emergency_contact },
+    { label: 'Aviso de privacidad aceptado',         ok: props.complianceStatus.has_privacy_notice },
+    { label: 'Consentimiento de datos sensibles',    ok: props.complianceStatus.has_sensitive_data },
+    { label: 'Consentimiento de tratamiento',        ok: props.complianceStatus.has_treatment_consent },
+    { label: 'Sesiones / evolución clínica',         ok: props.complianceStatus.has_sessions },
+    { label: 'Plan de tratamiento registrado',       ok: props.complianceStatus.has_plan },
+    { label: 'Responsable de atención identificado', ok: props.complianceStatus.has_responsible_therapist },
+]);
+
+const nom004Score = computed(() => nom004Items.value.filter(i => i.ok).length);
+const nom004Total = computed(() => nom004Items.value.length);
+const expedienteStatus = computed(() => {
+    const pct = nom004Score.value / nom004Total.value;
+    if (pct >= 1) return { label: 'Completo', color: 'emerald' };
+    if (pct >= 0.6) return { label: 'Incompleto', color: 'amber' };
+    return { label: 'Requiere atención', color: 'rose' };
+});
 </script>
 
 <template>
@@ -1404,188 +1592,291 @@ const registerPrivacyNotice = async () => {
             <!-- ── Cumplimiento ─────────────────────────────────────────── -->
             <div v-if="activeTab === 'cumplimiento'" class="space-y-5">
 
-                <!-- Aviso de Privacidad -->
+                <!-- Header de cumplimiento con resumen -->
                 <section class="rounded-[2rem] border border-border bg-card p-5 shadow-sm">
-                    <div class="mb-4 border-b border-border pb-3">
-                        <h2 class="flex items-center gap-2 text-base font-semibold text-foreground">
-                            <ShieldCheck class="h-4 w-4" :style="{ color: 'var(--primary)' }" />
-                            Aviso de privacidad (LFPDPPP)
-                        </h2>
-                        <p class="mt-1 text-xs text-muted-foreground">
-                            Registro independiente del aviso de privacidad conforme a la Ley Federal de Protección de Datos Personales en Posesión de los Particulares.
-                        </p>
-                    </div>
-
                     <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                        <!-- Status -->
-                        <div class="flex items-center gap-3">
-                            <div
-                                class="flex h-10 w-10 items-center justify-center rounded-full"
-                                :class="latestPrivacyNotice ? 'bg-emerald-100 dark:bg-emerald-900/30' : 'bg-muted'"
-                            >
-                                <component
-                                    :is="latestPrivacyNotice ? ShieldCheck : ShieldX"
-                                    class="h-5 w-5"
-                                    :class="latestPrivacyNotice ? 'text-emerald-600 dark:text-emerald-400' : 'text-zinc-400'"
-                                />
+                        <div class="flex items-start gap-4">
+                            <div class="grid h-12 w-12 shrink-0 place-items-center rounded-2xl shadow-md"
+                                :style="{ backgroundColor: 'var(--primary)', color: 'var(--primary-foreground)' }">
+                                <ShieldCheck class="h-6 w-6" />
                             </div>
                             <div>
-                                <p class="text-sm font-medium text-foreground">
-                                    {{ latestPrivacyNotice ? 'Aviso de privacidad aceptado' : 'Aviso de privacidad pendiente' }}
+                                <h2 class="text-lg font-semibold text-foreground">Cumplimiento documental</h2>
+                                <p class="text-xs text-muted-foreground mt-0.5">
+                                    Herramientas de apoyo documental — No reemplaza asesoría jurídica.
                                 </p>
-                                <p v-if="latestPrivacyNotice" class="text-xs text-muted-foreground">
-                                    v{{ latestPrivacyNotice.version }} · {{ formatDateTimeMx(latestPrivacyNotice.accepted_at!) }}
-                                    <template v-if="latestPrivacyNotice.accepted_by_name"> · {{ latestPrivacyNotice.accepted_by_name }}</template>
-                                </p>
-                                <p v-else class="text-xs text-zinc-400">Sin registro aún</p>
                             </div>
                         </div>
-
-                        <!-- Register + print buttons -->
-                        <div class="flex flex-wrap items-end gap-2">
-                            <div class="flex flex-col gap-1">
-                                <label class="text-xs text-muted-foreground">Versión</label>
-                                <input
-                                    v-model="privacyForm.version"
-                                    type="text"
-                                    class="w-20 rounded-lg border border-border bg-card px-2 py-1.5 text-xs text-foreground"
-                                    placeholder="1.0"
-                                />
-                            </div>
-                            <div class="flex items-end">
-                                <Button
-                                    class="h-9 rounded-xl text-xs"
-                                    :style="primaryButtonStyle"
-                                    :disabled="privacyForm.processing"
-                                    @click="registerPrivacyNotice"
-                                >
-                                    {{ latestPrivacyNotice ? 'Actualizar aceptación' : 'Registrar aceptación' }}
-                                </Button>
-                            </div>
-                            <div class="flex items-end">
-                                <a
-                                    :href="`/pacientes/${props.patient.id}/cumplimiento/aviso-privacidad/imprimir`"
-                                    target="_blank"
-                                    class="inline-flex h-9 items-center gap-1.5 rounded-xl border border-border bg-card px-3 text-xs font-medium text-muted-foreground hover:bg-muted"
-                                >
-                                    <FileText class="h-3.5 w-3.5" />
-                                    Imprimir aviso
-                                </a>
-                            </div>
+                        <!-- Score chips -->
+                        <div class="flex flex-wrap gap-2">
+                            <span class="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
+                                {{ totalDocsAccepted }} / {{ LEGAL_DOC_TYPES.length }} documentos aceptados
+                            </span>
+                            <span v-if="totalDocsPending > 0" class="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
+                                {{ totalDocsPending }} pendiente{{ totalDocsPending !== 1 ? 's' : '' }}
+                            </span>
                         </div>
-                    </div>
-
-                    <!-- History -->
-                    <div v-if="props.privacyNotices.length > 1" class="mt-4 border-t border-border pt-3">
-                        <p class="mb-2 text-xs font-medium text-muted-foreground uppercase tracking-wide">Historial</p>
-                        <ul class="space-y-1">
-                            <li v-for="pn in props.privacyNotices" :key="pn.id" class="text-xs text-muted-foreground">
-                                v{{ pn.version }} — {{ pn.accepted_at ? formatDateTimeMx(pn.accepted_at) : '—' }}
-                                <template v-if="pn.accepted_by_name"> — {{ pn.accepted_by_name }}</template>
-                            </li>
-                        </ul>
                     </div>
                 </section>
 
-                <!-- Estado de consentimientos -->
+                <!-- Documentos legales (tabla unificada con snapshot) -->
                 <section class="rounded-[2rem] border border-border bg-card p-5 shadow-sm">
                     <div class="mb-4 flex items-center justify-between border-b border-border pb-3">
                         <h2 class="flex items-center gap-2 text-base font-semibold text-foreground">
                             <ShieldCheck class="h-4 w-4" :style="{ color: 'var(--primary)' }" />
-                            Estado de consentimientos
+                            Documentos de cumplimiento
                         </h2>
-                        <Button
-                            variant="outline"
-                            class="h-8 rounded-xl text-xs"
-                            @click="showConsentForm = !showConsentForm"
-                        >
-                            {{ showConsentForm ? 'Cancelar' : '+ Registrar consentimiento' }}
+                        <Button variant="outline" class="h-8 rounded-xl text-xs" @click="showLegalForm = !showLegalForm">
+                            {{ showLegalForm ? 'Cancelar' : '+ Registrar documento' }}
                         </Button>
                     </div>
 
-                    <!-- Consent form -->
-                    <div v-if="showConsentForm" class="mb-5 rounded-2xl border border-dashed border-border bg-muted/30 p-4">
-                        <p class="mb-3 text-sm font-medium text-foreground">Registrar nuevo consentimiento</p>
+                    <!-- Formulario de registro legal con firma digital -->
+                    <div v-if="showLegalForm" class="mb-5 rounded-2xl border border-dashed border-border bg-muted/30 p-4 space-y-4">
+                        <div>
+                            <p class="text-sm font-semibold text-foreground">Registrar documento con firma digital simple</p>
+                            <p class="mt-0.5 text-xs text-muted-foreground">
+                                Se generará snapshot del texto, hashes de trazabilidad y PDF firmado.
+                            </p>
+                        </div>
+
                         <div class="grid gap-3 sm:grid-cols-2">
                             <div>
-                                <label class="mb-1 block text-xs font-medium text-muted-foreground">Tipo de consentimiento *</label>
-                                <select
-                                    v-model="consentForm.consent_type"
-                                    class="w-full rounded-xl border border-border bg-card px-3 py-2 text-sm text-foreground"
-                                >
-                                    <option value="">Selecciona...</option>
-                                    <option v-for="ct in CONSENT_TYPES" :key="ct.key" :value="ct.key">
-                                        {{ ct.label }}
-                                    </option>
+                                <label class="mb-1 block text-xs font-medium text-muted-foreground">Documento *</label>
+                                <select v-model="legalForm.document_type" class="w-full rounded-xl border border-border bg-card px-3 py-2 text-sm text-foreground">
+                                    <option value="">Selecciona el documento...</option>
+                                    <option v-for="d in LEGAL_DOC_TYPES" :key="d.key" :value="d.key">{{ d.label }}</option>
                                 </select>
-                                <p v-if="consentForm.errors.consent_type" class="mt-1 text-xs text-rose-600">
-                                    {{ consentForm.errors.consent_type }}
-                                </p>
+                                <p v-if="legalForm.errors.document_type" class="mt-1 text-xs text-rose-600">{{ legalForm.errors.document_type }}</p>
                             </div>
                             <div>
-                                <label class="mb-1 block text-xs font-medium text-muted-foreground">Notas (opcional)</label>
-                                <input
-                                    v-model="consentForm.notes"
-                                    type="text"
-                                    placeholder="Ej. Firmado en papel, copia adjunta"
-                                    class="w-full rounded-xl border border-border bg-card px-3 py-2 text-sm text-foreground"
-                                />
+                                <label class="mb-1 block text-xs font-medium text-muted-foreground">Nombre del firmante *</label>
+                                <input v-model="legalForm.signer_name" type="text" placeholder="Nombre completo de quien firma" class="w-full rounded-xl border border-border bg-card px-3 py-2 text-sm text-foreground" />
+                                <p v-if="legalForm.errors.signer_name" class="mt-1 text-xs text-rose-600">{{ legalForm.errors.signer_name }}</p>
+                            </div>
+                            <div>
+                                <label class="mb-1 block text-xs font-medium text-muted-foreground">Versión (opcional)</label>
+                                <input v-model="legalForm.version" type="text" placeholder="Ej. 1.0 (usa la configurada si vacío)" class="w-full rounded-xl border border-border bg-card px-3 py-2 text-sm text-foreground" />
                             </div>
                         </div>
-                        <div class="mt-3 flex justify-end">
-                            <Button
-                                class="h-8 rounded-xl text-xs"
-                                :style="primaryButtonStyle"
-                                :disabled="!consentForm.consent_type || consentForm.processing"
-                                @click="registerConsent"
-                            >
-                                Registrar
+
+                        <!-- Campos para menor de edad -->
+                        <template v-if="legalForm.document_type === 'minor_consent'">
+                            <div class="grid gap-3 sm:grid-cols-2">
+                                <div>
+                                    <label class="mb-1 block text-xs font-medium text-muted-foreground">Nombre del tutor / responsable</label>
+                                    <input v-model="legalForm.guardian_name" type="text" placeholder="Nombre completo del tutor" class="w-full rounded-xl border border-border bg-card px-3 py-2 text-sm text-foreground" />
+                                </div>
+                                <div>
+                                    <label class="mb-1 block text-xs font-medium text-muted-foreground">Parentesco</label>
+                                    <input v-model="legalForm.guardian_relationship" type="text" placeholder="Ej. Madre, Padre, Tutor legal" class="w-full rounded-xl border border-border bg-card px-3 py-2 text-sm text-foreground" />
+                                </div>
+                            </div>
+                        </template>
+
+                        <!-- Firma dibujada -->
+                        <div>
+                            <label class="mb-2 block text-xs font-medium text-muted-foreground">
+                                Firma dibujada del firmante (recomendado — tablet o mouse)
+                            </label>
+                            <SignaturePad
+                                ref="staffSignaturePad"
+                                v-model="staffSignatureData"
+                                :height="150"
+                            />
+                            <p v-if="legalForm.errors.signature_image" class="mt-1 text-xs text-rose-600">{{ legalForm.errors.signature_image }}</p>
+                        </div>
+
+                        <!-- Aviso legal -->
+                        <div class="rounded-xl border border-amber-200 bg-amber-50/60 px-3 py-2 text-xs text-amber-700 dark:border-amber-900/40 dark:bg-amber-950/20 dark:text-amber-300">
+                            Esta firma digital simple registra evidencia de aceptación dentro del sistema. La clínica debe validar sus documentos con asesor jurídico.
+                        </div>
+
+                        <div class="flex justify-end gap-2">
+                            <Button variant="outline" class="h-8 rounded-xl text-xs border-border" @click="showLegalForm = false; staffSignaturePad?.clear(); staffSignatureData = ''">
+                                Cancelar
+                            </Button>
+                            <Button class="h-8 rounded-xl text-xs" :style="primaryButtonStyle" :disabled="!legalForm.document_type || !legalForm.signer_name || legalForm.processing" @click="registerLegalDoc">
+                                {{ legalForm.processing ? 'Registrando...' : 'Firmar y registrar' }}
                             </Button>
                         </div>
                     </div>
 
-                    <!-- Status grid -->
-                    <div class="grid gap-3 sm:grid-cols-2">
+                    <!-- Checklist visual por documento -->
+                    <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                         <div
-                            v-for="ct in CONSENT_TYPES"
-                            :key="ct.key"
-                            class="flex flex-col gap-2 rounded-2xl border p-4 transition-colors"
-                            :class="acceptedConsentTypes.has(ct.key)
-                                ? 'border-emerald-200 bg-emerald-50/60 dark:border-emerald-900/40 dark:bg-emerald-950/20'
-                                : 'border-border bg-muted/30'"
+                            v-for="doc in LEGAL_DOC_TYPES"
+                            :key="doc.key"
+                            class="flex flex-col gap-3 rounded-2xl border p-4 transition-colors"
+                            :class="docColorClasses(doc.color, legalDocActive(doc.key) !== null)"
                         >
+                            <!-- Header del documento -->
                             <div class="flex items-start gap-3">
                                 <component
-                                    :is="acceptedConsentTypes.has(ct.key) ? ShieldCheck : ShieldX"
+                                    :is="legalDocActive(doc.key) ? ShieldCheck : (legalDocHistory(doc.key).some(a => a.status === 'revoked') ? XCircle : ShieldX)"
                                     class="mt-0.5 h-5 w-5 shrink-0"
-                                    :class="acceptedConsentTypes.has(ct.key)
-                                        ? 'text-emerald-600 dark:text-emerald-400'
-                                        : 'text-muted-foreground'"
+                                    :class="docIconColor(doc.color, legalDocActive(doc.key) !== null)"
                                 />
                                 <div class="min-w-0 flex-1">
-                                    <p class="text-sm font-medium text-foreground">{{ ct.label }}</p>
-                                    <p v-if="lastConsent(ct.key)" class="mt-0.5 text-xs text-muted-foreground">
-                                        Aceptado {{ formatDateTimeMx(lastConsent(ct.key)!.accepted_at) }}
-                                        <template v-if="lastConsent(ct.key)!.accepted_by_name">
-                                            · por {{ lastConsent(ct.key)!.accepted_by_name }}
-                                        </template>
-                                    </p>
-                                    <p v-else class="mt-0.5 text-xs text-muted-foreground">
-                                        Pendiente de registro
-                                    </p>
+                                    <p class="text-sm font-semibold text-foreground">{{ doc.label }}</p>
+
+                                    <!-- Aceptado -->
+                                    <template v-if="legalDocActive(doc.key)">
+                                        <div class="mt-1 space-y-0.5">
+                                            <p class="text-xs font-medium text-emerald-700 dark:text-emerald-400">Aceptado</p>
+                                            <p class="text-[11px] text-muted-foreground">
+                                                v{{ legalDocActive(doc.key)!.version }} · {{ formatDateTimeMx(legalDocActive(doc.key)!.accepted_at) }}
+                                            </p>
+                                            <p v-if="legalDocActive(doc.key)!.signer_name" class="text-[11px] text-muted-foreground">
+                                                Firmante: {{ legalDocActive(doc.key)!.signer_name }}
+                                            </p>
+                                            <p v-if="legalDocActive(doc.key)!.accepted_by_name && !legalDocActive(doc.key)!.signer_name" class="text-[11px] text-muted-foreground">
+                                                Por: {{ legalDocActive(doc.key)!.accepted_by_name }}
+                                            </p>
+                                            <p class="text-[11px]"
+                                               :class="legalDocActive(doc.key)!.signature_method === 'drawn_signature' ? 'text-emerald-600 dark:text-emerald-400' : 'text-muted-foreground'">
+                                                {{ legalDocActive(doc.key)!.signature_method === 'drawn_signature' ? '✓ Firma dibujada' : legalDocActive(doc.key)!.signature_method === 'staff_recorded' ? 'Registro administrativo' : '' }}
+                                            </p>
+                                            <p v-if="legalDocActive(doc.key)!.source === 'portal'" class="text-[11px] text-indigo-600 dark:text-indigo-400">
+                                                Origen: portal del paciente
+                                            </p>
+                                            <p v-if="legalDocActive(doc.key)!.guardian_name" class="text-[11px] text-muted-foreground">
+                                                Tutor: {{ legalDocActive(doc.key)!.guardian_name }} ({{ legalDocActive(doc.key)!.guardian_relationship }})
+                                            </p>
+                                            <p v-if="legalDocActive(doc.key)!.document_hash" class="text-[10px] text-muted-foreground font-mono">
+                                                Hash: {{ legalDocActive(doc.key)!.document_hash?.substring(0, 16) }}…
+                                            </p>
+                                        </div>
+                                    </template>
+
+                                    <!-- Revocado sin nuevo activo -->
+                                    <template v-else-if="legalDocHistory(doc.key).some(a => a.status === 'revoked')">
+                                        <p class="mt-1 text-xs font-medium text-rose-600 dark:text-rose-400">Revocado</p>
+                                        <p class="text-[11px] text-muted-foreground">Requiere nueva aceptación</p>
+                                    </template>
+
+                                    <!-- Pendiente -->
+                                    <template v-else>
+                                        <p class="mt-1 text-xs text-muted-foreground">Pendiente de registro</p>
+                                    </template>
                                 </div>
                             </div>
-                            <div class="flex justify-end">
-                                <a
-                                    :href="`/pacientes/${props.patient.id}/cumplimiento/${consentPrintSlug(ct.key)}/imprimir`"
+
+                            <!-- Acciones del documento -->
+                            <div class="flex flex-wrap items-center gap-1.5 border-t border-border/50 pt-2">
+                                <a v-if="doc.printSlug"
+                                    :href="`/pacientes/${props.patient.id}/cumplimiento/${doc.printSlug}/imprimir`"
                                     target="_blank"
-                                    class="inline-flex items-center gap-1 rounded-lg border border-border bg-card px-2.5 py-1 text-[11px] font-medium text-muted-foreground hover:bg-muted"
+                                    class="inline-flex items-center gap-1 rounded-lg border border-border bg-card px-2 py-1 text-[11px] font-medium text-muted-foreground hover:bg-muted"
                                 >
-                                    <FileText class="h-3 w-3" />
-                                    Imprimir formato
+                                    <Printer class="h-3 w-3" />
+                                    Imprimir
                                 </a>
+                                <!-- Descarga PDF firmado -->
+                                <a v-if="legalDocActive(doc.key)?.signed_pdf_path"
+                                    :href="`/pacientes/${props.patient.id}/documentos-legales/${legalDocActive(doc.key)!.id}/descargar`"
+                                    target="_blank"
+                                    class="inline-flex items-center gap-1 rounded-lg border border-emerald-200 bg-emerald-50 px-2 py-1 text-[11px] font-medium text-emerald-700 hover:bg-emerald-100 dark:border-emerald-900/40 dark:bg-emerald-950/20 dark:text-emerald-400"
+                                >
+                                    <Download class="h-3 w-3" />
+                                    PDF firmado
+                                </a>
+                                <button v-if="legalDocActive(doc.key)"
+                                    class="inline-flex items-center gap-1 rounded-lg border border-rose-200 bg-rose-50 px-2 py-1 text-[11px] font-medium text-rose-700 hover:bg-rose-100 dark:border-rose-900/40 dark:bg-rose-950/20 dark:text-rose-400"
+                                    @click="startRevoke(legalDocActive(doc.key)!.id)"
+                                >
+                                    <XCircle class="h-3 w-3" />
+                                    Revocar
+                                </button>
+                            </div>
+
+                            <!-- Historial de versiones colapsado -->
+                            <div v-if="legalDocHistory(doc.key).length > 1" class="border-t border-border/50 pt-2">
+                                <details class="text-[11px] text-muted-foreground">
+                                    <summary class="cursor-pointer hover:text-foreground">Ver historial ({{ legalDocHistory(doc.key).length }} registros)</summary>
+                                    <ul class="mt-1.5 space-y-1 pl-2">
+                                        <li v-for="h in legalDocHistory(doc.key)" :key="h.id" class="flex items-start gap-1">
+                                            <ShieldCheck v-if="h.status === 'accepted'" class="mt-0.5 h-3 w-3 shrink-0 text-emerald-500" />
+                                            <XCircle v-else class="mt-0.5 h-3 w-3 shrink-0 text-rose-500" />
+                                            <span>v{{ h.version }} — {{ formatDateMx(h.accepted_at) }} ({{ h.status === 'revoked' ? 'revocado' : 'aceptado' }})</span>
+                                        </li>
+                                    </ul>
+                                </details>
                             </div>
                         </div>
+                    </div>
+                </section>
+
+                <!-- Modal de revocación -->
+                <div v-if="showRevokeModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+                    <div class="w-full max-w-md rounded-[2rem] border border-border bg-card p-6 shadow-xl">
+                        <h3 class="mb-2 text-base font-semibold text-foreground">Revocar consentimiento</h3>
+                        <p class="mb-4 text-sm text-muted-foreground">
+                            Esta acción quedará registrada en la bitácora de auditoría. El paciente puede requerir firmar nuevamente.
+                        </p>
+                        <div class="mb-4">
+                            <label class="mb-1 block text-xs font-medium text-muted-foreground">Motivo (opcional)</label>
+                            <textarea v-model="revokeReason" rows="3" class="w-full rounded-xl border border-border bg-card px-3 py-2 text-sm text-foreground" placeholder="Ej. El paciente solicitó revocar, cambio de decisión..."></textarea>
+                        </div>
+                        <div class="flex gap-2 justify-end">
+                            <Button variant="outline" class="rounded-xl" @click="showRevokeModal = false">Cancelar</Button>
+                            <Button class="rounded-xl bg-rose-600 text-white hover:bg-rose-700" @click="confirmRevoke">Confirmar revocación</Button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- NOM-004 / Estado del expediente -->
+                <section class="rounded-[2rem] border border-border bg-card p-5 shadow-sm">
+                    <div class="mb-4 border-b border-border pb-3">
+                        <div class="flex items-center justify-between">
+                            <h2 class="flex items-center gap-2 text-base font-semibold text-foreground">
+                                <ClipboardList class="h-4 w-4" :style="{ color: 'var(--primary)' }" />
+                                Estado del expediente clínico
+                            </h2>
+                            <span
+                                class="rounded-full px-3 py-1 text-xs font-semibold"
+                                :class="{
+                                    'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300': expedienteStatus.color === 'emerald',
+                                    'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300': expedienteStatus.color === 'amber',
+                                    'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300': expedienteStatus.color === 'rose',
+                                }"
+                            >
+                                {{ expedienteStatus.label }} ({{ nom004Score }}/{{ nom004Total }})
+                            </span>
+                        </div>
+                        <p class="mt-1 text-xs text-muted-foreground">
+                            Checklist de buenas prácticas basado en NOM-004-SSA3-2012. No certifica cumplimiento legal.
+                        </p>
+                    </div>
+
+                    <div class="grid gap-2 sm:grid-cols-2">
+                        <div
+                            v-for="item in nom004Items"
+                            :key="item.label"
+                            class="flex items-center gap-3 rounded-xl border px-3 py-2.5"
+                            :class="item.ok
+                                ? 'border-emerald-200 bg-emerald-50/60 dark:border-emerald-900/40 dark:bg-emerald-950/20'
+                                : 'border-amber-200 bg-amber-50/60 dark:border-amber-900/40 dark:bg-amber-950/20'"
+                        >
+                            <CheckCircle2 v-if="item.ok" class="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
+                            <AlertTriangle v-else class="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
+                            <p class="text-sm text-foreground">{{ item.label }}</p>
+                        </div>
+                    </div>
+
+                    <!-- Warnings específicos -->
+                    <div v-if="!props.complianceStatus.has_emergency_contact || !props.complianceStatus.has_privacy_notice || !props.complianceStatus.has_treatment_consent || !props.complianceStatus.has_sessions"
+                         class="mt-4 rounded-2xl border border-amber-200 bg-amber-50/60 p-3 dark:border-amber-900/40 dark:bg-amber-950/20">
+                        <p class="mb-2 flex items-center gap-2 text-xs font-semibold text-amber-700 dark:text-amber-400">
+                            <AlertTriangle class="h-3.5 w-3.5" /> Elementos pendientes
+                        </p>
+                        <ul class="space-y-1 text-xs text-amber-700 dark:text-amber-400">
+                            <li v-if="!props.complianceStatus.has_emergency_contact">• Falta contacto de emergencia en la ficha del paciente</li>
+                            <li v-if="!props.complianceStatus.has_privacy_notice">• Falta aviso de privacidad aceptado</li>
+                            <li v-if="!props.complianceStatus.has_treatment_consent">• Falta consentimiento de tratamiento</li>
+                            <li v-if="!props.complianceStatus.has_sessions">• No hay sesión clínica inicial registrada</li>
+                            <li v-if="!props.complianceStatus.has_plan">• No hay plan de tratamiento registrado</li>
+                        </ul>
                     </div>
                 </section>
 
@@ -1593,86 +1884,40 @@ const registerPrivacyNotice = async () => {
                 <section class="rounded-[2rem] border border-border bg-card p-5 shadow-sm">
                     <div class="mb-4 border-b border-border pb-3">
                         <h2 class="flex items-center gap-2 text-base font-semibold text-foreground">
-                            <FileText class="h-4 w-4" :style="{ color: 'var(--primary)' }" />
+                            <Printer class="h-4 w-4" :style="{ color: 'var(--primary)' }" />
                             Documentos imprimibles
                         </h2>
                         <p class="mt-1 text-xs text-muted-foreground">
-                            Abre el formato para que el paciente lo firme físicamente.
+                            Abre el formato para que el paciente lo revise y firme físicamente.
                         </p>
                     </div>
                     <div class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                        <a
-                            :href="`/pacientes/${props.patient.id}/cumplimiento/ficha-ingreso/imprimir`"
-                            target="_blank"
-                            class="flex items-center gap-2 rounded-xl border border-border bg-muted/50 px-3 py-3 text-sm font-medium text-foreground transition-colors hover:bg-muted"
-                        >
+                        <a :href="`/pacientes/${props.patient.id}/cumplimiento/ficha-ingreso/imprimir`" target="_blank"
+                            class="flex items-center gap-2 rounded-xl border border-border bg-muted/50 px-3 py-3 text-sm font-medium text-foreground transition-colors hover:bg-muted">
                             <FileText class="h-4 w-4 shrink-0 text-zinc-400" />
                             Ficha de ingreso
                         </a>
-                        <a
-                            :href="`/pacientes/${props.patient.id}/cumplimiento/aviso-privacidad/imprimir`"
-                            target="_blank"
-                            class="flex items-center gap-2 rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-3 text-sm font-medium text-indigo-700 transition-colors hover:bg-indigo-100 dark:border-indigo-900/40 dark:bg-indigo-950/20 dark:text-indigo-300 dark:hover:bg-indigo-900/40"
-                        >
+                        <a :href="`/pacientes/${props.patient.id}/cumplimiento/aviso-privacidad/imprimir`" target="_blank"
+                            class="flex items-center gap-2 rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-3 text-sm font-medium text-indigo-700 transition-colors hover:bg-indigo-100 dark:border-indigo-900/40 dark:bg-indigo-950/20 dark:text-indigo-300 dark:hover:bg-indigo-900/40">
                             <ShieldCheck class="h-4 w-4 shrink-0 text-indigo-400" />
                             Aviso de privacidad
                         </a>
-                        <a
-                            :href="`/pacientes/${props.patient.id}/cumplimiento/consentimiento-tratamiento/imprimir`"
-                            target="_blank"
-                            class="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-3 text-sm font-medium text-emerald-700 transition-colors hover:bg-emerald-100 dark:border-emerald-900/40 dark:bg-emerald-950/20 dark:text-emerald-300 dark:hover:bg-emerald-900/40"
-                        >
+                        <a :href="`/pacientes/${props.patient.id}/cumplimiento/consentimiento-tratamiento/imprimir`" target="_blank"
+                            class="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-3 text-sm font-medium text-emerald-700 transition-colors hover:bg-emerald-100 dark:border-emerald-900/40 dark:bg-emerald-950/20 dark:text-emerald-300 dark:hover:bg-emerald-900/40">
                             <ShieldCheck class="h-4 w-4 shrink-0 text-emerald-400" />
                             Consentimiento de tratamiento
                         </a>
-                        <a
-                            :href="`/pacientes/${props.patient.id}/cumplimiento/consentimiento-imagenes/imprimir`"
-                            target="_blank"
-                            class="flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-3 text-sm font-medium text-amber-700 transition-colors hover:bg-amber-100 dark:border-amber-900/40 dark:bg-amber-950/20 dark:text-amber-300 dark:hover:bg-amber-900/40"
-                        >
+                        <a :href="`/pacientes/${props.patient.id}/cumplimiento/consentimiento-imagenes/imprimir`" target="_blank"
+                            class="flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-3 text-sm font-medium text-amber-700 transition-colors hover:bg-amber-100 dark:border-amber-900/40 dark:bg-amber-950/20 dark:text-amber-300 dark:hover:bg-amber-900/40">
                             <FileText class="h-4 w-4 shrink-0 text-amber-400" />
                             Consentimiento de imágenes
                         </a>
-                        <a
-                            :href="`/pacientes/${props.patient.id}/cumplimiento/consentimiento-datos-sensibles/imprimir`"
-                            target="_blank"
-                            class="flex items-center gap-2 rounded-xl border border-purple-200 bg-purple-50 px-3 py-3 text-sm font-medium text-purple-700 transition-colors hover:bg-purple-100 dark:border-purple-900/40 dark:bg-purple-950/20 dark:text-purple-300 dark:hover:bg-purple-900/40"
-                        >
+                        <a :href="`/pacientes/${props.patient.id}/cumplimiento/consentimiento-datos-sensibles/imprimir`" target="_blank"
+                            class="flex items-center gap-2 rounded-xl border border-purple-200 bg-purple-50 px-3 py-3 text-sm font-medium text-purple-700 transition-colors hover:bg-purple-100 dark:border-purple-900/40 dark:bg-purple-950/20 dark:text-purple-300 dark:hover:bg-purple-900/40">
                             <ShieldCheck class="h-4 w-4 shrink-0 text-purple-400" />
                             Consentimiento datos sensibles
                         </a>
                     </div>
-                </section>
-
-                <!-- Historial de consentimientos -->
-                <section class="rounded-[2rem] border border-border bg-card p-5 shadow-sm">
-                    <h2 class="mb-4 flex items-center gap-2 border-b border-border pb-3 text-base font-semibold text-foreground">
-                        <ShieldAlert class="h-4 w-4" :style="{ color: 'var(--primary)' }" />
-                        Historial de consentimientos
-                    </h2>
-
-                    <div v-if="!props.consents.length" class="rounded-2xl border border-dashed border-border bg-muted/30 p-6 text-center text-sm text-muted-foreground">
-                        No hay consentimientos registrados aún.
-                    </div>
-                    <ul v-else class="space-y-2">
-                        <li
-                            v-for="c in props.consents"
-                            :key="c.id"
-                            class="flex items-center gap-3 rounded-2xl border border-border bg-muted/30 px-4 py-3"
-                        >
-                            <ShieldCheck class="h-4 w-4 shrink-0 text-emerald-500" />
-                            <div class="min-w-0 flex-1">
-                                <p class="text-sm font-medium text-foreground">
-                                    {{ consentTypeLabel(c.consent_type) }}
-                                </p>
-                                <p class="text-xs text-muted-foreground">
-                                    {{ formatDateTimeMx(c.accepted_at) }}
-                                    <template v-if="c.accepted_by_name"> · {{ c.accepted_by_name }}</template>
-                                    <template v-if="c.notes"> · {{ c.notes }}</template>
-                                </p>
-                            </div>
-                        </li>
-                    </ul>
                 </section>
             </div>
 

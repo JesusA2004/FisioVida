@@ -20,6 +20,9 @@ import {
     RefreshCw,
     Loader2,
     CheckCircle2,
+    ShieldCheck,
+    FileText,
+    AlertTriangle,
 } from 'lucide-vue-next'
 import { tModule } from '@/lib/labels'
 import { swalConfirm, swalToast } from '@/lib/swal'
@@ -55,6 +58,31 @@ const form = useForm({
     ),
     dark_mode_enabled:
         String(props.settingsMap.dark_mode_enabled ?? '1') === '1',
+
+    // ── Cumplimiento y privacidad ─────────────────────────────────────────
+    clinic_sector: props.settingsMap.clinic_sector ?? 'physiotherapy',
+    legal_business_name: props.settingsMap.legal_business_name ?? '',
+    legal_representative: props.settingsMap.legal_representative ?? '',
+    privacy_responsible_name: props.settingsMap.privacy_responsible_name ?? '',
+    privacy_contact_email: props.settingsMap.privacy_contact_email ?? '',
+    privacy_contact_phone: props.settingsMap.privacy_contact_phone ?? '',
+    privacy_address: props.settingsMap.privacy_address ?? '',
+    privacy_notice_version: props.settingsMap.privacy_notice_version ?? '1.0',
+    privacy_notice_effective_date: props.settingsMap.privacy_notice_effective_date ?? '',
+    privacy_notice_text: props.settingsMap.privacy_notice_text ?? '',
+    sensitive_data_consent_text: props.settingsMap.sensitive_data_consent_text ?? '',
+    treatment_consent_text: props.settingsMap.treatment_consent_text ?? '',
+    image_consent_text: props.settingsMap.image_consent_text ?? '',
+    minor_consent_text: props.settingsMap.minor_consent_text ?? '',
+    data_retention_policy_text: props.settingsMap.data_retention_policy_text ?? '',
+    allow_patient_portal_acceptance:
+        String(props.settingsMap.allow_patient_portal_acceptance ?? '1') === '1',
+    require_privacy_notice_before_session:
+        String(props.settingsMap.require_privacy_notice_before_session ?? '0') === '1',
+    require_treatment_consent_before_session:
+        String(props.settingsMap.require_treatment_consent_before_session ?? '0') === '1',
+    require_image_consent_for_uploads:
+        String(props.settingsMap.require_image_consent_for_uploads ?? '0') === '1',
 })
 
 const modulesForm = useForm({
@@ -170,6 +198,10 @@ const saveSettings = async () => {
         .transform((data) => ({
             ...data,
             dark_mode_enabled: data.dark_mode_enabled ? '1' : '0',
+            allow_patient_portal_acceptance: data.allow_patient_portal_acceptance ? '1' : '0',
+            require_privacy_notice_before_session: data.require_privacy_notice_before_session ? '1' : '0',
+            require_treatment_consent_before_session: data.require_treatment_consent_before_session ? '1' : '0',
+            require_image_consent_for_uploads: data.require_image_consent_for_uploads ? '1' : '0',
         }))
         .post('/configuracion', {
             forceFormData: true,
@@ -555,6 +587,158 @@ const setHoverColor = (event: MouseEvent, color: string) => {
                     </div>
                 </article>
             </div>
+
+            <!-- ── Cumplimiento y Privacidad ─────────────────────────────────────── -->
+            <article :class="cardClass">
+                <div class="mb-4 flex items-start gap-3 border-b border-border pb-4">
+                    <div
+                        class="grid h-10 w-10 shrink-0 place-items-center rounded-2xl shadow"
+                        :style="{ backgroundColor: form.primary_color, color: form.primary_foreground_color }"
+                    >
+                        <ShieldCheck class="h-5 w-5" />
+                    </div>
+                    <div>
+                        <h2 class="text-lg font-semibold text-foreground">Cumplimiento y privacidad</h2>
+                        <p class="mt-0.5 text-sm text-muted-foreground">
+                            Herramientas de apoyo documental. Los textos son plantillas editables —
+                            <span class="font-medium text-amber-600 dark:text-amber-400">la clínica debe validar su contenido con asesoría jurídica.</span>
+                        </p>
+                    </div>
+                </div>
+
+                <div class="grid gap-6">
+                    <!-- Identidad legal -->
+                    <div>
+                        <p class="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                            <FileText class="h-3.5 w-3.5" /> Identidad legal de la clínica
+                        </p>
+                        <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                            <div class="space-y-1.5">
+                                <label class="text-xs font-medium text-foreground">Sector de salud</label>
+                                <select
+                                    v-model="form.clinic_sector"
+                                    :class="inputClass"
+                                    class="cursor-pointer"
+                                >
+                                    <option value="physiotherapy">Fisioterapia / Rehabilitación</option>
+                                    <option value="dentistry">Odontología</option>
+                                    <option value="general_medicine">Medicina general</option>
+                                    <option value="psychology">Salud mental / Psicología</option>
+                                    <option value="pediatrics">Pediatría</option>
+                                    <option value="childcare">Cuidado de niños</option>
+                                    <option value="other">Otro sector de salud</option>
+                                </select>
+                            </div>
+                            <div class="space-y-1.5">
+                                <label class="text-xs font-medium text-foreground">Razón social / nombre legal</label>
+                                <Input v-model="form.legal_business_name" :class="inputClass" placeholder="Nombre legal de la clínica" />
+                            </div>
+                            <div class="space-y-1.5">
+                                <label class="text-xs font-medium text-foreground">Representante legal</label>
+                                <Input v-model="form.legal_representative" :class="inputClass" placeholder="Nombre del representante" />
+                            </div>
+                            <div class="space-y-1.5">
+                                <label class="text-xs font-medium text-foreground">Responsable de datos personales</label>
+                                <Input v-model="form.privacy_responsible_name" :class="inputClass" placeholder="Nombre del responsable ARCO" />
+                            </div>
+                            <div class="space-y-1.5">
+                                <label class="text-xs font-medium text-foreground">Correo para derechos ARCO</label>
+                                <Input v-model="form.privacy_contact_email" :class="inputClass" type="email" placeholder="privacidad@clinica.com" />
+                            </div>
+                            <div class="space-y-1.5">
+                                <label class="text-xs font-medium text-foreground">Teléfono para privacidad</label>
+                                <Input v-model="form.privacy_contact_phone" :class="inputClass" placeholder="+52 55 0000 0000" />
+                            </div>
+                            <div class="space-y-1.5 sm:col-span-2 lg:col-span-3">
+                                <label class="text-xs font-medium text-foreground">Domicilio para derechos ARCO</label>
+                                <Input v-model="form.privacy_address" :class="inputClass" placeholder="Calle, número, colonia, ciudad, C.P." />
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Versión y vigencia -->
+                    <div class="rounded-2xl border border-border bg-muted/30 p-4">
+                        <p class="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                            <FileText class="h-3.5 w-3.5" /> Versión y vigencia del aviso de privacidad
+                        </p>
+                        <div class="grid gap-3 sm:grid-cols-2">
+                            <div class="space-y-1.5">
+                                <label class="text-xs font-medium text-foreground">Versión actual</label>
+                                <Input v-model="form.privacy_notice_version" :class="inputClass" placeholder="Ej. 1.0, 2.1" />
+                            </div>
+                            <div class="space-y-1.5">
+                                <label class="text-xs font-medium text-foreground">Fecha de vigencia</label>
+                                <Input v-model="form.privacy_notice_effective_date" :class="inputClass" type="date" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Controles de flujo -->
+                    <div class="rounded-2xl border border-border bg-muted/30 p-4">
+                        <p class="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                            <ShieldCheck class="h-3.5 w-3.5" /> Controles de cumplimiento
+                        </p>
+                        <div class="grid gap-3 sm:grid-cols-2">
+                            <label class="flex cursor-pointer items-center justify-between rounded-2xl border border-border bg-card px-4 py-3 transition hover:bg-muted/50">
+                                <div>
+                                    <p class="text-sm font-medium text-foreground">Aceptación desde portal del paciente</p>
+                                    <p class="text-xs text-muted-foreground">El paciente puede aceptar sus documentos desde su portal</p>
+                                </div>
+                                <Checkbox v-model:checked="form.allow_patient_portal_acceptance" />
+                            </label>
+                            <label class="flex cursor-pointer items-center justify-between rounded-2xl border border-border bg-card px-4 py-3 transition hover:bg-muted/50">
+                                <div>
+                                    <p class="text-sm font-medium text-foreground">Exigir aviso de privacidad</p>
+                                    <p class="text-xs text-muted-foreground">Mostrar alerta antes de registrar sesión sin aviso aceptado</p>
+                                </div>
+                                <Checkbox v-model:checked="form.require_privacy_notice_before_session" />
+                            </label>
+                            <label class="flex cursor-pointer items-center justify-between rounded-2xl border border-border bg-card px-4 py-3 transition hover:bg-muted/50">
+                                <div>
+                                    <p class="text-sm font-medium text-foreground">Exigir consentimiento de tratamiento</p>
+                                    <p class="text-xs text-muted-foreground">Mostrar alerta antes de registrar sesión sin consentimiento</p>
+                                </div>
+                                <Checkbox v-model:checked="form.require_treatment_consent_before_session" />
+                            </label>
+                            <label class="flex cursor-pointer items-center justify-between rounded-2xl border border-border bg-card px-4 py-3 transition hover:bg-muted/50">
+                                <div>
+                                    <p class="text-sm font-medium text-foreground">Exigir consentimiento de imágenes</p>
+                                    <p class="text-xs text-muted-foreground">Alertar al subir evidencia fotográfica sin consentimiento</p>
+                                </div>
+                                <Checkbox v-model:checked="form.require_image_consent_for_uploads" />
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Textos de documentos -->
+                    <div>
+                        <p class="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                            <AlertTriangle class="h-3.5 w-3.5 text-amber-500" />
+                            Plantillas de documentos legales
+                            <span class="ml-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">Editar con asesoría jurídica</span>
+                        </p>
+
+                        <div class="grid gap-4">
+                            <div v-for="doc in [
+                                { key: 'privacy_notice_text', label: 'Aviso de privacidad (LFPDPPP)' },
+                                { key: 'sensitive_data_consent_text', label: 'Consentimiento de datos sensibles de salud' },
+                                { key: 'treatment_consent_text', label: 'Consentimiento de tratamiento' },
+                                { key: 'image_consent_text', label: 'Consentimiento de imágenes / evidencia clínica' },
+                                { key: 'minor_consent_text', label: 'Consentimiento para menor de edad' },
+                                { key: 'data_retention_policy_text', label: 'Política de conservación del expediente' },
+                            ]" :key="doc.key" class="space-y-1.5">
+                                <label class="text-xs font-medium text-foreground">{{ doc.label }}</label>
+                                <textarea
+                                    v-model="(form as any)[doc.key]"
+                                    rows="6"
+                                    class="w-full rounded-2xl border border-border bg-card px-4 py-3 text-sm font-mono leading-relaxed text-foreground shadow-sm placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                                    :placeholder="`Texto editable del ${doc.label.toLowerCase()}...`"
+                                />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </article>
 
             <article :class="cardClass">
                 <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">

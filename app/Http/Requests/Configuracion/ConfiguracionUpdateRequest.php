@@ -19,6 +19,10 @@ class ConfiguracionUpdateRequest extends FormRequest {
             'clinic_logo' => $this->filled('clinic_logo') ? trim((string) $this->input('clinic_logo')) : null,
             'default_currency' => mb_strtoupper(trim((string) $this->input('default_currency', 'MXN'))),
             'dark_mode_enabled' => filter_var($this->input('dark_mode_enabled'), FILTER_VALIDATE_BOOLEAN),
+            'allow_patient_portal_acceptance' => filter_var($this->input('allow_patient_portal_acceptance', true), FILTER_VALIDATE_BOOLEAN),
+            'require_privacy_notice_before_session' => filter_var($this->input('require_privacy_notice_before_session', false), FILTER_VALIDATE_BOOLEAN),
+            'require_treatment_consent_before_session' => filter_var($this->input('require_treatment_consent_before_session', false), FILTER_VALIDATE_BOOLEAN),
+            'require_image_consent_for_uploads' => filter_var($this->input('require_image_consent_for_uploads', false), FILTER_VALIDATE_BOOLEAN),
         ]);
     }
 
@@ -41,6 +45,27 @@ class ConfiguracionUpdateRequest extends FormRequest {
             'default_currency' => ['required', 'string', 'max:10'],
             'appointment_default_duration' => ['required', 'integer', 'min:1', 'max:480'],
             'dark_mode_enabled' => ['boolean'],
+
+            // Compliance settings
+            'clinic_sector'              => ['nullable', 'string', 'max:60'],
+            'legal_business_name'        => ['nullable', 'string', 'max:255'],
+            'legal_representative'       => ['nullable', 'string', 'max:200'],
+            'privacy_responsible_name'   => ['nullable', 'string', 'max:200'],
+            'privacy_contact_email'      => ['nullable', 'email', 'max:190'],
+            'privacy_contact_phone'      => ['nullable', 'string', 'max:40'],
+            'privacy_address'            => ['nullable', 'string', 'max:500'],
+            'privacy_notice_version'     => ['nullable', 'string', 'max:20'],
+            'privacy_notice_effective_date' => ['nullable', 'string', 'max:20'],
+            'privacy_notice_text'        => ['nullable', 'string', 'max:20000'],
+            'sensitive_data_consent_text'=> ['nullable', 'string', 'max:20000'],
+            'treatment_consent_text'     => ['nullable', 'string', 'max:20000'],
+            'image_consent_text'         => ['nullable', 'string', 'max:20000'],
+            'minor_consent_text'         => ['nullable', 'string', 'max:20000'],
+            'data_retention_policy_text' => ['nullable', 'string', 'max:20000'],
+            'allow_patient_portal_acceptance'          => ['boolean'],
+            'require_privacy_notice_before_session'    => ['boolean'],
+            'require_treatment_consent_before_session' => ['boolean'],
+            'require_image_consent_for_uploads'        => ['boolean'],
         ];
     }
 

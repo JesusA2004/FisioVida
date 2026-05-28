@@ -9,13 +9,14 @@ import {
     HeartPulse, UserRound, Clock, ExternalLink,
     Download, AlertCircle, CheckCircle2, ChevronDown, ChevronUp,
     Building2, Phone, Mail, Plus, X, Loader2, Play,
-    CalendarPlus, TrendingUp, ClipboardList, Star,
+    CalendarPlus, TrendingUp, ClipboardList, Star, ShieldCheck,
 } from 'lucide-vue-next';
 import { formatDateMx, formatDateTimeMx } from '@/lib/dates';
 import { tAppointmentStatus } from '@/lib/labels';
 import { youtubeThumbnail, youtubeEmbedUrl, isYoutubeUrl } from '@/lib/youtube';
 import VueApexCharts from 'vue3-apexcharts';
 import DatePicker from '@/components/ui/DatePicker.vue';
+import SignaturePad from '@/components/fv/SignaturePad.vue';
 
 // ───────── Types ─────────
 type Patient = {
@@ -33,6 +34,22 @@ type MyRequest = { id: number; preferred_date: string; preferred_time?: string |
 type Stats = { total_sessions: number; total_appts: number; active_exercises: number; last_pain_scale: number | null; next_appointment: { start_at: string; therapist_name?: string } | null; pending_requests: number; };
 type ClinicSettings = Record<string, string | null>;
 
+type LegalAcceptance = {
+    id: number;
+    document_type: string;
+    version: string;
+    title?: string | null;
+    accepted_at: string;
+    status: string; // accepted | revoked
+    source: string; // staff | portal
+    signer_name?: string | null;
+    signature_method?: string | null;
+    signed_pdf_path?: string | null;
+    signed_at?: string | null;
+};
+
+type ComplianceSettings = Record<string, string | null>;
+
 // ───────── Props ─────────
 const props = defineProps<{
     unlinked: boolean;
@@ -46,6 +63,9 @@ const props = defineProps<{
     files?: PatientFile[];
     activities?: Activity[];
     consents?: any[];
+    legalAcceptances?: LegalAcceptance[];
+    privacyNotices?: any[];
+    complianceSettings?: ComplianceSettings;
     myRequests?: MyRequest[];
     clinicSettings?: ClinicSettings;
 }>();
@@ -53,7 +73,7 @@ const props = defineProps<{
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'Mi Portal', href: '/mi-portal' }];
 
 // ───────── Tabs ─────────
-type Tab = 'inicio' | 'citas' | 'ejercicios' | 'archivos' | 'solicitudes';
+type Tab = 'inicio' | 'citas' | 'ejercicios' | 'archivos' | 'solicitudes' | 'privacidad';
 const activeTab = ref<Tab>('inicio');
 const tabs: { key: Tab; label: string; icon: any }[] = [
     { key: 'inicio',      label: 'Inicio',          icon: HeartPulse },
@@ -61,6 +81,7 @@ const tabs: { key: Tab; label: string; icon: any }[] = [
     { key: 'ejercicios',  label: 'Ejercicios 💪',    icon: Dumbbell },
     { key: 'archivos',    label: 'Archivos',         icon: FileText },
     { key: 'solicitudes', label: 'Solicitar cita',   icon: CalendarPlus },
+    { key: 'privacidad',  label: 'Privacidad',       icon: Star },
 ];
 
 // ───────── Video modal ─────────
@@ -183,6 +204,123 @@ const hasPainHistory = computed(() => (props.painHistory?.length ?? 0) > 1);
 const hasRequests    = computed(() => (props.myRequests?.length ?? 0) > 0);
 const pendingRequests = computed(() => (props.myRequests ?? []).filter(r => r.status === 'pending'));
 const latestPlan     = computed(() => props.sessions?.find(s => s.plan)?.plan ?? null);
+
+// ───────── Privacidad / documentos legales ─────────
+const PORTAL_DOCS = [
+    { key: 'privacy_notice',    label: 'Aviso de privacidad',                    textKey: 'privacy_notice_text',        required: true },
+    { key: 'sensitive_data',    label: 'Consentimiento de datos sensibles',       textKey: 'sensitive_data_consent_text', required: true },
+    { key: 'treatment_consent', label: 'Consentimiento de tratamiento',           textKey: 'treatment_consent_text',     required: false },
+    { key: 'image_consent',     label: 'Consentimiento de imágenes / evidencia',  textKey: 'image_consent_text',         required: false },
+] as const;
+
+const legalActive = (docType: string): LegalAcceptance | null =>
+    (props.legalAcceptances ?? []).find(a => a.document_type === docType && a.status === 'accepted') ?? null;
+
+const portalAllowed = computed(() =>
+    (props.complianceSettings?.allow_patient_portal_acceptance ?? '1') !== '0'
+);
+
+const pendingDocs = computed(() =>
+    PORTAL_DOCS.filter(d => !legalActive(d.key))
+);
+
+const showDocText = ref<string | null>(null);
+const acceptingDoc = ref<string | null>(null);
+const acceptSaving = ref(false);
+const acceptError  = ref('');
+const portalSignaturePad = ref<InstanceType<typeof SignaturePad> | null>(null);
+const portalSignatureData = ref('');
+
+const acceptForm = ref({
+    document_type: '',
+    confirmed: false,
+    signer_name: '',
+    guardian_name: '',
+    guardian_relationship: '',
+});
+
+const startAccept = (docKey: string) => {
+    acceptForm.value = {
+        document_type: docKey,
+        confirmed: false,
+        signer_name: props.patient?.full_name ?? '',
+        guardian_name: '',
+        guardian_relationship: '',
+    };
+    portalSignatureData.value = '';
+    acceptError.value = '';
+    acceptingDoc.value = docKey;
+    showDocText.value = null;
+};
+
+const getCsrfPortal = () =>
+    (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content ?? '';
+
+const canSubmitAccept = computed(() =>
+    acceptForm.value.confirmed &&
+    !!acceptForm.value.document_type &&
+    !!acceptForm.value.signer_name.trim() &&
+    !!portalSignatureData.value
+);
+
+const submitAccept = async () => {
+    acceptError.value = '';
+
+    if (!acceptForm.value.confirmed) {
+        acceptError.value = 'Debes marcar la casilla de aceptación.';
+        return;
+    }
+    if (!acceptForm.value.signer_name.trim()) {
+        acceptError.value = 'Ingresa tu nombre completo.';
+        return;
+    }
+    if (!portalSignatureData.value) {
+        acceptError.value = 'Se requiere firma dibujada. Dibuja tu firma en el recuadro.';
+        return;
+    }
+    if (!acceptForm.value.document_type) return;
+
+    acceptSaving.value = true;
+    try {
+        const body: Record<string, unknown> = {
+            document_type: acceptForm.value.document_type,
+            confirmed: true,
+            signer_name: acceptForm.value.signer_name.trim(),
+            signature_image: portalSignatureData.value,
+        };
+
+        if (acceptForm.value.guardian_name.trim()) {
+            body.guardian_name = acceptForm.value.guardian_name.trim();
+            body.guardian_relationship = acceptForm.value.guardian_relationship.trim();
+        }
+
+        const res = await fetch('/mi-portal/documentos/aceptar', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                Accept: 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': getCsrfPortal(),
+            },
+            body: JSON.stringify(body),
+        });
+
+        const json = await res.json().catch(() => ({}));
+
+        if (res.ok || res.status === 200) {
+            acceptingDoc.value = null;
+            portalSignatureData.value = '';
+            router.reload();
+        } else if (res.status === 422) {
+            const errs = json?.errors ?? {};
+            acceptError.value = Object.values(errs).flat().join(' ') || 'Revisa los datos ingresados.';
+        } else {
+            acceptError.value = json?.message ?? 'Error al registrar. Intenta de nuevo.';
+        }
+    } finally {
+        acceptSaving.value = false;
+    }
+};
 </script>
 
 <template>
@@ -681,6 +819,203 @@ const latestPlan     = computed(() => props.sessions?.find(s => s.plan)?.plan ??
                             <CalendarPlus class="h-7 w-7 text-muted-foreground opacity-40" />
                             <p class="mt-1 text-sm text-muted-foreground">Sin solicitudes enviadas</p>
                         </div>
+                    </div>
+                </div>
+
+                <!-- ═══════ TAB: PRIVACIDAD ═══════ -->
+                <div v-if="activeTab === 'privacidad'" class="space-y-4">
+
+                    <!-- Aviso general -->
+                    <div class="fv-card-premium p-4">
+                        <div class="flex items-start gap-3">
+                            <div class="grid h-10 w-10 shrink-0 place-items-center rounded-2xl" :style="primaryStyle">
+                                <Star class="h-5 w-5" />
+                            </div>
+                            <div>
+                                <p class="font-semibold text-foreground">Tus datos y tu privacidad</p>
+                                <p class="mt-1 text-sm text-muted-foreground leading-relaxed">
+                                    Tus datos se usan exclusivamente para tu atención médica: citas, seguimiento de tratamiento, expediente clínico y comunicación contigo dentro de esta clínica. No se venden ni se comparten con terceros.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Documentos pendientes de aceptar -->
+                    <div v-if="pendingDocs.length > 0 && portalAllowed" class="rounded-[2rem] border border-amber-200 bg-amber-50/60 p-4 dark:border-amber-900/40 dark:bg-amber-950/20">
+                        <p class="mb-3 flex items-center gap-2 text-sm font-semibold text-amber-700 dark:text-amber-400">
+                            <TrendingUp class="h-4 w-4" />
+                            Documentos pendientes de aceptar ({{ pendingDocs.length }})
+                        </p>
+                        <div class="grid gap-2 sm:grid-cols-2">
+                            <button
+                                v-for="doc in pendingDocs"
+                                :key="doc.key"
+                                class="flex items-center justify-between rounded-2xl border border-amber-300 bg-white px-4 py-3 text-left shadow-sm transition hover:-translate-y-0.5 dark:border-amber-900/40 dark:bg-amber-950/10"
+                                @click="startAccept(doc.key)"
+                            >
+                                <div>
+                                    <p class="text-sm font-semibold text-foreground">{{ doc.label }}</p>
+                                    <p class="text-xs text-muted-foreground mt-0.5">Toca para leer y aceptar</p>
+                                </div>
+                                <ChevronDown class="h-4 w-4 shrink-0 text-amber-500" />
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- No habilitado desde portal -->
+                    <div v-if="!portalAllowed && pendingDocs.length > 0" class="rounded-[2rem] border border-border bg-muted/30 p-4 text-center text-sm text-muted-foreground">
+                        La aceptación de documentos desde el portal no está disponible en este momento. Consulta con el personal de la clínica.
+                    </div>
+
+                    <!-- Modal de aceptación con firma digital -->
+                    <div v-if="acceptingDoc" class="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 p-2 sm:p-4">
+                        <div class="w-full max-w-xl rounded-[2rem] border border-border bg-card shadow-2xl overflow-hidden flex flex-col max-h-[95vh]">
+
+                            <!-- Header -->
+                            <div class="p-5 border-b border-border shrink-0">
+                                <div class="flex items-start justify-between gap-2">
+                                    <div>
+                                        <p class="font-semibold text-foreground">{{ PORTAL_DOCS.find(d => d.key === acceptingDoc)?.label }}</p>
+                                        <p class="text-xs text-muted-foreground mt-0.5">Lee el documento completo y firma digitalmente</p>
+                                    </div>
+                                    <button class="text-muted-foreground hover:text-foreground p-1" @click="acceptingDoc = null; portalSignatureData = ''">
+                                        <X class="h-4 w-4" />
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Texto del documento -->
+                            <div class="overflow-y-auto px-5 py-4 flex-1">
+                                <pre class="whitespace-pre-wrap text-xs leading-relaxed text-foreground font-sans rounded-xl border border-border bg-muted/40 p-4">{{ props.complianceSettings?.[PORTAL_DOCS.find(d => d.key === acceptingDoc)?.textKey ?? ''] ?? 'Cargando documento...' }}</pre>
+                            </div>
+
+                            <!-- Formulario de aceptación y firma -->
+                            <div class="p-5 border-t border-border space-y-4 shrink-0">
+
+                                <!-- Checkbox de lectura -->
+                                <label class="flex items-start gap-3 cursor-pointer">
+                                    <input type="checkbox" v-model="acceptForm.confirmed" class="mt-0.5 h-4 w-4 rounded border-border" />
+                                    <span class="text-sm text-foreground">
+                                        He leído y entendido el documento. Acepto voluntariamente.
+                                    </span>
+                                </label>
+
+                                <!-- Nombre del firmante -->
+                                <div>
+                                    <label class="mb-1 block text-xs font-medium text-muted-foreground">Tu nombre completo *</label>
+                                    <input
+                                        v-model="acceptForm.signer_name"
+                                        type="text"
+                                        placeholder="Como aparece en tu identificación"
+                                        class="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                                    />
+                                </div>
+
+                                <!-- Datos de tutor si es minor_consent -->
+                                <template v-if="acceptingDoc === 'minor_consent'">
+                                    <div class="grid gap-3 sm:grid-cols-2">
+                                        <div>
+                                            <label class="mb-1 block text-xs font-medium text-muted-foreground">Nombre del tutor / representante legal *</label>
+                                            <input v-model="acceptForm.guardian_name" type="text" placeholder="Nombre del tutor" class="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary" />
+                                        </div>
+                                        <div>
+                                            <label class="mb-1 block text-xs font-medium text-muted-foreground">Parentesco</label>
+                                            <input v-model="acceptForm.guardian_relationship" type="text" placeholder="Madre, Padre, Tutor legal..." class="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary" />
+                                        </div>
+                                    </div>
+                                </template>
+
+                                <!-- Firma dibujada -->
+                                <div>
+                                    <label class="mb-2 block text-xs font-medium text-muted-foreground">
+                                        Firma digital * <span class="font-normal">(dibuja tu firma con el mouse o dedo)</span>
+                                    </label>
+                                    <SignaturePad
+                                        ref="portalSignaturePad"
+                                        v-model="portalSignatureData"
+                                        :height="140"
+                                    />
+                                </div>
+
+                                <!-- Error -->
+                                <p v-if="acceptError" class="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700 dark:border-rose-900/40 dark:bg-rose-950/20 dark:text-rose-400">
+                                    {{ acceptError }}
+                                </p>
+
+                                <!-- Aviso legal -->
+                                <p class="text-[11px] text-muted-foreground leading-snug">
+                                    Esta firma digital simple registra evidencia de aceptación. La clínica debe validar su contenido con asesor jurídico. No es firma electrónica avanzada.
+                                </p>
+
+                                <!-- Acciones -->
+                                <div class="flex gap-2 justify-end">
+                                    <button
+                                        class="h-9 rounded-xl border border-border bg-card px-4 text-sm font-medium text-muted-foreground hover:bg-muted"
+                                        @click="acceptingDoc = null; portalSignatureData = ''; acceptError = ''"
+                                    >
+                                        Cancelar
+                                    </button>
+                                    <button
+                                        class="h-9 rounded-xl px-5 text-sm font-semibold text-white disabled:opacity-50 transition-opacity"
+                                        :style="primaryStyle"
+                                        :disabled="!canSubmitAccept || acceptSaving"
+                                        @click="submitAccept"
+                                    >
+                                        <Loader2 v-if="acceptSaving" class="mr-1.5 inline h-3.5 w-3.5 animate-spin" />
+                                        {{ acceptSaving ? 'Firmando...' : 'Firmar y aceptar' }}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Documentos aceptados -->
+                    <div class="fv-card-premium p-4">
+                        <p class="mb-3 font-semibold text-foreground flex items-center gap-2">
+                            <CheckCircle2 class="h-4 w-4 text-emerald-500" />
+                            Mis documentos aceptados
+                        </p>
+
+                        <div v-if="(props.legalAcceptances ?? []).filter(a => a.status === 'accepted').length === 0" class="text-center py-6 text-sm text-muted-foreground">
+                            No has aceptado ningún documento aún.
+                        </div>
+
+                        <ul v-else class="space-y-2">
+                            <li
+                                v-for="doc in (props.legalAcceptances ?? []).filter(a => a.status === 'accepted')"
+                                :key="doc.id"
+                                class="flex items-center gap-3 rounded-2xl border border-emerald-200 bg-emerald-50/60 px-4 py-3 dark:border-emerald-900/40 dark:bg-emerald-950/20"
+                            >
+                                <CheckCircle2 class="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
+                                <div class="min-w-0 flex-1">
+                                    <p class="text-sm font-medium text-foreground">{{ doc.title ?? doc.document_type }}</p>
+                                    <p class="text-xs text-muted-foreground">
+                                        v{{ doc.version }} · {{ doc.accepted_at ? new Date(doc.accepted_at).toLocaleDateString('es-MX') : '—' }}
+                                        <span v-if="doc.signature_method === 'drawn_signature'" class="ml-1 text-emerald-600 dark:text-emerald-400">· Firma dibujada</span>
+                                        <span v-if="doc.source === 'portal'" class="ml-1 text-indigo-600 dark:text-indigo-400">· Portal</span>
+                                    </p>
+                                </div>
+                                <a
+                                    v-if="doc.signed_pdf_path"
+                                    :href="`/mi-portal/documentos/${doc.id}/descargar`"
+                                    target="_blank"
+                                    class="inline-flex items-center gap-1 rounded-lg border border-emerald-300 bg-white px-2.5 py-1.5 text-[11px] font-medium text-emerald-700 hover:bg-emerald-50 shrink-0"
+                                    title="Descargar PDF firmado"
+                                >
+                                    <Download class="h-3 w-3" />
+                                    PDF
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <!-- Privacidad info -->
+                    <div class="fv-card-premium p-4 text-xs text-muted-foreground leading-relaxed">
+                        <p class="font-semibold text-foreground mb-1">¿Por qué se recaban mis datos?</p>
+                        <p>Tus datos de salud se recaban para prestarte atención médica personalizada, dar seguimiento a tu tratamiento y mantener tu expediente clínico organizado. Puedes ejercer tus derechos ARCO (Acceso, Rectificación, Cancelación, Oposición) contactando al responsable de privacidad de la clínica.</p>
+                        <p v-if="props.clinicSettings?.privacy_contact_email" class="mt-2">
+                            Contacto: <span class="font-medium text-foreground">{{ props.clinicSettings.privacy_contact_email }}</span>
+                        </p>
                     </div>
                 </div>
 

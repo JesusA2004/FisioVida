@@ -153,12 +153,50 @@ class PacientePortalController extends Controller
             ->limit(10)
             ->get(['a.id', 'a.title', 'a.status', 'a.priority', 'a.due_date']);
 
-        // ---------- Consentimientos ----------
+        // ---------- Consentimientos (tabla legacy) ----------
         $consents = Schema::hasTable('patient_consents')
             ? DB::table('patient_consents')
                 ->where('patient_persona_id', $personaId)
                 ->orderByDesc('accepted_at')
                 ->get(['id', 'consent_type', 'accepted_at'])
+                ->toArray()
+            : [];
+
+        // ---------- Aceptaciones legales (nueva tabla unificada) ----------
+        $legalAcceptances = Schema::hasTable('patient_legal_acceptances')
+            ? DB::table('patient_legal_acceptances')
+                ->where('patient_persona_id', $personaId)
+                ->orderByDesc('accepted_at')
+                ->get([
+                    'id', 'document_type', 'version', 'title',
+                    'accepted_at', 'status', 'source',
+                    'signer_name', 'signature_method', 'signed_pdf_path', 'signed_at',
+                ])
+                ->toArray()
+            : [];
+
+        // ---------- Configuración de compliance (para mostrar textos en portal) ----------
+        $complianceSettings = [];
+        if (Schema::hasTable('system_settings')) {
+            $complianceSettings = DB::table('system_settings')
+                ->whereIn('key', [
+                    'privacy_notice_version', 'privacy_notice_effective_date',
+                    'privacy_notice_text', 'sensitive_data_consent_text',
+                    'treatment_consent_text', 'image_consent_text', 'minor_consent_text',
+                    'allow_patient_portal_acceptance',
+                    'privacy_responsible_name', 'privacy_contact_email',
+                ])
+                ->pluck('value', 'key')
+                ->toArray();
+        }
+
+        // ---------- Aviso de privacidad (tabla legacy) ----------
+        $privacyNotices = Schema::hasTable('privacy_notice_acceptances')
+            ? DB::table('privacy_notice_acceptances')
+                ->where('patient_persona_id', $personaId)
+                ->orderByDesc('accepted_at')
+                ->limit(1)
+                ->get(['id', 'version', 'accepted_at'])
                 ->toArray()
             : [];
 
@@ -219,6 +257,9 @@ class PacientePortalController extends Controller
             'files'                => $files,
             'activities'           => $activities,
             'consents'             => $consents,
+            'legalAcceptances'     => $legalAcceptances,
+            'privacyNotices'       => $privacyNotices,
+            'complianceSettings'   => $complianceSettings,
             'myRequests'           => $myRequests,
             'clinicSettings'       => $this->clinicSettings(),
         ]);
@@ -304,7 +345,10 @@ class PacientePortalController extends Controller
         }
 
         return DB::table('system_settings')
-            ->whereIn('key', ['clinic_name', 'clinic_phone', 'clinic_email', 'clinic_address', 'clinic_logo'])
+            ->whereIn('key', [
+                'clinic_name', 'clinic_phone', 'clinic_email', 'clinic_address', 'clinic_logo',
+                'privacy_responsible_name', 'privacy_contact_email', 'privacy_notice_version',
+            ])
             ->pluck('value', 'key')
             ->toArray();
     }

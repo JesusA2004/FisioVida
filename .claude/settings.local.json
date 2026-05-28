@@ -20,7 +20,10 @@
       "Bash(Get-ChildItem \"C:\\\\wamp64\\\\www\\\\FisioVida\\\\resources\\\\js\\\\components\\\\ui\" -Directory)",
       "Bash(Select-Object Name)",
       "Bash(New-Item -ItemType Directory -Path \"C:\\\\wamp64\\\\www\\\\FisioVida\\\\resources\\\\js\\\\pages\\\\PacientePortal\" -Force)",
-      "Bash(Out-Null)"
+      "Bash(Out-Null)",
+      "Bash(find C:\\\\\\\\wamp64\\\\\\\\www\\\\\\\\FisioVida -type f -name \"*.php\")",
+      "Bash(ls *)",
+      "Bash(xargs grep -l \"consent\\\\|privacy\\\\|patient\")"
     ]
   }
 }

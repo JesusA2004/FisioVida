@@ -21,6 +21,7 @@ class DatabaseSeeder extends Seeder
             PagosDemoSeeder::class,
             ActividadesDemoSeeder::class,
             AppointmentRequestsDemoSeeder::class,
+            CumplimientoDemoSeeder::class,
         ]);
     }
 }

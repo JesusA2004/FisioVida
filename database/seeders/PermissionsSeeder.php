@@ -31,6 +31,17 @@ class PermissionsSeeder extends Seeder
                 'appointment_requests.update',
                 'appointment_requests.approve',
             ],
+            'legal_documents' => [
+                'legal_documents.view',
+                'legal_documents.accept',
+                'legal_documents.revoke',
+                'legal_documents.print',
+                'legal_documents.configure',
+            ],
+            'compliance' => [
+                'compliance.view',
+                'compliance.manage',
+            ],
         ];
 
         foreach ($permissions as $module => $slugs) {

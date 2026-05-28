@@ -318,6 +318,45 @@ class PacientesController extends Controller {
                 ->all()
             : [];
 
+        // Nueva tabla unificada con snapshot y revocación
+        $legalAcceptances = Schema::hasTable('patient_legal_acceptances')
+            ? DB::table('patient_legal_acceptances as la')
+                ->leftJoin('users as u', 'u.id', '=', 'la.accepted_by_user_id')
+                ->leftJoin('users as rv', 'rv.id', '=', 'la.revoked_by')
+                ->where('la.patient_persona_id', $id)
+                ->orderByDesc('la.accepted_at')
+                ->get([
+                    'la.id', 'la.document_type', 'la.version', 'la.title',
+                    'la.accepted_at', 'la.status', 'la.source',
+                    'la.guardian_name', 'la.guardian_relationship',
+                    'la.revoked_at', 'la.revocation_reason',
+                    'la.signer_name', 'la.signer_role', 'la.signature_method',
+                    'la.document_hash', 'la.signature_hash',
+                    'la.signed_pdf_path', 'la.signed_at',
+                    'u.name as accepted_by_name',
+                    'rv.name as revoked_by_name',
+                ])
+                ->map(fn ($r) => (array) $r)
+                ->all()
+            : [];
+
+        // Calcular estado de cumplimiento del expediente (para NOM-004 checklist)
+        $hasSessions    = DB::table('therapy_sessions')->where('patient_persona_id', $id)->exists();
+        $hasPlan        = DB::table('therapy_sessions')->where('patient_persona_id', $id)->whereNotNull('plan')->exists();
+        $hasEmergency   = ! empty($patient->contacto_emergencia_nombre);
+
+        $complianceStatus = [
+            'has_privacy_notice'      => ! empty($privacyNotices) || $this->hasLegalDoc($legalAcceptances, 'privacy_notice'),
+            'has_sensitive_data'      => $this->hasLegalDoc($legalAcceptances, 'sensitive_data') || collect($consents)->where('consent_type', 'datos_sensibles')->isNotEmpty(),
+            'has_treatment_consent'   => $this->hasLegalDoc($legalAcceptances, 'treatment_consent') || collect($consents)->where('consent_type', 'tratamiento')->isNotEmpty(),
+            'has_image_consent'       => $this->hasLegalDoc($legalAcceptances, 'image_consent') || collect($consents)->where('consent_type', 'imagenes')->isNotEmpty(),
+            'has_minor_consent'       => $this->hasLegalDoc($legalAcceptances, 'minor_consent'),
+            'has_sessions'            => $hasSessions,
+            'has_plan'                => $hasPlan,
+            'has_emergency_contact'   => $hasEmergency,
+            'has_responsible_therapist' => DB::table('therapy_sessions')->where('patient_persona_id', $id)->whereNotNull('therapist_user_id')->exists(),
+        ];
+
         return Inertia::render('Pacientes/Show', [
             'patient' => [
                 'id' => $patient->id,
@@ -339,9 +378,19 @@ class PacientesController extends Controller {
             'files' => $files,
             'payments' => $payments,
             'activities' => $activities,
-            'consents' => $consents,
-            'privacyNotices' => $privacyNotices,
+            'consents'          => $consents,
+            'privacyNotices'    => $privacyNotices,
+            'legalAcceptances'  => $legalAcceptances,
+            'complianceStatus'  => $complianceStatus,
         ]);
+    }
+
+    private function hasLegalDoc(array $acceptances, string $docType): bool
+    {
+        return collect($acceptances)
+            ->where('document_type', $docType)
+            ->where('status', 'accepted')
+            ->isNotEmpty();
     }
 
     private function sanitizePersonaPayload(array $payload): array

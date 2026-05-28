@@ -20,6 +20,7 @@ use App\Http\Controllers\FisioVida\DashboardController;
 use App\Http\Controllers\FisioVida\ReportesController;
 use App\Http\Controllers\FisioVida\ConsentimientosController;
 use App\Http\Controllers\FisioVida\CumplimientoDocumentosController;
+use App\Http\Controllers\FisioVida\LegalDocumentsController;
 use App\Http\Controllers\FisioVida\MiJornadaController;
 use App\Http\Controllers\FisioVida\PacientePortalController;
 use App\Http\Controllers\FisioVida\AppointmentRequestsController;
@@ -94,6 +95,28 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('pacientes/{paciente}/cumplimiento/consentimiento-datos-sensibles/imprimir', [CumplimientoDocumentosController::class, 'printSensitiveDataConsent'])
         ->name('pacientes.cumplimiento.datos-sensibles')
         ->middleware('permission:patients.view');
+
+    // ── Documentos legales (tabla unificada con snapshot, firma digital, PDF) ──
+    Route::post('pacientes/{paciente}/documentos-legales', [LegalDocumentsController::class, 'store'])
+        ->name('pacientes.legal.store')
+        ->middleware('permission:patients.update');
+
+    Route::patch('pacientes/{paciente}/documentos-legales/{aceptacion}/revocar', [LegalDocumentsController::class, 'revoke'])
+        ->name('pacientes.legal.revoke')
+        ->middleware('permission:patients.update');
+
+    Route::get('pacientes/{paciente}/documentos-legales/{aceptacion}/descargar', [LegalDocumentsController::class, 'downloadStaff'])
+        ->name('pacientes.legal.download')
+        ->middleware('permission:patients.view');
+
+    // ── Portal paciente: aceptar y descargar documentos ─────────────────────
+    Route::post('mi-portal/documentos/aceptar', [LegalDocumentsController::class, 'portalAccept'])
+        ->name('portal.legal.accept')
+        ->middleware('permission:patient_portal.view');
+
+    Route::get('mi-portal/documentos/{aceptacion}/descargar', [LegalDocumentsController::class, 'downloadPortal'])
+        ->name('portal.legal.download')
+        ->middleware('permission:patient_portal.view');
 
     Route::get('usuarios', [UsuariosController::class, 'index'])->name('usuarios.index')->middleware('permission:users.view');
     Route::post('usuarios', [UsuariosController::class, 'store'])->name('usuarios.store')->middleware('permission:users.create');
