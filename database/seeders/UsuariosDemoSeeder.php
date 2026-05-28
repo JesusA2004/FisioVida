@@ -56,23 +56,45 @@ class UsuariosDemoSeeder extends Seeder
                 'role' => 'terapeuta',
                 'persona' => ['nombres' => 'Iván', 'apellido_paterno' => 'Solís', 'apellido_materno' => 'Nava', 'telefono' => '5511110007'],
             ],
+            [
+                'email' => 'paciente@demo.com',
+                'name' => 'Sofía Ramírez',
+                'role' => 'paciente',
+                'persona_tipo' => 'paciente',
+                'persona' => [
+                    'nombres' => 'Sofía',
+                    'apellido_paterno' => 'Ramírez',
+                    'apellido_materno' => 'Lozano',
+                    'telefono' => '5532001000',
+                    'fecha_nacimiento' => '1993-04-15',
+                    'sexo' => 'F',
+                    'direccion' => 'Av. Insurgentes Sur 1234, Col. Del Valle, CDMX',
+                    'notas' => 'Paciente demo portal. Rehabilitación musculoesquelética por lumbalgia crónica.',
+                ],
+            ],
         ];
 
         foreach ($demoUsers as $item) {
+            $tipo = $item['persona_tipo'] ?? 'staff';
+            $personaData = array_merge([
+                'tipo' => $tipo,
+                'status' => 'active',
+                'telefono' => $item['persona']['telefono'],
+                'direccion' => $item['persona']['direccion'] ?? 'Sucursal Demo FisioVida, Ciudad de México',
+                'notas' => $item['persona']['notas'] ?? 'DEMO_USER:'.$item['email'],
+            ], array_intersect_key($item['persona'], array_flip(['fecha_nacimiento', 'sexo'])));
+
             $persona = Persona::query()->updateOrCreate(
                 [
                     'nombres' => $item['persona']['nombres'],
                     'apellido_paterno' => $item['persona']['apellido_paterno'],
                     'apellido_materno' => $item['persona']['apellido_materno'],
                 ],
-                [
-                    'tipo' => 'staff',
-                    'status' => 'active',
-                    'telefono' => $item['persona']['telefono'],
-                    'direccion' => 'Sucursal Demo FisioVida, Ciudad de México',
-                    'notas' => 'DEMO_USER:'.$item['email'],
-                ]
+                $personaData
             );
+
+            // Paciente no debe tener acceso legacy via mod_*
+            $isPatientRole = ($item['role'] === 'paciente');
 
             $user = User::query()->updateOrCreate(
                 ['email' => $item['email']],
@@ -82,14 +104,14 @@ class UsuariosDemoSeeder extends Seeder
                     'password' => Hash::make('password'),
                     'status' => 'active',
                     'is_super_admin' => (bool) ($item['is_super_admin'] ?? false),
-                    'mod_agenda' => true,
-                    'mod_pacientes' => true,
-                    'mod_sesiones' => true,
-                    'mod_ejercicios' => true,
-                    'mod_archivos' => true,
-                    'mod_reportes' => true,
-                    'mod_cobranza' => true,
-                    'mod_config' => true,
+                    'mod_agenda' => ! $isPatientRole,
+                    'mod_pacientes' => ! $isPatientRole,
+                    'mod_sesiones' => ! $isPatientRole,
+                    'mod_ejercicios' => ! $isPatientRole,
+                    'mod_archivos' => ! $isPatientRole,
+                    'mod_reportes' => ! $isPatientRole,
+                    'mod_cobranza' => ! $isPatientRole,
+                    'mod_config' => ! $isPatientRole,
                 ]
             );
 

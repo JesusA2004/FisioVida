@@ -24,6 +24,7 @@ class PermissionsSeeder extends Seeder
             'settings' => ['settings.view', 'settings.update'],
             'reports' => ['reports.view'],
             'logs' => ['logs.view'],
+            'patient_portal' => ['patient_portal.view'],
         ];
 
         foreach ($permissions as $module => $slugs) {

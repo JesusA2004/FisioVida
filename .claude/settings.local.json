@@ -18,7 +18,9 @@
       "Bash(Get-ChildItem -Path \"C:\\\\wamp64\\\\www\\\\FisioVida\" -Directory)",
       "Bash(Select-Object -ExpandProperty Name)",
       "Bash(Get-ChildItem \"C:\\\\wamp64\\\\www\\\\FisioVida\\\\resources\\\\js\\\\components\\\\ui\" -Directory)",
-      "Bash(Select-Object Name)"
+      "Bash(Select-Object Name)",
+      "Bash(New-Item -ItemType Directory -Path \"C:\\\\wamp64\\\\www\\\\FisioVida\\\\resources\\\\js\\\\pages\\\\PacientePortal\" -Force)",
+      "Bash(Out-Null)"
     ]
   }
 }

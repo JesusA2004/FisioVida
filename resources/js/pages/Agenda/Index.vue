@@ -28,8 +28,10 @@ import {
     ClipboardPlus,
     Clock,
     Info,
+    Loader2,
     Pencil,
     Search,
+    UserPlus,
     UserRound,
     UsersRound,
     X,
@@ -182,6 +184,41 @@ const currentStatusText = computed(() =>
         ? tAppointmentStatus(editingStatus.value)
         : tAppointmentStatus('scheduled'),
 );
+
+// Quick patient creation
+const localPatients = ref<{ id: number; label: string }[]>([...props.lookups.patients]);
+const showQuickPatient = ref(false);
+const quickSaving      = ref(false);
+const quickForm = ref({ nombres: '', apellido_paterno: '', apellido_materno: '', telefono: '' });
+
+const getCsrfMeta = (): string =>
+    (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content ?? '';
+
+const createQuickPatient = async () => {
+    if (!quickForm.value.nombres || !quickForm.value.apellido_paterno) return;
+    quickSaving.value = true;
+    try {
+        const res = await fetch('/pacientes/rapido', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': getCsrfMeta(),
+            },
+            body: JSON.stringify(quickForm.value),
+        });
+        if (res.ok) {
+            const { id, label } = await res.json();
+            localPatients.value.unshift({ id, label });
+            form.patient_persona_id = id;
+            showQuickPatient.value = false;
+            quickForm.value = { nombres: '', apellido_paterno: '', apellido_materno: '', telefono: '' };
+        }
+    } finally {
+        quickSaving.value = false;
+    }
+};
 
 const inputBase =
     'h-11 rounded-2xl border-input bg-card shadow-sm transition-all duration-200 placeholder:text-muted-foreground focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/20';
@@ -597,42 +634,76 @@ const atenderCita = (row: CitaRow) => {
                                         class="grid gap-4 md:grid-cols-2 xl:grid-cols-3"
                                     >
                                         <div class="space-y-2">
-                                            <Label :class="labelBase">
-                                                Paciente
-                                                <span class="text-red-500"
-                                                    >*</span
+                                            <div class="flex items-center justify-between">
+                                                <Label :class="labelBase">
+                                                    Paciente
+                                                    <span class="text-red-500">*</span>
+                                                </Label>
+                                                <button
+                                                    v-if="can('patients.create') && !isEditing"
+                                                    type="button"
+                                                    class="flex items-center gap-1 rounded-lg px-2 py-0.5 text-[11px] font-medium transition-colors hover:bg-muted"
+                                                    :style="{ color: 'var(--primary)' }"
+                                                    @click="showQuickPatient = !showQuickPatient"
                                                 >
-                                            </Label>
+                                                    <UserPlus class="h-3 w-3" />
+                                                    Nuevo paciente
+                                                </button>
+                                            </div>
+
+                                            <!-- Mini-form paciente rápido -->
+                                            <div v-if="showQuickPatient && !isEditing" class="rounded-2xl border border-border bg-muted/30 p-3 space-y-2">
+                                                <p class="text-xs font-semibold text-foreground">Registrar paciente rápido</p>
+                                                <div class="grid grid-cols-2 gap-2">
+                                                    <div>
+                                                        <label class="text-[11px] text-muted-foreground">Nombre(s)*</label>
+                                                        <input v-model="quickForm.nombres" type="text" class="mt-0.5 w-full rounded-xl border border-border bg-background px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary" placeholder="Sofía" />
+                                                    </div>
+                                                    <div>
+                                                        <label class="text-[11px] text-muted-foreground">Apellido paterno*</label>
+                                                        <input v-model="quickForm.apellido_paterno" type="text" class="mt-0.5 w-full rounded-xl border border-border bg-background px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary" placeholder="Ramírez" />
+                                                    </div>
+                                                    <div>
+                                                        <label class="text-[11px] text-muted-foreground">Apellido materno</label>
+                                                        <input v-model="quickForm.apellido_materno" type="text" class="mt-0.5 w-full rounded-xl border border-border bg-background px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary" placeholder="Lozano" />
+                                                    </div>
+                                                    <div>
+                                                        <label class="text-[11px] text-muted-foreground">Teléfono</label>
+                                                        <input v-model="quickForm.telefono" type="text" class="mt-0.5 w-full rounded-xl border border-border bg-background px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary" placeholder="5512345678" />
+                                                    </div>
+                                                </div>
+                                                <div class="flex gap-2 pt-1">
+                                                    <button
+                                                        type="button"
+                                                        :disabled="quickSaving || !quickForm.nombres || !quickForm.apellido_paterno"
+                                                        class="flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-medium disabled:opacity-50 transition-opacity"
+                                                        :style="{ backgroundColor: 'var(--primary)', color: 'var(--primary-foreground)' }"
+                                                        @click="createQuickPatient"
+                                                    >
+                                                        <Loader2 v-if="quickSaving" class="h-3 w-3 animate-spin" />
+                                                        <UserPlus v-else class="h-3 w-3" />
+                                                        {{ quickSaving ? 'Guardando...' : 'Crear y seleccionar' }}
+                                                    </button>
+                                                    <button type="button" class="rounded-xl px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground" @click="showQuickPatient = false">Cancelar</button>
+                                                </div>
+                                            </div>
 
                                             <SearchableSelect
-                                                v-model="
-                                                    form.patient_persona_id
-                                                "
+                                                v-model="form.patient_persona_id"
                                                 :options="[
-                                                    {
-                                                        value: '',
-                                                        label: 'Seleccionar paciente',
-                                                    },
-                                                    ...props.lookups.patients.map(
-                                                        (patient) => ({
-                                                            value: patient.id,
-                                                            label: patient.label,
-                                                        }),
-                                                    ),
+                                                    { value: '', label: 'Seleccionar paciente' },
+                                                    ...localPatients.map((patient) => ({
+                                                        value: patient.id,
+                                                        label: patient.label,
+                                                    })),
                                                 ]"
                                             />
 
                                             <p
-                                                v-if="
-                                                    form.errors
-                                                        .patient_persona_id
-                                                "
+                                                v-if="form.errors.patient_persona_id"
                                                 class="text-xs text-red-500"
                                             >
-                                                {{
-                                                    form.errors
-                                                        .patient_persona_id
-                                                }}
+                                                {{ form.errors.patient_persona_id }}
                                             </p>
                                         </div>
 

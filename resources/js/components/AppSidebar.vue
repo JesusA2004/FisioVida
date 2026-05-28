@@ -15,6 +15,7 @@ import {
     ListTodo,
     KeyRound,
     Zap,
+    HeartHandshake,
 } from 'lucide-vue-next';
 
 import NavFooter from '@/components/NavFooter.vue';
@@ -56,8 +57,26 @@ const can = (permission: string) =>
 const canAccess = (module: string, permission: string) =>
     moduleEnabled(module) && can(permission);
 
+// Verificar si el usuario es paciente puro (solo tiene patient_portal.view sin permisos admin)
+const isPatientOnly = computed(() => {
+    if (isSuperAdmin.value) return false;
+    if (!permissions.value.includes('patient_portal.view')) return false;
+    const adminPerms = [
+        'patients.view', 'sessions.view', 'appointments.view',
+        'exercises.view', 'files.view', 'payments.view',
+        'users.view', 'roles.view', 'settings.view', 'reports.view',
+    ];
+    return !adminPerms.some(p => permissions.value.includes(p));
+});
+
 const mainNavItems = computed<NavItem[]>(() => {
     const items: NavItem[] = [];
+
+    // Paciente puro: mostrar solo Mi Portal
+    if (isPatientOnly.value) {
+        items.push({ title: 'Mi Portal', href: '/mi-portal', icon: HeartHandshake });
+        return items;
+    }
 
     if (canAccess('dashboard', 'dashboard.view'))
         items.push({
@@ -65,6 +84,10 @@ const mainNavItems = computed<NavItem[]>(() => {
             href: '/dashboard',
             icon: LayoutGrid,
         });
+
+    // Mi Portal: también visible si tiene patient_portal.view y permisos adicionales
+    if (can('patient_portal.view'))
+        items.push({ title: 'Mi Portal', href: '/mi-portal', icon: HeartHandshake });
 
     // Mi Jornada: solo para terapeutas con permiso de citas (no superadmin)
     if (can('appointments.view') && !isSuperAdmin.value) {

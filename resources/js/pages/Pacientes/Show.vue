@@ -1041,7 +1041,7 @@ const registerPrivacyNotice = async () => {
 
                         <Button
                             variant="outline"
-                            class="h-10 rounded-xl border-zinc-200 bg-white transition-all duration-200 hover:-translate-y-0.5 hover:border-[color:var(--primary)] hover:text-[color:var(--primary)]"
+                            class="h-10 rounded-xl border-border bg-card transition-all duration-200 hover:-translate-y-0.5 hover:border-[color:var(--primary)] hover:text-[color:var(--primary)]"
                             @click="goToAppointments"
                         >
                             Agendar cita
@@ -1266,7 +1266,7 @@ const registerPrivacyNotice = async () => {
 
                         <Button
                             variant="outline"
-                            class="h-10 rounded-xl border-zinc-200 bg-white transition-all duration-200 hover:-translate-y-0.5 hover:border-[color:var(--primary)] hover:text-[color:var(--primary)]"
+                            class="h-10 rounded-xl border-border bg-card transition-all duration-200 hover:-translate-y-0.5 hover:border-[color:var(--primary)] hover:text-[color:var(--primary)]"
                             @click="goToPayments"
                         >
                             Ir a cobranza

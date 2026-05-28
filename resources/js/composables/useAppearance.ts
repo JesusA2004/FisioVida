@@ -10,24 +10,25 @@ export type UseAppearanceReturn = {
     updateAppearance: (value: Appearance) => void;
 };
 
+export function resolveTheme(value: Appearance): ResolvedAppearance {
+    if (value === 'system') {
+        if (typeof window === 'undefined') return 'light';
+        return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    }
+    return value;
+}
+
 export function updateTheme(value: Appearance): void {
     if (typeof window === 'undefined') {
         return;
     }
 
-    if (value === 'system') {
-        const mediaQueryList = window.matchMedia(
-            '(prefers-color-scheme: dark)',
-        );
-        const systemTheme = mediaQueryList.matches ? 'dark' : 'light';
+    const resolved = resolveTheme(value);
+    document.documentElement.classList.toggle('dark', resolved === 'dark');
 
-        document.documentElement.classList.toggle(
-            'dark',
-            systemTheme === 'dark',
-        );
-    } else {
-        document.documentElement.classList.toggle('dark', value === 'dark');
-    }
+    window.dispatchEvent(
+        new CustomEvent('appearance:changed', { detail: { theme: resolved } }),
+    );
 }
 
 const setCookie = (name: string, value: string, days = 365) => {
@@ -36,7 +37,6 @@ const setCookie = (name: string, value: string, days = 365) => {
     }
 
     const maxAge = days * 24 * 60 * 60;
-
     document.cookie = `${name}=${value};path=/;max-age=${maxAge};SameSite=Lax`;
 };
 
@@ -66,7 +66,6 @@ const prefersDark = (): boolean => {
 
 const handleSystemThemeChange = () => {
     const currentAppearance = getStoredAppearance();
-
     updateTheme(currentAppearance || 'system');
 };
 
@@ -78,13 +77,10 @@ export function initializeTheme(adminDefault?: 'dark' | 'light'): void {
     const savedAppearance = getStoredAppearance();
 
     if (savedAppearance) {
-        // El usuario tiene una preferencia guardada — respetarla siempre
         updateTheme(savedAppearance);
     } else if (adminDefault) {
-        // No hay preferencia de usuario, usar el default del admin/sistema
         updateTheme(adminDefault);
     } else {
-        // Sin preferencia ni config de admin, seguir la preferencia del OS
         updateTheme('system');
     }
 
@@ -95,9 +91,7 @@ const appearance = ref<Appearance>('system');
 
 export function useAppearance(): UseAppearanceReturn {
     onMounted(() => {
-        const savedAppearance = localStorage.getItem(
-            'appearance',
-        ) as Appearance | null;
+        const savedAppearance = localStorage.getItem('appearance') as Appearance | null;
 
         if (savedAppearance) {
             appearance.value = savedAppearance;
@@ -115,10 +109,7 @@ export function useAppearance(): UseAppearanceReturn {
     function updateAppearance(value: Appearance) {
         appearance.value = value;
 
-        // Store in localStorage for client-side persistence...
         localStorage.setItem('appearance', value);
-
-        // Store in cookie for SSR...
         setCookie('appearance', value);
 
         updateTheme(value);

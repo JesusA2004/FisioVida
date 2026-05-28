@@ -21,6 +21,7 @@ use App\Http\Controllers\FisioVida\ReportesController;
 use App\Http\Controllers\FisioVida\ConsentimientosController;
 use App\Http\Controllers\FisioVida\CumplimientoDocumentosController;
 use App\Http\Controllers\FisioVida\MiJornadaController;
+use App\Http\Controllers\FisioVida\PacientePortalController;
 
 Route::get('/', function () {
     if (auth()->check()) {
@@ -36,6 +37,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('pacientes', [PacientesController::class, 'index'])
         ->name('pacientes.index')
         ->middleware('permission:patients.view');
+
+    Route::post('pacientes/rapido', [PacientesController::class, 'storeQuick'])
+        ->name('pacientes.quick')
+        ->middleware('permission:patients.create');
 
     Route::get('pacientes/{paciente}', [PacientesController::class, 'show'])
         ->name('pacientes.show')
@@ -174,6 +179,18 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('mi-jornada', [MiJornadaController::class, 'index'])
         ->name('mi-jornada.index')
         ->middleware('permission:appointments.view');
+
+    Route::get('mi-jornada/citas/{cita}/atencion', [MiJornadaController::class, 'atencion'])
+        ->name('mi-jornada.atencion')
+        ->middleware('permission:appointments.view');
+
+    Route::post('mi-jornada/citas/{cita}/sesion', [MiJornadaController::class, 'registrarSesion'])
+        ->name('mi-jornada.sesion.store')
+        ->middleware('permission:sessions.create');
+
+    Route::get('mi-portal', [PacientePortalController::class, 'index'])
+        ->name('paciente.portal')
+        ->middleware('permission:patient_portal.view');
 
 });
 

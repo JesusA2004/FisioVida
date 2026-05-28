@@ -73,24 +73,27 @@ const activeModules = computed(
 
 const applyThemeColors = () => {
     const root = document.documentElement
+    const dark = root.classList.contains('dark')
 
+    // El color primario aplica en ambos modos
     root.style.setProperty('--primary', form.primary_color)
     root.style.setProperty('--color-primary', form.primary_color)
     root.style.setProperty('--primary-hover', form.primary_hover_color)
     root.style.setProperty('--ring', form.primary_color)
     root.style.setProperty('--color-ring', form.primary_color)
-
     root.style.setProperty('--primary-foreground', form.primary_foreground_color)
     root.style.setProperty('--color-primary-foreground', form.primary_foreground_color)
 
-    root.style.setProperty('--background', form.app_background_color)
-    root.style.setProperty('--color-background', form.app_background_color)
-
-    root.style.setProperty('--card', form.card_background_color)
-    root.style.setProperty('--color-card', form.card_background_color)
-
-    root.style.setProperty('--sidebar-background', form.sidebar_background_color)
-    root.style.setProperty('--color-sidebar', form.sidebar_background_color)
+    // Los fondos configurados solo aplican en light mode.
+    // En dark mode el bloque .dark del CSS define la paleta premium.
+    if (!dark) {
+        root.style.setProperty('--background', form.app_background_color)
+        root.style.setProperty('--color-background', form.app_background_color)
+        root.style.setProperty('--card', form.card_background_color)
+        root.style.setProperty('--color-card', form.card_background_color)
+        root.style.setProperty('--sidebar-background', form.sidebar_background_color)
+        root.style.setProperty('--color-sidebar', form.sidebar_background_color)
+    }
 }
 
 watch(
@@ -460,7 +463,7 @@ const setHoverColor = (event: MouseEvent, color: string) => {
                     </h2>
 
                     <p class="mt-1 text-sm text-muted-foreground">
-                        Estos colores afectan botones, fondo general, tarjetas y menú lateral.
+                        Estos colores personalizan el modo claro. En modo oscuro se usa una paleta premium automática para mantener contraste.
                     </p>
 
                     <div class="mt-4 grid gap-3">

@@ -81,6 +81,29 @@ class PacientesController extends Controller {
         ]);
     }
 
+    // POST /pacientes/rapido — crea paciente mínimo y devuelve JSON {id, label}
+    public function storeQuick(\Illuminate\Http\Request $request)
+    {
+        $data = $request->validate([
+            'nombres'           => 'required|string|max:120',
+            'apellido_paterno'  => 'required|string|max:80',
+            'apellido_materno'  => 'nullable|string|max:80',
+            'telefono'          => 'nullable|string|max:20',
+        ]);
+
+        $data['tipo'] = 'paciente';
+        $data['status'] = 'active';
+        $data['created_at'] = now();
+        $data['updated_at'] = now();
+
+        DB::table('personas')->insert($data);
+        $newId = (int) DB::getPdo()->lastInsertId();
+
+        $label = trim(($data['apellido_paterno']).' '.($data['apellido_materno'] ?? '').' '.($data['nombres']));
+
+        return response()->json(['id' => $newId, 'label' => $label]);
+    }
+
     public function store(PacienteStoreRequest $request) {
         $payload = $this->sanitizePersonaPayload($request->validated());
         $payload['tipo'] = 'paciente';
@@ -263,11 +286,10 @@ class PacientesController extends Controller {
             ->values();
 
         $payments = DB::table('payments')
-            ->whereNotNull('reference')
-            ->where('reference', 'like', '%'.$id.'%')
+            ->where('patient_persona_id', $id)
             ->orderByDesc('id')
             ->limit(20)
-            ->get(['id', 'amount', 'currency', 'status', 'paid_at', 'reference']);
+            ->get(['id', 'amount', 'currency', 'status', 'paid_at', 'reference', 'concept', 'created_at']);
 
         $activities = DB::table('activities as a')
             ->leftJoin('users as u', 'u.id', '=', 'a.responsible_user_id')
@@ -306,8 +328,8 @@ class PacientesController extends Controller {
                 'direccion' => $patient->direccion,
                 'fecha_nacimiento' => $patient->fecha_nacimiento,
                 'sexo' => $patient->sexo,
-                'contacto_emergencia_nombre' => $patient->contacto_emergencia_nombre,
-                'contacto_emergencia_telefono' => $patient->contacto_emergencia_telefono,
+                'emergency_contact_name' => $patient->contacto_emergencia_nombre,
+                'emergency_contact_phone' => $patient->contacto_emergencia_telefono,
                 'notas' => $patient->notas,
                 'created_at' => $patient->created_at,
                 'updated_at' => $patient->updated_at,

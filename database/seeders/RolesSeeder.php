@@ -16,6 +16,7 @@ class RolesSeeder extends Seeder
             ['name' => 'Terapeuta', 'slug' => 'terapeuta', 'description' => 'Atención clínica y sesiones.', 'status' => 'active'],
             ['name' => 'Cobranza', 'slug' => 'cobranza', 'description' => 'Seguimiento de pagos e ingresos.', 'status' => 'active'],
             ['name' => 'Dirección', 'slug' => 'direccion', 'description' => 'Consulta de indicadores y reportes.', 'status' => 'active'],
+            ['name' => 'Paciente', 'slug' => 'paciente', 'description' => 'Acceso al portal personal del paciente.', 'status' => 'active'],
         ];
 
         $permissionGroups = [
@@ -48,6 +49,10 @@ class RolesSeeder extends Seeder
                 'appointments.view',
                 'sessions.view',
                 'payments.view',
+            ])->pluck('id')->all(),
+            'paciente' => Permission::query()->whereIn('slug', [
+                'dashboard.view',
+                'patient_portal.view',
             ])->pluck('id')->all(),
         ];
 
