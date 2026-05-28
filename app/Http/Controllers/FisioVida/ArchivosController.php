@@ -183,7 +183,8 @@ class ArchivosController extends Controller
         $data = $request->validate([
             'patient_persona_id' => ['nullable', 'integer', 'exists:personas,id', 'prohibits:session_id'],
             'session_id' => ['nullable', 'integer', 'exists:therapy_sessions,id', 'prohibits:patient_persona_id'],
-            'file_type' => ['required', 'string', Rule::in(array_keys($this->fileTypes))],
+            'file_type'          => ['required', 'string', Rule::in(array_keys($this->fileTypes))],
+            'visible_to_patient' => ['nullable', 'boolean'],
             'files' => ['required', 'array', 'min:1', 'max:15'],
             'files.*' => [
                 'required',
@@ -221,7 +222,8 @@ class ArchivosController extends Controller
                     'disk' => $disk,
                     'path' => $path,
                     'original_name' => $safeOriginalName !== '' ? $safeOriginalName : $uploadedFile->getClientOriginalName(),
-                    'file_type' => $data['file_type'],
+                    'file_type'          => $data['file_type'],
+                    'visible_to_patient' => (bool) ($data['visible_to_patient'] ?? false),
                     'mime' => $uploadedFile->getClientMimeType(),
                     'size_bytes' => $uploadedFile->getSize(),
                     'created_at' => now(),
@@ -285,8 +287,9 @@ class ArchivosController extends Controller
 
         $data = $request->validate([
             'patient_persona_id' => ['nullable', 'integer', 'exists:personas,id', 'prohibits:session_id'],
-            'session_id' => ['nullable', 'integer', 'exists:therapy_sessions,id', 'prohibits:patient_persona_id'],
-            'file_type' => ['required', 'string', Rule::in(array_keys($this->fileTypes))],
+            'session_id'         => ['nullable', 'integer', 'exists:therapy_sessions,id', 'prohibits:patient_persona_id'],
+            'file_type'          => ['required', 'string', Rule::in(array_keys($this->fileTypes))],
+            'visible_to_patient' => ['nullable', 'boolean'],
             'replacement_file' => [
                 'nullable',
                 'file',
@@ -298,8 +301,9 @@ class ArchivosController extends Controller
         $oldValues = (array) $row;
         $payload = [
             'patient_persona_id' => $data['patient_persona_id'] ?? null,
-            'session_id' => $data['session_id'] ?? null,
-            'file_type' => $data['file_type'],
+            'session_id'         => $data['session_id'] ?? null,
+            'file_type'          => $data['file_type'],
+            'visible_to_patient' => (bool) ($data['visible_to_patient'] ?? false),
         ];
 
         $newPath = null;

@@ -15,16 +15,16 @@ class EjerciciosDemoSeeder extends Seeder
         }
 
         $items = [
-            ['name' => 'Estiramiento cervical', 'description' => 'Movilización suave para cuello con control respiratorio.', 'video_url' => 'https://youtu.be/demo-cervical'],
-            ['name' => 'Movilidad de hombro', 'description' => 'Ejercicio activo-asistido para mejorar rango de movimiento.', 'video_url' => 'https://youtu.be/demo-hombro'],
-            ['name' => 'Fortalecimiento lumbar', 'description' => 'Activación de core y estabilización lumbar.', 'video_url' => null],
+            ['name' => 'Estiramiento cervical', 'description' => 'Movilización suave para cuello con control respiratorio.', 'video_url' => 'https://www.youtube.com/watch?v=kj5nt8Fhqec'],
+            ['name' => 'Movilidad de hombro', 'description' => 'Ejercicio activo-asistido para mejorar rango de movimiento.', 'video_url' => 'https://www.youtube.com/watch?v=BcPCLGDzpJY'],
+            ['name' => 'Fortalecimiento lumbar', 'description' => 'Activación de core y estabilización lumbar.', 'video_url' => 'https://www.youtube.com/watch?v=3N_FF2HqHKE'],
             ['name' => 'Respiración diafragmática', 'description' => 'Control de patrón respiratorio y relajación.', 'video_url' => null],
-            ['name' => 'Estiramiento de isquiotibiales', 'description' => 'Trabajo de flexibilidad posterior de muslo.', 'video_url' => 'https://youtu.be/demo-isquios'],
+            ['name' => 'Estiramiento de isquiotibiales', 'description' => 'Trabajo de flexibilidad posterior de muslo.', 'video_url' => 'https://www.youtube.com/watch?v=Wt4bqvmjZr0'],
             ['name' => 'Puente de glúteos', 'description' => 'Fortalecimiento de cadena posterior.', 'video_url' => null],
             ['name' => 'Sentadilla asistida', 'description' => 'Reeducación funcional de miembros inferiores.', 'video_url' => null],
-            ['name' => 'Propiocepción de tobillo', 'description' => 'Control neuromuscular en apoyo unipodal.', 'video_url' => 'https://youtu.be/demo-tobillo'],
+            ['name' => 'Propiocepción de tobillo', 'description' => 'Control neuromuscular en apoyo unipodal.', 'video_url' => 'https://www.youtube.com/watch?v=vRRuVcFoZE0'],
             ['name' => 'Movilidad torácica', 'description' => 'Rotaciones torácicas en cuadrupedia.', 'video_url' => null],
-            ['name' => 'Fortalecimiento escapular', 'description' => 'Retracción escapular con banda elástica.', 'video_url' => 'https://youtu.be/demo-escapular'],
+            ['name' => 'Fortalecimiento escapular', 'description' => 'Retracción escapular con banda elástica.', 'video_url' => 'https://www.youtube.com/watch?v=CZtk2M-TKqg'],
         ];
 
         foreach ($items as $index => $exercise) {

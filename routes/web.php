@@ -22,6 +22,7 @@ use App\Http\Controllers\FisioVida\ConsentimientosController;
 use App\Http\Controllers\FisioVida\CumplimientoDocumentosController;
 use App\Http\Controllers\FisioVida\MiJornadaController;
 use App\Http\Controllers\FisioVida\PacientePortalController;
+use App\Http\Controllers\FisioVida\AppointmentRequestsController;
 
 Route::get('/', function () {
     if (auth()->check()) {
@@ -191,6 +192,35 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('mi-portal', [PacientePortalController::class, 'index'])
         ->name('paciente.portal')
         ->middleware('permission:patient_portal.view');
+
+    Route::get('mi-portal/archivos/{archivo}', [PacientePortalController::class, 'verArchivo'])
+        ->name('paciente.archivos.ver')
+        ->middleware('permission:patient_portal.view');
+
+    Route::get('mi-portal/archivos/{archivo}/descargar', [PacientePortalController::class, 'descargarArchivo'])
+        ->name('paciente.archivos.descargar')
+        ->middleware('permission:patient_portal.view');
+
+    // Solicitudes de cita
+    Route::get('solicitudes-cita', [AppointmentRequestsController::class, 'index'])
+        ->name('solicitudes-cita.index')
+        ->middleware('permission:appointment_requests.view');
+
+    Route::post('solicitudes-cita', [AppointmentRequestsController::class, 'store'])
+        ->name('solicitudes-cita.store')
+        ->middleware('permission:appointment_requests.create');
+
+    Route::patch('solicitudes-cita/{id}/aprobar', [AppointmentRequestsController::class, 'aprobar'])
+        ->name('solicitudes-cita.aprobar')
+        ->middleware('permission:appointment_requests.approve');
+
+    Route::patch('solicitudes-cita/{id}/rechazar', [AppointmentRequestsController::class, 'rechazar'])
+        ->name('solicitudes-cita.rechazar')
+        ->middleware('permission:appointment_requests.approve');
+
+    Route::patch('solicitudes-cita/{id}/cancelar', [AppointmentRequestsController::class, 'cancelar'])
+        ->name('solicitudes-cita.cancelar')
+        ->middleware('permission:appointment_requests.create');
 
 });
 

@@ -30,7 +30,20 @@
             }
         </style>
 
-        <title inertia>{{ config('app.name', 'Laravel') }}</title>
+        <title inertia>{{ config('app.name', 'FisioVida') }}</title>
+
+        <meta name="description" content="FisioVida — Sistema de gestión clínica para fisioterapia. Agenda, expedientes, sesiones, pagos y portal para pacientes.">
+        <meta name="robots" content="noindex, nofollow">
+
+        <meta property="og:type" content="website">
+        <meta property="og:site_name" content="{{ config('app.name', 'FisioVida') }}">
+        <meta property="og:title" content="{{ config('app.name', 'FisioVida') }} — Gestión clínica para fisioterapia">
+        <meta property="og:description" content="Plataforma integral para clínicas de fisioterapia: agenda inteligente, expedientes clínicos, control de pagos y portal del paciente.">
+        <meta property="og:image" content="{{ asset('favicon.ico') }}">
+
+        <meta name="twitter:card" content="summary">
+        <meta name="twitter:title" content="{{ config('app.name', 'FisioVida') }}">
+        <meta name="twitter:description" content="Sistema de gestión clínica para fisioterapia.">
 
         <link rel="icon" href="/favicon.ico" sizes="any">
         <link rel="icon" href="/favicon.svg" type="image/svg+xml">

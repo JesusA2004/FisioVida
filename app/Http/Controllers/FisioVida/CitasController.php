@@ -7,6 +7,8 @@ use App\Http\Controllers\FisioVida\Concerns\CrudHelpers;
 use App\Http\Requests\Citas\CitaStoreRequest;
 use App\Http\Requests\Citas\CitaUpdateRequest;
 use App\Http\Resources\CitaResource;
+use App\Mail\AppointmentCancelledMail;
+use App\Mail\AppointmentConfirmedMail;
 use App\Mail\AppointmentScheduledMail;
 use App\Services\Audit\AuditLogService;
 use Illuminate\Http\Request;
@@ -26,6 +28,22 @@ class CitasController extends Controller
         $q = $this->like($request->string('q'));
         $status = $request->string('status')->toString();
         $perPageInput = $request->input('per_page', 10);
+        $dateFrom = $request->string('date_from')->toString();
+        $dateTo   = $request->string('date_to')->toString();
+        $therapistFilter = $request->string('therapist_user_id')->toString();
+
+        // For therapist-role users, silently scope to their own appointments
+        $currentUser = $request->user();
+        if (! $currentUser->isSuperAdmin() && $therapistFilter === '') {
+            $isTherapistUser = DB::table('role_user')
+                ->join('roles', 'roles.id', '=', 'role_user.role_id')
+                ->where('role_user.user_id', $currentUser->id)
+                ->whereRaw("LOWER(roles.slug) IN ('terapeuta', 'therapist', 'fisioterapeuta')")
+                ->exists();
+            if ($isTherapistUser) {
+                $therapistFilter = (string) $currentUser->id;
+            }
+        }
 
         $query = DB::table('appointments as a')
             ->join('personas as p', 'p.id', '=', 'a.patient_persona_id')
@@ -59,6 +77,16 @@ class CitasController extends Controller
                     ->orWhere('p.apellido_materno', 'like', $q)
                     ->orWhere('u.name', 'like', $q);
             });
+        }
+
+        if ($dateFrom !== '') {
+            $query->where('a.start_at', '>=', $dateFrom . ' 00:00:00');
+        }
+        if ($dateTo !== '') {
+            $query->where('a.start_at', '<=', $dateTo . ' 23:59:59');
+        }
+        if ($therapistFilter !== '') {
+            $query->where('a.therapist_user_id', (int) $therapistFilter);
         }
 
         if ($perPageInput === 'all') {
@@ -100,7 +128,7 @@ class CitasController extends Controller
                 ...$this->packPaginator($paginator),
                 'per_page_selected' => $perPageInput === 'all' ? 'all' : $perPage,
             ],
-            'filters' => $this->filters($request, ['q', 'status', 'per_page']),
+            'filters' => $this->filters($request, ['q', 'status', 'per_page', 'date_from', 'date_to', 'therapist_user_id']),
             'lookups' => [
                 'patients' => $patients,
                 'therapists' => $therapists,
@@ -273,6 +301,8 @@ class CitasController extends Controller
             'cancelled',
         );
 
+        $this->sendStatusMail('cancelled', (int) $id);
+
         return back()->with('success', 'Cita cancelada.');
     }
 
@@ -335,7 +365,44 @@ class CitasController extends Controller
             $nextStatus,
         );
 
+        $this->sendStatusMail($nextStatus, (int) $id);
+
         return back()->with('success', 'Estado de cita actualizado.');
+    }
+
+    private function sendStatusMail(string $status, int $appointmentId): void
+    {
+        try {
+            $appointment = $this->getAppointmentNotificationData($appointmentId);
+            if (! $appointment) {
+                return;
+            }
+
+            $mail = match ($status) {
+                'confirmed' => new AppointmentConfirmedMail($appointment),
+                'cancelled'  => new AppointmentCancelledMail($appointment),
+                default      => null,
+            };
+
+            if (! $mail) {
+                return;
+            }
+
+            $recipients = collect([
+                $appointment['patient_email'] ?? null,
+                $appointment['therapist_email'] ?? null,
+            ])->filter()->unique()->values();
+
+            foreach ($recipients as $email) {
+                Mail::to($email)->send($mail);
+            }
+        } catch (Throwable $e) {
+            Log::error('CitasController: correo de estado no enviado', [
+                'status'         => $status,
+                'appointment_id' => $appointmentId,
+                'error'          => $e->getMessage(),
+            ]);
+        }
     }
 
     private function hasOverlap(int $therapistId, string $startAt, string $endAt, ?int $excludeId = null): bool

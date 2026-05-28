@@ -16,6 +16,7 @@ import {
     KeyRound,
     Zap,
     HeartHandshake,
+    Inbox,
 } from 'lucide-vue-next';
 
 import NavFooter from '@/components/NavFooter.vue';
@@ -101,6 +102,8 @@ const mainNavItems = computed<NavItem[]>(() => {
 
     if (canAccess('agenda', 'appointments.view'))
         items.push({ title: 'Agenda', href: '/citas', icon: CalendarDays });
+    if (can('appointment_requests.view'))
+        items.push({ title: 'Solicitudes', href: '/solicitudes-cita', icon: Inbox });
     if (canAccess('pacientes', 'patients.view'))
         items.push({ title: 'Pacientes', href: '/pacientes', icon: Users });
     if (canAccess('sesiones', 'sessions.view'))

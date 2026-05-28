@@ -20,6 +20,7 @@ class DatabaseSeeder extends Seeder
             SesionesDemoSeeder::class,
             PagosDemoSeeder::class,
             ActividadesDemoSeeder::class,
+            AppointmentRequestsDemoSeeder::class,
         ]);
     }
 }

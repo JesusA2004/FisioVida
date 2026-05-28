@@ -25,6 +25,12 @@ class PermissionsSeeder extends Seeder
             'reports' => ['reports.view'],
             'logs' => ['logs.view'],
             'patient_portal' => ['patient_portal.view'],
+            'appointment_requests' => [
+                'appointment_requests.view',
+                'appointment_requests.create',
+                'appointment_requests.update',
+                'appointment_requests.approve',
+            ],
         ];
 
         foreach ($permissions as $module => $slugs) {

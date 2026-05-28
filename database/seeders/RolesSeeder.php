@@ -26,6 +26,8 @@ class RolesSeeder extends Seeder
                 'patients.view', 'patients.create', 'patients.update',
                 'appointments.view', 'appointments.create', 'appointments.update', 'appointments.cancel',
                 'activities.view', 'activities.create', 'activities.update',
+                'files.view',
+                'appointment_requests.view', 'appointment_requests.update', 'appointment_requests.approve',
             ])->pluck('id')->all(),
             'terapeuta' => Permission::query()->whereIn('slug', [
                 'dashboard.view',
@@ -33,7 +35,9 @@ class RolesSeeder extends Seeder
                 'patients.view',
                 'sessions.view', 'sessions.create', 'sessions.update',
                 'exercises.view', 'exercises.create', 'exercises.update',
+                'files.view', 'files.upload',
                 'activities.view', 'activities.create', 'activities.update', 'activities.complete',
+                'appointment_requests.view',
             ])->pluck('id')->all(),
             'cobranza' => Permission::query()->whereIn('slug', [
                 'dashboard.view',
@@ -49,10 +53,12 @@ class RolesSeeder extends Seeder
                 'appointments.view',
                 'sessions.view',
                 'payments.view',
+                'appointment_requests.view',
             ])->pluck('id')->all(),
             'paciente' => Permission::query()->whereIn('slug', [
                 'dashboard.view',
                 'patient_portal.view',
+                'appointment_requests.create', 'appointment_requests.view',
             ])->pluck('id')->all(),
         ];
 

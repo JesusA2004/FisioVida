@@ -23,6 +23,7 @@ import {
 import {
     AlertCircle,
     CalendarClock,
+    CalendarDays,
     CalendarPlus,
     CheckCircle2,
     ClipboardPlus,
@@ -38,6 +39,7 @@ import {
 } from 'lucide-vue-next';
 import SearchableSelect from '@/components/ui/SearchableSelect.vue';
 import DateTimePicker from '@/components/ui/DateTimePicker.vue';
+import DatePicker from '@/components/ui/DatePicker.vue';
 import StatusFlow from '@/components/ui/StatusFlow.vue';
 import FvPagination from '@/components/fv/FvPagination.vue';
 import { formatDateTimeMx } from '@/lib/dates';
@@ -58,6 +60,9 @@ const props = defineProps<{
         q?: string;
         status?: string;
         per_page?: string | number;
+        date_from?: string | null;
+        date_to?: string | null;
+        therapist_user_id?: string | null;
     };
     lookups: {
         patients: { id: number; label: string }[];
@@ -95,13 +100,33 @@ onMounted(() => {
 
 const search = ref(props.filters.q ?? '');
 const selectedStatus = ref<string | null>(props.filters.status ?? null);
+const dateFrom = ref<string>(props.filters.date_from ?? '');
+const dateTo = ref<string>(props.filters.date_to ?? '');
+const selectedTherapist = ref<string | null>(props.filters.therapist_user_id ?? null);
+const activePreset = ref<string>('');
 let searchTimer: ReturnType<typeof setTimeout> | null = null;
+
+const padN = (n: number) => String(n).padStart(2, '0');
+const dateToIso = (d: Date) => `${d.getFullYear()}-${padN(d.getMonth() + 1)}-${padN(d.getDate())}`;
+
+const buildFilters = (page = 1) => ({
+    q: search.value.trim(),
+    status: selectedStatus.value ?? '',
+    date_from: dateFrom.value,
+    date_to: dateTo.value,
+    therapist_user_id: selectedTherapist.value ?? '',
+    page,
+    per_page: props.page.per_page_selected ?? props.page.per_page ?? 10,
+});
 
 watch(
     () => props.filters,
     (filters) => {
         search.value = filters.q ?? '';
         selectedStatus.value = filters.status ?? null;
+        dateFrom.value = filters.date_from ?? '';
+        dateTo.value = filters.date_to ?? '';
+        selectedTherapist.value = filters.therapist_user_id ?? null;
     },
     { deep: true },
 );
@@ -110,12 +135,7 @@ watch(search, (value) => {
     if (searchTimer) clearTimeout(searchTimer);
 
     searchTimer = setTimeout(() => {
-        applyFilters({
-            q: value.trim(),
-            status: selectedStatus.value ?? '',
-            page: 1,
-            per_page: props.page.per_page_selected ?? props.page.per_page ?? 10,
-        });
+        applyFilters(buildFilters());
     }, 450);
 });
 
@@ -125,13 +145,50 @@ const clearSearch = () => {
 
 const applyStatus = (value: string | number | null) => {
     selectedStatus.value = value ? String(value) : null;
+    applyFilters(buildFilters());
+};
 
-    applyFilters({
-        q: search.value.trim(),
-        status: selectedStatus.value ?? '',
-        page: 1,
-        per_page: props.page.per_page_selected ?? props.page.per_page ?? 10,
-    });
+const applyTherapist = (value: string | number | null) => {
+    selectedTherapist.value = value ? String(value) : null;
+    applyFilters(buildFilters());
+};
+
+const onDateFrom = (v: string | null) => {
+    dateFrom.value = v ?? '';
+    activePreset.value = 'custom';
+    applyFilters(buildFilters());
+};
+
+const onDateTo = (v: string | null) => {
+    dateTo.value = v ?? '';
+    activePreset.value = 'custom';
+    applyFilters(buildFilters());
+};
+
+const setPreset = (preset: 'today' | 'week' | 'month' | 'all') => {
+    const now = new Date();
+    activePreset.value = preset;
+    if (preset === 'today') {
+        const today = dateToIso(now);
+        dateFrom.value = today;
+        dateTo.value = today;
+    } else if (preset === 'week') {
+        const day = now.getDay();
+        const monday = new Date(now);
+        monday.setDate(now.getDate() - ((day + 6) % 7));
+        const sunday = new Date(monday);
+        sunday.setDate(monday.getDate() + 6);
+        dateFrom.value = dateToIso(monday);
+        dateTo.value = dateToIso(sunday);
+    } else if (preset === 'month') {
+        const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+        dateFrom.value = `${now.getFullYear()}-${padN(now.getMonth() + 1)}-01`;
+        dateTo.value = dateToIso(lastDay);
+    } else {
+        dateFrom.value = '';
+        dateTo.value = '';
+    }
+    applyFilters(buildFilters());
 };
 
 const statusOptions = [
@@ -320,8 +377,9 @@ const atenderCita = (row: CitaRow) => {
                     </div>
                 </div>
 
-                <div class="fv-toolbar transition-all duration-300">
-                    <div class="grid gap-3 lg:grid-cols-[1fr_260px]">
+                <div class="fv-toolbar space-y-3 transition-all duration-300">
+                    <!-- Row 1: search + status + (therapist for admin) -->
+                    <div class="grid gap-3 lg:grid-cols-[1fr_220px_220px]">
                         <div class="relative">
                             <Search
                                 class="pointer-events-none absolute top-3.5 left-3 h-4 w-4 text-muted-foreground"
@@ -353,6 +411,84 @@ const atenderCita = (row: CitaRow) => {
                             clearable
                             @update:model-value="applyStatus"
                         />
+
+                        <SearchableSelect
+                            v-if="!isTherapistRole && lookups.therapists.length > 1"
+                            :model-value="selectedTherapist"
+                            :options="[
+                                { value: null, label: 'Todos los terapeutas' },
+                                ...lookups.therapists.map((t) => ({
+                                    value: t.id,
+                                    label: t.label,
+                                })),
+                            ]"
+                            placeholder="Todos los terapeutas"
+                            clearable
+                            @update:model-value="applyTherapist"
+                        />
+                    </div>
+
+                    <!-- Row 2: date quick-presets + range pickers -->
+                    <div class="flex flex-wrap items-end gap-3">
+                        <!-- Quick preset pills -->
+                        <div class="flex flex-wrap gap-1.5">
+                            <button
+                                v-for="preset in [
+                                    { key: 'today', label: 'Hoy' },
+                                    { key: 'week', label: 'Esta semana' },
+                                    { key: 'month', label: 'Este mes' },
+                                    { key: 'all', label: 'Todas' },
+                                ]"
+                                :key="preset.key"
+                                type="button"
+                                class="flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors"
+                                :class="
+                                    activePreset === preset.key
+                                        ? 'border-transparent text-white'
+                                        : 'border-border bg-card text-muted-foreground hover:border-[color:var(--primary)] hover:text-foreground'
+                                "
+                                :style="
+                                    activePreset === preset.key
+                                        ? { backgroundColor: 'var(--primary)' }
+                                        : {}
+                                "
+                                @click="setPreset(preset.key as any)"
+                            >
+                                <CalendarDays v-if="preset.key !== 'all'" class="h-3 w-3" />
+                                {{ preset.label }}
+                            </button>
+                        </div>
+
+                        <!-- Separator -->
+                        <span class="hidden text-muted-foreground/50 sm:block">|</span>
+
+                        <!-- DatePicker range -->
+                        <div class="flex flex-wrap items-end gap-2">
+                            <div class="space-y-1">
+                                <p class="text-[11px] font-medium text-muted-foreground">Desde</p>
+                                <div class="w-44">
+                                    <DatePicker
+                                        :model-value="dateFrom || null"
+                                        :disable-future="false"
+                                        :disable-past="false"
+                                        placeholder="Fecha inicio"
+                                        @update:model-value="onDateFrom"
+                                    />
+                                </div>
+                            </div>
+                            <div class="space-y-1">
+                                <p class="text-[11px] font-medium text-muted-foreground">Hasta</p>
+                                <div class="w-44">
+                                    <DatePicker
+                                        :model-value="dateTo || null"
+                                        :disable-future="false"
+                                        :disable-past="false"
+                                        placeholder="Fecha fin"
+                                        @update:model-value="onDateTo"
+                                    />
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -518,26 +654,10 @@ const atenderCita = (row: CitaRow) => {
                     :page="props.page"
                     item-label="citas"
                     :per-page-options="[10, 15, 20, 50, 'all']"
-                    @change="
-                        (page) =>
-                            applyFilters({
-                                q: search.trim(),
-                                status: selectedStatus ?? '',
-                                page,
-                                per_page:
-                                    props.page.per_page_selected ??
-                                    props.page.per_page ??
-                                    10,
-                            })
-                    "
+                    @change="(page) => applyFilters(buildFilters(page))"
                     @per-page-change="
                         (perPage) =>
-                            applyFilters({
-                                q: search.trim(),
-                                status: selectedStatus ?? '',
-                                page: 1,
-                                per_page: perPage,
-                            })
+                            applyFilters({ ...buildFilters(), page: 1, per_page: perPage })
                     "
                 />
             </template>

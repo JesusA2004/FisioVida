@@ -12,10 +12,15 @@ const props = withDefaults(
         clearable?: boolean;
         minYear?: number;
         maxYear?: number;
+        disableFuture?: boolean;
+        disablePast?: boolean;
+        minDate?: string | null;
     }>(),
     {
         placeholder: 'Seleccionar fecha',
         clearable: true,
+        disableFuture: true,
+        disablePast: false,
     },
 );
 
@@ -40,10 +45,11 @@ const monthNames = [
 
 const weekDays = ['Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sa', 'Do'];
 
-const fallbackMaxYear = new Date().getFullYear();
+const currentYear = new Date().getFullYear();
+const fallbackMaxYear = computed(() => props.disableFuture ? currentYear : currentYear + 3);
 
-const minYearValue = computed(() => props.minYear ?? fallbackMaxYear - 120);
-const maxYearValue = computed(() => props.maxYear ?? fallbackMaxYear);
+const minYearValue = computed(() => props.minYear ?? currentYear - 120);
+const maxYearValue = computed(() => props.maxYear ?? fallbackMaxYear.value);
 
 const toLocalDate = (value?: string | null) => {
     if (!value) return null;
@@ -142,8 +148,18 @@ const setYear = (event: Event) => {
 
 const isOutsideRange = (date: Date) => {
     const year = date.getFullYear();
-
-    return year < minYearValue.value || year > maxYearValue.value || date > new Date();
+    if (year < minYearValue.value || year > maxYearValue.value) return true;
+    if (props.disableFuture && date > new Date()) return true;
+    if (props.disablePast) {
+        const today = new Date();
+        const todayMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+        if (date < todayMidnight) return true;
+    }
+    if (props.minDate) {
+        const min = toLocalDate(props.minDate);
+        if (min && date < min) return true;
+    }
+    return false;
 };
 
 const calendarDays = computed(() => {
